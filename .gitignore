@@ -1,0 +1,4 @@
+StartupWebApp/StartupWebApp/settings_secret.py
+functional_tests/geckodriver.log
+geckodriver.log
+*.pyc

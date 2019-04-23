@@ -1,0 +1,129 @@
+from django.conf import settings
+import time
+import boto3 
+from selenium.common.exceptions import WebDriverException
+
+MAX_WAIT = 10
+
+def wait_for_element_by_class_name_text_value(context, class_name, expected_value):
+	start_time = time.time()
+	while True:
+		new_value = context.browser.find_element_by_class_name(class_name).text
+		if expected_value == new_value:
+			return True
+		else:
+			if time.time() - start_time > MAX_WAIT: 
+				raise TimeoutError('The text value equality was not found before MAX_WAIT reached! expected_value=' + expected_value + ' - new_value=' + str(new_value))
+			time.sleep(0.5)
+
+def wait_for_page_title(context, expected_value):
+	start_time = time.time()
+	while True:
+		if expected_value == context.browser.title:
+			return True
+		else:
+			if time.time() - start_time > MAX_WAIT: 
+				raise TimeoutError('The page title was not found before MAX_WAIT reached!')
+			time.sleep(0.5)
+
+def wait_for_element_to_load_by_id(context, id):
+	start_time = time.time()
+	while True:
+		try:
+			context.browser.find_element_by_id(id)
+			return
+		except (AssertionError, WebDriverException) as e:
+			if time.time() - start_time > MAX_WAIT: 
+				raise e
+			time.sleep(0.5)
+
+def wait_for_element_to_load_by_class_name(context, class_name):
+	start_time = time.time()
+	while True:
+		try:
+			context.browser.find_element_by_class_name(class_name)
+			return
+		except (AssertionError, WebDriverException) as e:
+			if time.time() - start_time > MAX_WAIT: 
+				raise e
+			time.sleep(0.5)
+
+def wait_click_by_id(context, id):
+	start_time = time.time()
+	while True:
+		try:
+			context.browser.find_element_by_id(id).click()
+			return
+		except (AssertionError, WebDriverException) as e:
+			if time.time() - start_time > MAX_WAIT: 
+				raise e
+			time.sleep(0.5)
+
+def wait_click_by_class_name(context, class_name):
+	start_time = time.time()
+	while True:
+		try:
+			context.browser.find_element_by_class_name(class_name).click()
+			return
+		except (AssertionError, WebDriverException) as e:
+			if time.time() - start_time > MAX_WAIT: 
+				raise e
+			time.sleep(0.5)
+
+def wait_for_shopping_cart_count(context, count_val, count_text):
+	start_time = time.time()
+	while True:
+		try:
+			shopping_cart_element = context.browser.find_element_by_id('header-shopping-cart')
+			context.assertEqual(shopping_cart_element.find_element_by_id('cart-item-count-wrapper').get_attribute("title"), count_text)
+			context.assertEqual(shopping_cart_element.find_element_by_id('cart-item-count-wrapper').text, count_val)
+			return
+		except (AssertionError, WebDriverException) as e:
+			if time.time() - start_time > MAX_WAIT: 
+				raise e
+			time.sleep(0.5)
+
+def wait_for_welcome_image_carousel(context, href_val, text_val, src_val):
+	start_time = time.time()
+	while True:
+		try:
+			context.assertIn(href_val, context.browser.find_element_by_id('welcome-image-carousel-link').get_attribute("href"))
+			context.assertEqual(context.browser.find_elements_by_class_name('welcome-image-carousel-quote-container')[0].text, text_val)
+			context.assertEqual(context.browser.find_elements_by_class_name('welcome-image-carousel-image')[0].get_attribute("alt"), text_val)
+			context.assertEqual(context.browser.find_elements_by_class_name('welcome-image-carousel-image')[0].get_attribute("src"), src_val)
+			return
+		except (AssertionError, WebDriverException) as e:
+			if time.time() - start_time > MAX_WAIT: 
+				raise e
+			time.sleep(0.5)
+
+def wait_for_new_window_handle(context, previous_window_handles):
+	start_time = time.time()
+	while True:
+		new_window_handles = context.browser.window_handles
+		if previous_window_handles == new_window_handles:
+			if time.time() - start_time > MAX_WAIT: 
+				raise TimeoutError('The new window handler was not found before MAX_WAIT reached!')
+			time.sleep(0.5)
+		else:
+			return list(set(new_window_handles) - set(previous_window_handles))[0]
+
+def setupS3Connection():
+    session = boto3.Session(profile_name='aws-sdk-user')
+    # Any clients created from this session will use credentials
+    # from the [dev] section of ~/.aws/credentials.
+    s3 = session.resource('s3')
+    return s3
+    
+def putPDFOnS3(file_path, file_name):
+    #print('setup S3 Connection')
+    s3 = setupS3Connection()
+
+    # put PDF On S3
+    data = open(file_path + file_name, 'rb')
+    s3.Bucket(settings.S3_FUNCTIONAL_TESTING_BUCKET_NAME).put_object(Key=settings.S3_FUNCTIONAL_TESTING_BUCKET_PATH + file_name, Body=data, ContentType='image/png', CacheControl='max-age=1')
+
+    location = settings.S3_FUNCTIONAL_TESTING_DOMAIN + "/" + settings.S3_FUNCTIONAL_TESTING_BUCKET_NAME + file_name
+    print('location is: ' + location)
+
+
