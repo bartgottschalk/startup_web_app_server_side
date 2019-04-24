@@ -97,9 +97,11 @@ See [django-cors-headers documentation](https://github.com/ottoyiu/django-cors-h
 Config is in settings.py and settings_secret.py
 
 ##### Django CRSF Config
-Config is in settings.py
-Token is acquired from api server via GET request to http://localapi.startupwebapp.com/user/token
-This GET request returns both a token embedded in JSON as well as a cookie containing a token. The application uses the cookie token in javascript and returns it in a Request header "X-CSRFToken". The token returned in JSON is ignored. 
+Config is in settings_secret.py and settings.py
+Token is acquired from api server via GET request (js/utilities/utilities-0.0.1.js->$.get_token) to http://localapi.startupwebapp.com/user/token 
+This GET request returns both a token embedded in JSON as well as a cookie containing a token (csrftoken cookie is set automatically by Django.) 
+The token explicitly returned in the view response is ignored and discarded by the client in favor of using the cookie value. The application uses the cookie token in javascript and returns it in a Request header "X-CSRFToken". The token returned in JSON is ignored. 
+See [Django CSRF Documentation](https://docs.djangoproject.com/en/2.2/ref/csrf/)
 
 ##### settings_secret.py from settings_secret.py.template
 ```
