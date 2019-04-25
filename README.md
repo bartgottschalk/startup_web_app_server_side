@@ -56,7 +56,7 @@ Note: These instructions assume that you will install the application at `~/Star
 
 ```
 cd ~/StartupWebApp
-git clone `https://github.com/bartgottschalk/startup_web_app_server_side.git`
+git clone https://github.com/bartgottschalk/startup_web_app_server_side.git
 cd ~/StartupWebApp/startup_web_app_server_side
 ```
 
