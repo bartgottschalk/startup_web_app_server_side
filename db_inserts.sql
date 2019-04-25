@@ -45,7 +45,7 @@ INSERT INTO `order_shipping_method` (`id`, `carrier`, `shipping_cost`, `tracking
 
 INSERT INTO `order_product` (`id`, `title`, `title_url`, `identifier`, `headline`, `description_part_1`, `description_part_2`) VALUES ('1', 'Paper Clips', 'PaperClips', 'bSusp6dBHm', 'Paper clips can hold up to 20 pieces of paper together!', 'Made out of high quality metal and folded to exact specifications.', 'Use paperclips for all your paper binding needs!');
 INSERT INTO `order_product_image` (`id`, `image_url`, `main_image`, `product_id`, `caption`) VALUES ('1', '/img/product/paper_clip_main.png', '1', '1', 'Paperclips');
-INSERT INTO `order_product_video` (`id`, `video_url`, `video_thumbnail_url`, `product_id`, `caption`) VALUES ('1', 'https://vimeo.com/218142267', '/img/product/paper_clip_video1_thumbnail.png', '1', 'Watch the paper clip in action!');
+INSERT INTO `order_product_video` (`id`, `video_url`, `video_thumbnail_url`, `product_id`, `caption`) VALUES ('1', 'https://player.vimeo.com/video/218142267', '/img/product/paper_clip_video1_thumbnail.png', '1', 'Watch the paper clip in action!');
 
 INSERT INTO `order_sku` (`id`, `color`, `size`, `sku_type_id`, `description`, `sku_inventory_id`) VALUES ('1', 'Silver', 'Medium', '1', 'Left Sided Paperclip', '1');
 INSERT INTO `order_sku_price` (`id`, `price`, `created_date_time`, `sku_id`) VALUES ('1', '3.5', '2019-04-22 00:00:00.000000', '1');
