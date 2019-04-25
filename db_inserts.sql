@@ -7,7 +7,7 @@ INSERT INTO `user_email_type` (`id`, `title`) VALUES (1, 'Member'), (2, 'Prospec
 INSERT INTO `user_email_status` (`id`, `title`) VALUES ('1', 'Draft'), ('2', 'Ready'), ('3', 'Sent');
 INSERT INTO `user_ad_type` (`id`, `title`) VALUES ('1', 'Google AdWords'), ('2', 'Facebook');
 INSERT INTO `user_ad_status` (`id`, `title`) VALUES ('1', 'Draft'), ('2', 'Ready'), ('3', 'Running'), ('4', 'Stopped');
-INSERT INTO `order_status` (`id`, `identifier`, `title`, `description`) VALUES ('1', 'accepted', 'Accepted', 'The order has been accepted by Refrigerator Games and is being processed.'), ('2', 'manufacturing', 'Manufacturing', 'Custom items in the order are being manufactured.'), ('3', 'packing', 'Packing', 'The order is being packed for shipment.'), ('4', 'shipped', 'Shipped', 'The order has been shipped.');
+INSERT INTO `order_status` (`id`, `identifier`, `title`, `description`) VALUES ('1', 'accepted', 'Accepted', 'The order has been accepted by StartUpWebApp.com and is being processed.'), ('2', 'manufacturing', 'Manufacturing', 'Custom items in the order are being manufactured.'), ('3', 'packing', 'Packing', 'The order is being packed for shipment.'), ('4', 'shipped', 'Shipped', 'The order has been shipped.');
 INSERT INTO `order_sku_type` (`id`, `title`) VALUES ('1', 'product');
 INSERT INTO `order_sku_inventory` (`id`, `title`, `identifier`, `description`) VALUES ('1', 'In Stock', 'in-stock', 'In Stock items are available to purchase.'), ('2', 'Back Ordered', 'back-ordered', 'Back Ordered items are not available to purchase at this time.'), ('3', 'Out of Stock', 'out-of-stock', 'Out of Stock items are not available to purchase.');
 
