@@ -31,36 +31,36 @@ class OrderAPITest(TestCase):
 		####################
 		response = self.client.post('/order/cart-add-product-sku', data={'sku_id': '1', 'quantity': '100'})
 		unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-		self.assertJSONEqual(response.content.decode('utf8'), '{"cart_add_product_sku": "error", "errors": {"quantity": [[{"type": "out_of_range", "description": "The value provided is out of range."}]]}, "sku_id": "1", "order-api-version": "1.0.0"}', '/order/cart-add-product-sku for quantity-invalid not in range failed json validation')
+		self.assertJSONEqual(response.content.decode('utf8'), '{"cart_add_product_sku": "error", "errors": {"quantity": [[{"type": "out_of_range", "description": "The value provided is out of range."}]]}, "sku_id": "1", "order-api-version": "0.0.1"}', '/order/cart-add-product-sku for quantity-invalid not in range failed json validation')
 
 		response = self.client.post('/order/cart-add-product-sku', data={'sku_id': '1', 'quantity': 'x'})
 		unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-		self.assertJSONEqual(response.content.decode('utf8'), '{"cart_add_product_sku": "error", "errors": {"quantity": [[{"type": "not_an_int", "description": "The value provided is not an integer."}]]}, "sku_id": "1", "order-api-version": "1.0.0"}', '/order/cart-add-product-sku for quantity-invalid not an int failed json validation')
+		self.assertJSONEqual(response.content.decode('utf8'), '{"cart_add_product_sku": "error", "errors": {"quantity": [[{"type": "not_an_int", "description": "The value provided is not an integer."}]]}, "sku_id": "1", "order-api-version": "0.0.1"}', '/order/cart-add-product-sku for quantity-invalid not an int failed json validation')
 
 		###################
 		# sku-id-required #
 		###################
 		response = self.client.post('/order/cart-add-product-sku', data={'quantity': '1'})
 		unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-		self.assertJSONEqual(response.content.decode('utf8'), '{"cart_add_product_sku": "error", "errors": {"error": "sku-id-required"}, "sku_id": null, "order-api-version": "1.0.0"}', '/order/cart-add-product-sku for sku-id-required failed json validation')
+		self.assertJSONEqual(response.content.decode('utf8'), '{"cart_add_product_sku": "error", "errors": {"error": "sku-id-required"}, "sku_id": null, "order-api-version": "0.0.1"}', '/order/cart-add-product-sku for sku-id-required failed json validation')
 
 		#################
 		# Sku not found #
 		#################
 		response = self.client.post('/order/cart-add-product-sku', data={'sku_id': '2', 'quantity': '1'})
 		unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-		self.assertJSONEqual(response.content.decode('utf8'), '{"cart_add_product_sku": "error", "errors": {"error": "sku-not-found"}, "sku_id": "2", "order-api-version": "1.0.0"}', '/order/cart-add-product-sku for Sku not found failed json validation')
+		self.assertJSONEqual(response.content.decode('utf8'), '{"cart_add_product_sku": "error", "errors": {"error": "sku-not-found"}, "sku_id": "2", "order-api-version": "0.0.1"}', '/order/cart-add-product-sku for Sku not found failed json validation')
 
 		#####################################
 		# sku doesn't exist in cart success #
 		#####################################
 		response = self.client.post('/order/cart-add-product-sku', data={'sku_id': '1', 'quantity': '1'})
 		unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-		self.assertJSONEqual(response.content.decode('utf8'), '{"cart_add_product_sku": "success", "sku_id": "1", "cart_item_count": 1, "order-api-version": "1.0.0"}', '/order/cart-add-product-sku for sku doesn\'t exist in cart success failed json validation')
+		self.assertJSONEqual(response.content.decode('utf8'), '{"cart_add_product_sku": "success", "sku_id": "1", "cart_item_count": 1, "order-api-version": "0.0.1"}', '/order/cart-add-product-sku for sku doesn\'t exist in cart success failed json validation')
 
 		######################################
 		# sku already exists in cart success #
 		######################################
 		response = self.client.post('/order/cart-add-product-sku', data={'sku_id': '1', 'quantity': '1'})
 		unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-		self.assertJSONEqual(response.content.decode('utf8'), '{"cart_add_product_sku": "success", "sku_id": "1", "cart_item_count": 1, "order-api-version": "1.0.0"}', '/order/cart-add-product-sku for sku already exists in cart success failed json validation')
+		self.assertJSONEqual(response.content.decode('utf8'), '{"cart_add_product_sku": "success", "sku_id": "1", "cart_item_count": 1, "order-api-version": "0.0.1"}', '/order/cart-add-product-sku for sku already exists in cart success failed json validation')

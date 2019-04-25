@@ -42,7 +42,7 @@ class UserAPITest(TestCase):
 		##############
 		response = self.client.get('/user/logged-in')
 		unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-		self.assertJSONEqual(response.content.decode('utf8'), '{"logged_in": false, "log_client_events": true, "client_event_id": "null", "cart_item_count": 0, "user-api-version": "1.0.0"}', '/user/logged-in for anonymous user with empty cart failed json validation')
+		self.assertJSONEqual(response.content.decode('utf8'), '{"logged_in": false, "log_client_events": true, "client_event_id": "null", "cart_item_count": 0, "user-api-version": "0.0.1"}', '/user/logged-in for anonymous user with empty cart failed json validation')
 
 		##################
 		# NOT Empty Cart #
@@ -50,7 +50,7 @@ class UserAPITest(TestCase):
 		self.client.post('/order/cart-add-product-sku', data={'sku_id': '1', 'quantity': '1'})
 		response = self.client.get('/user/logged-in')
 		unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-		self.assertJSONEqual(response.content.decode('utf8'), '{"logged_in": false, "log_client_events": true, "client_event_id": "null", "cart_item_count": 1, "user-api-version": "1.0.0"}', '/user/logged-in for anonymous user with 1 item in cart failed json validation')
+		self.assertJSONEqual(response.content.decode('utf8'), '{"logged_in": false, "log_client_events": true, "client_event_id": "null", "cart_item_count": 1, "user-api-version": "0.0.1"}', '/user/logged-in for anonymous user with 1 item in cart failed json validation')
 
 	def test_logged_in_for_authenticated_user(self):
 
@@ -62,7 +62,7 @@ class UserAPITest(TestCase):
 		##############
 		response = self.client.get('/user/logged-in')
 		unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-		self.assertJSONEqual(response.content.decode('utf8'), '{"logged_in": true, "log_client_events": true, "client_event_id": ' + str(User.objects.latest('id').id) + ', "member_initials": "' + User.objects.latest('id').first_name[:1] + User.objects.latest('id').last_name[:1] + '", "first_name": "' + User.objects.latest('id').first_name + '", "last_name": "' + User.objects.latest('id').last_name + '", "email_address": "' + User.objects.latest('id').email + '", "cart_item_count": 0, "user-api-version": "1.0.0"}', '/user/logged-in for authenticated user with empty cart failed json validation')
+		self.assertJSONEqual(response.content.decode('utf8'), '{"logged_in": true, "log_client_events": true, "client_event_id": ' + str(User.objects.latest('id').id) + ', "member_initials": "' + User.objects.latest('id').first_name[:1] + User.objects.latest('id').last_name[:1] + '", "first_name": "' + User.objects.latest('id').first_name + '", "last_name": "' + User.objects.latest('id').last_name + '", "email_address": "' + User.objects.latest('id').email + '", "cart_item_count": 0, "user-api-version": "0.0.1"}', '/user/logged-in for authenticated user with empty cart failed json validation')
 
 		##################
 		# NOT Empty Cart #
@@ -70,17 +70,17 @@ class UserAPITest(TestCase):
 		self.client.post('/order/cart-add-product-sku', data={'sku_id': '1', 'quantity': '1'})
 		response = self.client.get('/user/logged-in')
 		unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-		self.assertJSONEqual(response.content.decode('utf8'), '{"logged_in": true, "log_client_events": true, "client_event_id": ' + str(User.objects.latest('id').id) + ', "member_initials": "' + User.objects.latest('id').first_name[:1] + User.objects.latest('id').last_name[:1] + '", "first_name": "' + User.objects.latest('id').first_name + '", "last_name": "' + User.objects.latest('id').last_name + '", "email_address": "' + User.objects.latest('id').email + '", "cart_item_count": 1, "user-api-version": "1.0.0"}', '/user/logged-in for authenticated user with 1 item in cart failed json validation')
+		self.assertJSONEqual(response.content.decode('utf8'), '{"logged_in": true, "log_client_events": true, "client_event_id": ' + str(User.objects.latest('id').id) + ', "member_initials": "' + User.objects.latest('id').first_name[:1] + User.objects.latest('id').last_name[:1] + '", "first_name": "' + User.objects.latest('id').first_name + '", "last_name": "' + User.objects.latest('id').last_name + '", "email_address": "' + User.objects.latest('id').email + '", "cart_item_count": 1, "user-api-version": "0.0.1"}', '/user/logged-in for authenticated user with 1 item in cart failed json validation')
 
 	def test_create_account(self):
 
 		response = self.client.post('/user/create-account', data={'firstname': 'test', 'lastname': 'user', 'username': 'testuser', 'email_address': 'testuser@test.com', 'password': 'ThisIsValid1!', 'confirm_password': 'ThisIsValid1', 'newsletter': 'true', 'remember_me': 'false'})
 		unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-		self.assertJSONEqual(response.content.decode('utf8'), '{"create_account": "false", "errors": {"firstname": true, "lastname": true, "username": true, "email-address": true, "password": [{"type": "confirm_password_doesnt_match", "description": "Please make sure your passwords match."}]}, "user-api-version": "1.0.0"}', '/user/create-account passwords don\' match failed json validation')
+		self.assertJSONEqual(response.content.decode('utf8'), '{"create_account": "false", "errors": {"firstname": true, "lastname": true, "username": true, "email-address": true, "password": [{"type": "confirm_password_doesnt_match", "description": "Please make sure your passwords match."}]}, "user-api-version": "0.0.1"}', '/user/create-account passwords don\' match failed json validation')
 
 		response = self.client.post('/user/create-account', data={'firstname': 'test', 'lastname': 'user', 'username': 'testuser', 'email_address': 'testuser@test.com', 'password': 'ThisIsValid1!', 'confirm_password': 'ThisIsValid1!', 'newsletter': 'true', 'remember_me': 'false'})
 		unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-		self.assertJSONEqual(response.content.decode('utf8'), '{"create_account": "true", "user-api-version": "1.0.0"}', '/user/create-account successful registration failed json validation')
+		self.assertJSONEqual(response.content.decode('utf8'), '{"create_account": "true", "user-api-version": "0.0.1"}', '/user/create-account successful registration failed json validation')
 		self.assertEqual(Member.objects.count(), 1)
 		new_member = Member.objects.first()
 		self.assertEqual(new_member.user.first_name, 'test')
