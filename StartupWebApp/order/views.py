@@ -690,7 +690,7 @@ def confirm_place_order(request):
                             else:
                                 prospect.email_unsubscribed = True
                                 prosepct_email_unsubscribe_str = 'You are NOT included in our email marketing list. If you would like to be added to our marketing email list please reply to this email and let us know.'
-                            prospect.rg_comment='Captured from anonymous order identifier: ' + order_identifier
+                            prospect.swa_comment='Captured from anonymous order identifier: ' + order_identifier
                             prospect.save()
 
                             order_confirmation_email_body_text = email.body_text
@@ -859,7 +859,7 @@ def anonymous_email_address_payment_lookup(request):
                     email_unsubscribe_string_signed = email_unsubscribe_signer.sign(email_unsubscribe_string) 
                     email_unsubscribe_string_signed = email_unsubscribe_string_signed.rsplit(':', 1)[1]
                     pr_cd = identifier.getNewProspectCode()
-                    prospect = Prospect.objects.create(email=anonymous_email_address, email_unsubscribed=True, email_unsubscribe_string=email_unsubscribe_string, email_unsubscribe_string_signed=email_unsubscribe_string_signed, rg_comment='Captured from incomplete anonymous order', pr_cd=pr_cd, created_date_time=now)
+                    prospect = Prospect.objects.create(email=anonymous_email_address, email_unsubscribed=True, email_unsubscribe_string=email_unsubscribe_string, email_unsubscribe_string_signed=email_unsubscribe_string_signed, swa_comment='Captured from incomplete anonymous order', pr_cd=pr_cd, created_date_time=now)
                     customer_dict = None
                     response = JsonResponse({'checkout_allowed':checkout_allowed, 'anonymous_email_address_payment_lookup':'success', 'stripe_publishable_key':stripe_publishable_key, 'customer_data':customer_dict, 'order-api-version':order_api_version}, safe=False)
         else:

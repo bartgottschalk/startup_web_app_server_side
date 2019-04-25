@@ -275,11 +275,11 @@ def create_account(request):
                 if prospect.converted_date_time is None:
                     now = timezone.now()
                     prospect.converted_date_time = now
-                if prospect.rg_comment is None:
-                    rg_comment_str = 'Prospect converted by creating user id ' + str(user.id) + '.'
+                if prospect.swa_comment is None:
+                    swa_comment_str = 'Prospect converted by creating user id ' + str(user.id) + '.'
                 else:
-                    rg_comment_str = prospect.rg_comment + '. Prospect converted by creating user id ' + str(user.id) + '.'
-                prospect.rg_comment = rg_comment_str
+                    swa_comment_str = prospect.swa_comment + '. Prospect converted by creating user id ' + str(user.id) + '.'
+                prospect.swa_comment = swa_comment_str
                 prospect.email_unsubscribed = True
                 prospect.save()
                 prospect_orders_count = Order.objects.filter(prospect=prospect).count()
@@ -1087,7 +1087,7 @@ def put_chat_message(request):
                 email_unsubscribe_string_signed = email_unsubscribe_signer.sign(email_unsubscribe_string) 
                 email_unsubscribe_string_signed = email_unsubscribe_string_signed.rsplit(':', 1)[1]
                 pr_cd = identifier.getNewProspectCode()
-                prospect = Prospect.objects.create(email=email_address, email_unsubscribed=True, email_unsubscribe_string=email_unsubscribe_string, email_unsubscribe_string_signed=email_unsubscribe_string_signed, rg_comment='Captured from chat message submission', pr_cd=pr_cd, created_date_time=now)
+                prospect = Prospect.objects.create(email=email_address, email_unsubscribed=True, email_unsubscribe_string=email_unsubscribe_string, email_unsubscribe_string_signed=email_unsubscribe_string_signed, swa_comment='Captured from chat message submission', pr_cd=pr_cd, created_date_time=now)
                 chat_message = Chatmessage.objects.create(member=None, prospect=prospect, name=name, email_address=email_address, message=message, created_date_time=now)
 
         chat_message_content = 'Hi!,'

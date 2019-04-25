@@ -176,10 +176,10 @@ Steps to send email:
 	3. Email Status: Start with Draft. 
 	4. Body html: Paste in the html version of the email. 
 	5. Body html: Paste in the text version of the email. 
-	6. From address: me@startupwebapp.com
-	7. Bcc address: me@startupwebapp.com
+	6. From address: contact@startupwebapp.com
+	7. Bcc address: contact@startupwebapp.com
 3. Select Checkbox next to Draft status email and in Actions select "Populate Email Codes". This will populate the em_cd value for any selected email whose value is unset/null. This is required for link tracking to work correctly. 
-4. Select Checkbox next to Draft status email and in Actions select "Send Draft Email". This will send a draft version of this email to 'me@startupwebapp.com'. 
+4. Select Checkbox next to Draft status email and in Actions select "Send Draft Email". This will send a draft version of this email to 'contact@startupwebapp.com'. 
 5. Change the email status to "Ready" once testing of the email is complete. 
 	1. Make sure to test link tracking and unsubscribe. 
 	2. Test all links in the email for tracking. 

@@ -28,7 +28,7 @@ class UserAdmin(BaseUserAdmin):
 # Define a new Prospect admin
 class ProspectAdmin(admin.ModelAdmin):
     actions = ['populate_prospect_codes']
-    list_display = ('first_name', 'last_name', 'email', 'phone', 'pr_cd', 'email_unsubscribed', 'prospect_comment', 'rg_comment', 'created_date_time', 'converted_date_time')
+    list_display = ('first_name', 'last_name', 'email', 'phone', 'pr_cd', 'email_unsubscribed', 'prospect_comment', 'swa_comment', 'created_date_time', 'converted_date_time')
 
     def populate_prospect_codes(self, request, queryset):
         prospect_counter = 0

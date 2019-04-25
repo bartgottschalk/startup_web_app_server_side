@@ -42,7 +42,7 @@ class Prospect(models.Model):
     email_unsubscribe_string = models.CharField(unique=True, max_length=50, blank=True, null=True)
     email_unsubscribe_string_signed = models.CharField(unique=True, max_length=200, blank=True, null=True)
     prospect_comment = models.CharField(max_length=5000, blank=True, null=True)
-    rg_comment = models.CharField(max_length=5000, blank=True, null=True)
+    swa_comment = models.CharField(max_length=5000, blank=True, null=True)
     pr_cd = models.CharField(unique=True, max_length=50, blank=True, null=True)
     created_date_time = models.DateTimeField()
     converted_date_time = models.DateTimeField(blank=True, null=True)
