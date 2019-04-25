@@ -65,26 +65,6 @@ Configure hosts file to route
 - localapi.startupwebapp.com to 127.0.0.1
 - localliveservertestcaseapi.startupwebapp.com to 127.0.0.1 (this will be used to run Selenium functional tests)
 
-#### Database Setup
-1. Create local DB (Note: Commands are for MySQL)
-```
-CREATE DATABASE startupwebapp CHARACTER SET latin1 COLLATE latin1_swedish_ci;
-GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER ON `startupwebapp `.* TO 'django_super'@'localhost';
-```
-2. Run Migrations
-```
-cd ~/StartupWebApp/startup_web_app_server_side/StartupWebApp
-python3 manage.py migrate
-```
-3. Create data records that are required for application to function. 
-These are all included in the file [db_inserts.sql](./db_inserts.sql) in this repository. Run these inserts against the database you created in step 1 above. 
-
-4. OPTIONAL: Create admin user. You need to do this to access the Django Admin site which is referenced below.
-Follow the instructions in the [Django documentation to create this user](https://docs.djangoproject.com/en/2.2/intro/tutorial02/#creating-an-admin-user)
-```
-python3 manage.py createsuperuser
-```
-
 #### Secrets and Passwords
 Using this approach described in [How to Scrub Sensitive Information From Django settings.py Files](http://fearofcode.github.io/blog/2013/01/15/how-to-scrub-sensitive-information-from-django-settings-dot-py-files/)
 1. Remove secrets from settings.py
@@ -111,6 +91,26 @@ cp settings_secret.py.template settings_secret.py
 ```
 edit values in setting_secret.py to match your environment, database and 3rd party integrations
 review and edit values in settings.py to match your environment and 3rd party integrations
+
+#### Database Setup
+1. Create local DB (Note: Commands are for MySQL)
+```
+CREATE DATABASE startupwebapp CHARACTER SET latin1 COLLATE latin1_swedish_ci;
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER ON `startupwebapp `.* TO 'django_super'@'localhost';
+```
+2. Run Migrations
+```
+cd ~/StartupWebApp/startup_web_app_server_side/StartupWebApp
+python3 manage.py migrate
+```
+3. Create data records that are required for application to function. 
+These are all included in the file [db_inserts.sql](./db_inserts.sql) in this repository. Run these inserts against the database you created in step 1 above. 
+
+4. OPTIONAL: Create admin user. You need to do this to access the Django Admin site which is referenced below.
+Follow the instructions in the [Django documentation to create this user](https://docs.djangoproject.com/en/2.2/intro/tutorial02/#creating-an-admin-user)
+```
+python3 manage.py createsuperuser
+```
 
 ### Running the Local Server
 ```
