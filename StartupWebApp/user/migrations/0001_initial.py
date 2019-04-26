@@ -114,7 +114,7 @@ class Migration(migrations.Migration):
                 ('email_unsubscribe_string', models.CharField(blank=True, max_length=50, null=True, unique=True)),
                 ('email_unsubscribe_string_signed', models.CharField(blank=True, max_length=200, null=True, unique=True)),
                 ('prospect_comment', models.CharField(blank=True, max_length=5000, null=True)),
-                ('rg_comment', models.CharField(blank=True, max_length=5000, null=True)),
+                ('swa_comment', models.CharField(blank=True, max_length=5000, null=True)),
                 ('pr_cd', models.CharField(blank=True, max_length=50, null=True, unique=True)),
                 ('created_date_time', models.DateTimeField()),
                 ('converted_date_time', models.DateTimeField(blank=True, null=True)),
