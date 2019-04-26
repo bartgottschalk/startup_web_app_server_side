@@ -111,7 +111,7 @@ class EmailAdmin(admin.ModelAdmin):
                     recipients = User.objects.filter(member__email_unsubscribed=False, member__newsletter_subscriber=True)
                     recipient_list = '<br/><br/>Notes:<br/>Members who would receive this email:<br/>'
                 for recipient in recipients:
-                    recipient_list += recipient.first_name + ' ' + recipient.last_name + ' ' + recipient.email + '<br/>'
+                    recipient_list += str(recipient.first_name) + ' ' + str(recipient.last_name) + ' ' + recipient.email + '<br/>'
 
                 for recipient in recipients:
                     if email.email_type == Emailtype.objects.get(title='Prospect'):
