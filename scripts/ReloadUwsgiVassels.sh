@@ -1,0 +1,1 @@
+killall -s HUP /usr/local/bin/uwsgi
