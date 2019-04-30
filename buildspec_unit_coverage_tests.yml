@@ -54,10 +54,7 @@ phases:
     commands:
       # setup django test app
       - cd $CODEBUILD_SRC_DIR
-      - pwd
-      - ls -la
-      - ls -la StartupWebApp
-      - cd StartupWebApp/StartupWebApps
+      - cd StartupWebApp/StartupWebApp
       - echo "$SETTINGS_SECRET_SRC" > settings_secret.py
       
   build:
