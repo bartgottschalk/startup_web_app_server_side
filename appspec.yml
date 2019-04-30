@@ -2,17 +2,17 @@ version: 0.0
 os: linux
 files:
   - source: /StartupWebApp/StartupWebApp
-    destination: ~/swa/django/StartupWebApp/StartupWebApp
+    destination: /home/ec2-user/swa/django/StartupWebApp/StartupWebApp
   - source: /StartupWebApp/user
-    destination: ~/swa/django/StartupWebApp/user
+    destination: /home/ec2-user/swa/django/StartupWebApp/user
   - source: /StartupWebApp/clientevent
-    destination: ~/swa/django/StartupWebApp/clientevent
+    destination: /home/ec2-user/swa/django/StartupWebApp/clientevent
   - source: /StartupWebApp/order
-    destination: ~/swa/django/StartupWebApp/order
+    destination: /home/ec2-user/swa/django/StartupWebApp/order
   - source: /StartupWebApp/templates
-    destination: ~/swa/django/StartupWebApp/templates
+    destination: /home/ec2-user/swa/django/StartupWebApp/templates
   - source: /StartupWebApp/manage.py
-    destination: ~/swa/django/StartupWebApp
+    destination: /home/ec2-user/swa/django/StartupWebApp
 hooks:
    ValidateService:
      - location: /scripts/ReloadUwsgiVassels.sh
