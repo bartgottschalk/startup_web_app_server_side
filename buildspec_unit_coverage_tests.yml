@@ -65,7 +65,7 @@ phases:
 
       # coverage test
       - coverage run --source='.' manage.py test StartupWebApp
-      - coverage report --fail-under=25
+      - coverage report --fail-under=23
 
   post_build:
     commands:
