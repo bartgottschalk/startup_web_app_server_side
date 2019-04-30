@@ -95,8 +95,8 @@ review and edit values in settings.py to match your environment and 3rd party in
 #### Database Setup
 1. Create local DB (Note: Commands are for MySQL)
 ```
-CREATE DATABASE startupwebapp CHARACTER SET latin1 COLLATE latin1_swedish_ci;
-GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER ON `startupwebapp `.* TO 'django_super'@'localhost';
+CREATE DATABASE swa CHARACTER SET latin1 COLLATE latin1_swedish_ci;
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER ON `swa `.* TO 'django_super'@'localhost';
 ```
 2. Run Migrations
 ```
