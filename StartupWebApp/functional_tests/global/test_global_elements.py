@@ -132,12 +132,8 @@ class AnonymousGlobalFunctionalTests(BaseFunctionalTest):
 
 		functional_testing_utilities.wait_click_by_class_name(self, 'footer-fixed-action-link')
 
-		# verify that the footer-fixed-content has been removed
-		try:
-			missing_element = self.browser.find_element_by_class_name('footer-fixed-content')
-			raise AssertionError("Element was found which should not be there! - 'footer-fixed-content'")
-		except NoSuchElementException:  
-			pass
+		# verify that the terms-and-conditions-agree-div is hidden
+		self.assertIn('hide', self.browser.find_element_by_id('terms-and-conditions-agree-div').get_attribute('class'))
 
 	def test_chat(self):
 		self.browser.get(self.static_home_page_url)

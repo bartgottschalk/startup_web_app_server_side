@@ -1,0 +1,20 @@
+version: 0.0
+os: linux
+files:
+  - source: /StartupWebApp/StartupWebApp
+    destination: ~/swa/django/StartupWebApp/StartupWebApp
+  - source: /StartupWebApp/user
+    destination: ~/swa/django/StartupWebApp/user
+  - source: /StartupWebApp/clientevent
+    destination: ~/swa/django/StartupWebApp/clientevent
+  - source: /StartupWebApp/order
+    destination: ~/swa/django/StartupWebApp/order
+  - source: /StartupWebApp/templates
+    destination: ~/swa/django/StartupWebApp/templates
+  - source: /StartupWebApp/manage.py
+    destination: ~/swa/django/StartupWebApp
+hooks:
+   ValidateService:
+     - location: /scripts/ReloadUwsgiVassels.sh
+       timeout: 60
+       runas: ec2-user
