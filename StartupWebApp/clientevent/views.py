@@ -49,7 +49,8 @@ def pageview(request):
             user = None
             print('clientevent pageview user_id is None - Error: ' + str(e))
         now = timezone.now()
-        pageview = Pageview(user=user, anonymous_id=anonymous_id, url=url, page_width=pageWidth, remote_addr=request.META.get('REMOTE_ADDR'), http_user_agent=request.META.get('HTTP_USER_AGENT'), created_date_time=now)
+        remote_addr = request.META.get('HTTP_X_FORWARDED_FOR') if request.META.get('HTTP_X_FORWARDED_FOR') is not None else request.META.get('REMOTE_ADDR')
+        pageview = Pageview(user=user, anonymous_id=anonymous_id, url=url, page_width=pageWidth, remote_addr=remote_addr, http_user_agent=request.META.get('HTTP_USER_AGENT'), created_date_time=now)
         pageview.save()        
     return JsonResponse('thank you', safe=False)
 
