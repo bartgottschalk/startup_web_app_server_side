@@ -46,44 +46,40 @@ INSERT INTO `order_shipping_method` (`id`, `carrier`, `shipping_cost`, `tracking
 INSERT INTO `order_shipping_method` (`id`, `carrier`, `shipping_cost`, `tracking_code_base_url`, `active`, `identifier`) VALUES ('5', 'None', '0.00', 'none', '0', 'None');
 
 INSERT INTO `order_product` (`id`, `title`, `title_url`, `identifier`, `headline`, `description_part_1`, `description_part_2`) VALUES ('1', 'Paper Clips', 'PaperClips', 'bSusp6dBHm', 'Paper clips can hold up to 20 pieces of paper together!', 'Made out of high quality metal and folded to exact specifications.', 'Use paperclips for all your paper binding needs!');
-INSERT INTO `order_product_image` (`id`, `image_url`, `main_image`, `product_id`, `caption`) VALUES ('1', '/img/product/paper_clip_main.png', '1', '1', 'Paperclips');
-INSERT INTO `order_product_video` (`id`, `video_url`, `video_thumbnail_url`, `product_id`, `caption`) VALUES ('1', 'https://player.vimeo.com/video/218142267', '/img/product/paper_clip_video1_thumbnail.png', '1', 'Watch the paper clip in action!');
+INSERT INTO `order_product_image` (`id`, `image_url`, `main_image`, `product_id`, `caption`) VALUES ('1', '/img/product/paper_clip_main_2.jpg', '1', '1', 'Paperclips');
+INSERT INTO `order_product_video` (`id`, `video_url`, `video_thumbnail_url`, `product_id`, `caption`) VALUES ('1', 'https://player.vimeo.com/video/334006583', '/img/product/paper_clip_video_1_2_thumbnail.jpg', '1', 'Watch the paper clip in action!');
 
 INSERT INTO `order_sku` (`id`, `color`, `size`, `sku_type_id`, `description`, `sku_inventory_id`) VALUES ('1', 'Silver', 'Medium', '1', 'Left Sided Paperclip', '1');
 INSERT INTO `order_sku_price` (`id`, `price`, `created_date_time`, `sku_id`) VALUES ('1', '3.5', '2019-04-22 00:00:00.000000', '1');
 INSERT INTO `order_product_sku` (`id`, `product_id`, `sku_id`) VALUES ('1', '1', '1');
-INSERT INTO `order_sku_image` (`id`, `image_url`, `main_image`, `sku_id`, `caption`) VALUES ('1', '/img/product/paper_clip1.png', '1', '1', 'Left sided paperclip');
+INSERT INTO `order_sku_image` (`id`, `image_url`, `main_image`, `sku_id`, `caption`) VALUES ('1', '/img/product/paper_clip_left_2.jpg', '1', '1', 'Left sided paperclip');
 
 INSERT INTO `order_sku` (`id`, `color`, `size`, `sku_type_id`, `description`, `sku_inventory_id`) VALUES ('2', 'Silver', 'Medium', '1', 'Right sided paperclip', '2');
 INSERT INTO `order_sku_price` (`id`, `price`, `created_date_time`, `sku_id`) VALUES ('2', '3.5', '2019-04-22 00:00:00.000000', '2');
 INSERT INTO `order_product_sku` (`id`, `product_id`, `sku_id`) VALUES ('2', '1', '2');
-INSERT INTO `order_sku_image` (`id`, `image_url`, `main_image`, `sku_id`, `caption`) VALUES ('2', '/img/product/paper_clip2.png', '1', '2', 'Right sided paperclip');
+INSERT INTO `order_sku_image` (`id`, `image_url`, `main_image`, `sku_id`, `caption`) VALUES ('2', '/img/product/paper_clip_right_2.jpg', '1', '2', 'Right sided paperclip');
 
 INSERT INTO `order_product` (`id`, `title`, `title_url`, `identifier`, `headline`, `description_part_1`, `description_part_2`) VALUES ('2', 'Binder Clips', 'BinderClips', 'ITHJW3mytn', 'Binder clips can hold up to 100 pieces of paper together!', 'These strong binder clips will hold your papers together and won\'t ever give up!', 'Just be careful not to pinch your finger!<br><br>Come in packs of 10.');
-INSERT INTO `order_product_image` (`id`, `image_url`, `main_image`, `product_id`, `caption`) VALUES ('2', '/img/product/binder_clips_main.png', '1', '2', 'Multiple sizes available');
-
-INSERT INTO `order_sku` (`id`, `color`, `size`, `sku_type_id`, `description`, `sku_inventory_id`) VALUES ('3', 'Black', 'Extra Large', '1', 'Extra Large Binder Clip', '1');
-INSERT INTO `order_sku_price` (`id`, `price`, `created_date_time`, `sku_id`) VALUES ('3', '6.99', '2019-04-22 00:00:00.000000', '3');
-INSERT INTO `order_product_sku` (`id`, `product_id`, `sku_id`) VALUES ('3', '2', '3');
-INSERT INTO `order_sku_image` (`id`, `image_url`, `main_image`, `sku_id`, `caption`) VALUES ('3', '/img/product/binder_clip_extra_large.png', '1', '3', 'Extra Large Binder Clip');
+INSERT INTO `order_product_image` (`id`, `image_url`, `main_image`, `product_id`, `caption`) VALUES ('2', '/img/product/binder_clips_main_2.jpg', '1', '2', 'Multiple sizes available');
+INSERT INTO `order_product_video` (`id`, `video_url`, `video_thumbnail_url`, `product_id`, `caption`) VALUES ('2', 'https://player.vimeo.com/video/334006589', '/img/product/binder_clip_video_1_2_thumbnail.jpg', '2', 'Watch the paper binder in action!');
 
 INSERT INTO `order_sku` (`id`, `color`, `size`, `sku_type_id`, `description`, `sku_inventory_id`) VALUES ('4', 'Black', 'Large', '1', 'Large Binder Clip', '2');
 INSERT INTO `order_sku_price` (`id`, `price`, `created_date_time`, `sku_id`) VALUES ('4', '5.99', '2019-04-22 00:00:00.000000', '4');
 INSERT INTO `order_product_sku` (`id`, `product_id`, `sku_id`) VALUES ('4', '2', '4');
-INSERT INTO `order_sku_image` (`id`, `image_url`, `main_image`, `sku_id`, `caption`) VALUES ('4', '/img/product/binder_clip_large.png', '1', '4', 'Large Binder Clip');
+INSERT INTO `order_sku_image` (`id`, `image_url`, `main_image`, `sku_id`, `caption`) VALUES ('4', '/img/product/binder_clip_large_2.jpg', '1', '4', 'Large Binder Clip');
 
 INSERT INTO `order_sku` (`id`, `color`, `size`, `sku_type_id`, `description`, `sku_inventory_id`) VALUES ('5', 'Black', 'Medium', '1', 'Medium Binder Clip', '3');
 INSERT INTO `order_sku_price` (`id`, `price`, `created_date_time`, `sku_id`) VALUES ('5', '4.99', '2019-04-22 00:00:00.000000', '5');
 INSERT INTO `order_product_sku` (`id`, `product_id`, `sku_id`) VALUES ('5', '2', '5');
-INSERT INTO `order_sku_image` (`id`, `image_url`, `main_image`, `sku_id`, `caption`) VALUES ('5', '/img/product/binder_clip_medium.png', '1', '5', 'Medium Binder Clip');
+INSERT INTO `order_sku_image` (`id`, `image_url`, `main_image`, `sku_id`, `caption`) VALUES ('5', '/img/product/binder_clip_medium_2.jpg', '1', '5', 'Medium Binder Clip');
 
 INSERT INTO `order_sku` (`id`, `color`, `size`, `sku_type_id`, `description`, `sku_inventory_id`) VALUES ('6', 'Black', 'Small', '1', 'Small Binder Clip', '1');
 INSERT INTO `order_sku_price` (`id`, `price`, `created_date_time`, `sku_id`) VALUES ('6', '3.99', '2019-04-22 00:00:00.000000', '6');
 INSERT INTO `order_product_sku` (`id`, `product_id`, `sku_id`) VALUES ('6', '2', '6');
-INSERT INTO `order_sku_image` (`id`, `image_url`, `main_image`, `sku_id`, `caption`) VALUES ('6', '/img/product/binder_clip_small.png', '1', '6', 'Small Binder Clip');
+INSERT INTO `order_sku_image` (`id`, `image_url`, `main_image`, `sku_id`, `caption`) VALUES ('6', '/img/product/binder_clip_small_2.jpg', '1', '6', 'Small Binder Clip');
 
 INSERT INTO `order_product` (`id`, `title`, `title_url`, `identifier`, `headline`, `description_part_1`, `description_part_2`) VALUES ('3', 'Rubber Bands', 'RubberBands', 'v26ujdy3N1', 'Rubber bands are perfect for keeping rolled paper rolled!', 'Assorted colors and sizes.', '');
-INSERT INTO `order_product_image` (`id`, `image_url`, `main_image`, `product_id`, `caption`) VALUES ('3', '/img/product/rubber_bands1.png', '1', '3', 'Multicolor rubber bands');
+INSERT INTO `order_product_image` (`id`, `image_url`, `main_image`, `product_id`, `caption`) VALUES ('3', '/img/product/rubber_bands_2.jpg', '1', '3', 'Multicolor rubber bands');
 
 INSERT INTO `order_sku` (`id`, `color`, `size`, `sku_type_id`, `description`, `sku_inventory_id`) VALUES ('7', 'Multi', 'Mulit', '1', 'Multiple sizes and colors', '1');
 INSERT INTO `order_sku_price` (`id`, `price`, `created_date_time`, `sku_id`) VALUES ('7', '10.99', '2019-04-20 00:00:00.000000', '7');
