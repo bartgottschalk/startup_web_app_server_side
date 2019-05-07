@@ -13,7 +13,7 @@ from django.contrib.auth.models import User, Group
 from clientevent.models import Configuration as ClientEventConfiguration
 
 from order.models import Cart, Cartsku, Skutype, Skuinventory, Product, Sku, Skuprice, Productsku
-from user.models import Member, Termsofuse
+from user.models import Member, Termsofuse, Prospect
 
 from order.utilities import order_utils
 from StartupWebApp.utilities import random, unittest_utilities
@@ -89,4 +89,37 @@ class UserAPITest(TestCase):
 
 		print('FINISH THE TEST!!! - other error conditions that need to be tested')
 
+	def test_pythonabot_notify_me(self):
 
+		response = self.client.post('/user/pythonabot-notify-me', data={'email_address': '', 'how_excited': '1'})
+		unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+		#print(response.content.decode('utf8'))
+		self.assertJSONEqual(response.content.decode('utf8'), '{"pythonabot_notify_me": "validation_error", "errors": {"email_address": [{"type": "required", "description": "This is a required field."}], "how_excited": true}, "user-api-version": "0.0.1"}', '/user/pythonabot-notify-me email required failed validation')
+
+		response = self.client.post('/user/pythonabot-notify-me', data={'email_address': 'asdf', 'how_excited': '2'})
+		unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+		#print(response.content.decode('utf8'))
+		self.assertJSONEqual(response.content.decode('utf8'), '{"pythonabot_notify_me": "validation_error", "errors": {"email_address": [{"type": "not_valid", "description": "Please enter a valid email address. For example johndoe@domain.com."}], "how_excited": true}, "user-api-version": "0.0.1"}', '/user/pythonabot-notify-me email valid failed validation')
+
+		response = self.client.post('/user/pythonabot-notify-me', data={'email_address': 'asdf@asdf.com', 'how_excited': ''})
+		unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+		#print(response.content.decode('utf8'))
+		self.assertJSONEqual(response.content.decode('utf8'), '{"pythonabot_notify_me": "validation_error", "errors": {"email_address": true, "how_excited": [{"type": "required", "description": "This is a required field."}]}, "user-api-version": "0.0.1"}', '/user/pythonabot-notify-me how_excited valid failed validation')
+
+		response = self.client.post('/user/pythonabot-notify-me', data={'email_address': 'asdf@asdf.com', 'how_excited': '6'})
+		unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+		#print(response.content.decode('utf8'))
+		self.assertJSONEqual(response.content.decode('utf8'), '{"pythonabot_notify_me": "validation_error", "errors": {"email_address": true, "how_excited": [{"type": "out_of_range", "description": "The value provided is out of range."}]}, "user-api-version": "0.0.1"}', '/user/pythonabot-notify-me how_excited valid failed validation')
+
+		response = self.client.post('/user/pythonabot-notify-me', data={'email_address': 'asdf@asdf.com', 'how_excited': '3'})
+		unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+		#print(response.content.decode('utf8'))
+		self.assertJSONEqual(response.content.decode('utf8'), '{"pythonabot_notify_me": "success", "user-api-version": "0.0.1"}', '/user/create-account successful registration failed json validation')
+		self.assertEqual(Prospect.objects.count(), 1)
+		new_prospect = Prospect.objects.first()
+		self.assertEqual(new_prospect.swa_comment, 'This prospect would like to be notified when PythonABot is ready to be purchased.')
+
+		response = self.client.post('/user/pythonabot-notify-me', data={'email_address': 'asdf@asdf.com', 'how_excited': '4'})
+		unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+		#print(response.content.decode('utf8'))
+		self.assertJSONEqual(response.content.decode('utf8'), '{"pythonabot_notify_me": "duplicate_prospect", "errors": {"email_address": [{"type": "duplicate", "description": "I already know about this email address. Please enter a different email address."}], "how_excited": true}, "user-api-version": "0.0.1"}', '/user/pythonabot-notify-me duplicate prospect failed validation')

@@ -134,11 +134,18 @@ This application contains Selenium functional tests and python/Django unit tests
 cd ~/StartupWebApp/startup_web_app_server_side/StartupWebApp
 ```
 - run all tests
-`python3 manage.py test functional_tests`
+```
+python3 manage.py test functional_tests
+```
 - run one module of tests
-`python3 manage.py test functional_tests/home`
+```
+python3 manage.py test functional_tests/home
+```
 - run one specific test
-`python3 manage.py test functional_tests.global.test_global_elements.AnonymousGlobalNavigationTests.test_header`
+```
+python3 manage.py test functional_tests.global.test_global_elements.AnonymousGlobalNavigationTests.test_header
+python3 manage.py test functional_tests.pythonabot.test_pythonabot.PythonABotPageFunctionalTests
+```
 
 ### Run Unit Tests
 ```

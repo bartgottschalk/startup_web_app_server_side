@@ -3,11 +3,12 @@
 import json
 
 from django.test import TestCase
+from django.utils import timezone
 from django.db.utils import IntegrityError
 from django.contrib.auth.models import User, Group
 from django.core.signing import TimestampSigner, Signer, SignatureExpired, BadSignature
 
-from user.models import Member
+from user.models import Member, Prospect
 from StartupWebApp.utilities import identifier
 
 class MemberModelTests(TestCase):
@@ -39,5 +40,37 @@ class MemberModelTests(TestCase):
 		self.assertEqual(saved_members.count(), 2)
 		self.assertEqual(Member.objects.get(email_unsubscribe_string=random_str).email_unsubscribe_string_signed, signed_string.rsplit(':', 1)[1])
 		self.assertEqual(Member.objects.get(email_unsubscribe_string=random_str2).user.username, 'username2')
+
+	def test_saving_and_retreiving_prospect(self):
+
+		random_str = identifier.getNewProspectEmailUnsubscribeString()
+		email_unsubscribe_signer = Signer(salt='email_unsubscribe')
+		signed_string = email_unsubscribe_signer.sign(random_str)
+		pr_cd = identifier.getNewProspectCode()
+		prospect1 = Prospect.objects.create(first_name='first', last_name='last', email='test@email.com', phone='1-800-800-8000 ext 800', email_unsubscribed=True, email_unsubscribe_string=random_str, email_unsubscribe_string_signed=signed_string.rsplit(':', 1)[1], prospect_comment='prospect_commented here', swa_comment='swa_commented here', pr_cd=pr_cd, created_date_time=timezone.now())
+		prospect1.converted_date_time = timezone.now()
+		prospect1.save()
+
+		random_str2 = identifier.getNewProspectEmailUnsubscribeString()
+		signed_string2 = email_unsubscribe_signer.sign(random_str2)
+		pr_cd2 = identifier.getNewProspectCode()
+		prospect2 = Prospect.objects.create(first_name='first2', last_name='last2', email='test2@email.com', phone='1-800-800-8000 ext 802', email_unsubscribed=False, email_unsubscribe_string=random_str2, email_unsubscribe_string_signed=signed_string2.rsplit(':', 1)[1], prospect_comment='prospect_commented here 2', swa_comment='swa_commented here 2', pr_cd=pr_cd2, created_date_time=timezone.now())
+		prospect2.converted_date_time = timezone.now()
+		prospect2.save()
+
+		saved_prospects = Prospect.objects.all()
+		self.assertEqual(saved_prospects.count(), 2)
+		self.assertEqual(Prospect.objects.get(email_unsubscribe_string=random_str).email_unsubscribe_string_signed, signed_string.rsplit(':', 1)[1])
+		self.assertEqual(Prospect.objects.get(email_unsubscribe_string=random_str2).last_name, 'last2')
+
+		random_str3 = identifier.getNewProspectEmailUnsubscribeString()
+		signed_string3 = email_unsubscribe_signer.sign(random_str3)
+		pr_cd3 = identifier.getNewProspectCode()
+		try:
+			prospect3 = Prospect.objects.create(first_name='first3', last_name='last3', email='test@email.com', phone='1-800-800-8000 ext 803', email_unsubscribed=False, email_unsubscribe_string=random_str3, email_unsubscribe_string_signed=signed_string3.rsplit(':', 1)[1], prospect_comment='prospect_commented here 2', swa_comment='swa_commented here 2', pr_cd=pr_cd3, created_date_time=timezone.now())
+		except IntegrityError as e:
+			self.assertEqual(str(e), '(1062, "Duplicate entry \'test@email.com\' for key \'email\'")')
+
+
 
 

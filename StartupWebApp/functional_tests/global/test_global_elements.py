@@ -33,7 +33,7 @@ class AnonymousGlobalNavigationTests(BaseFunctionalTest):
 
 		# she reads each item in the expanded menu
 		menu_expanded = self.browser.find_element_by_id('hamburger-menu-open')
-		expected_menu_values = ['Login', 'Products', 'About', 'Contact', 'Terms of Use', 'Privacy Policy']
+		expected_menu_values = ['Login', 'PythonABot', 'Products', 'About', 'Contact', 'Terms of Use', 'Privacy Policy']
 		for num, item in enumerate(menu_expanded.find_elements_by_tag_name("a"), start=0):
 			for element in item.find_elements_by_tag_name("menu-item-expanded"):
 				self.assertEqual(element.text, expected_menu_values[num])

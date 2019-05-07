@@ -5,6 +5,17 @@ from selenium.common.exceptions import WebDriverException
 
 MAX_WAIT = 10
 
+def wait_for_element_by_id_text_value(context, id, expected_value):
+	start_time = time.time()
+	while True:
+		new_value = context.browser.find_element_by_id(id).text
+		if expected_value == new_value:
+			return True
+		else:
+			if time.time() - start_time > MAX_WAIT: 
+				raise TimeoutError('The text value equality was not found before MAX_WAIT reached! expected_value=' + expected_value + ' - new_value=' + str(new_value))
+			time.sleep(0.5)
+
 def wait_for_element_by_class_name_text_value(context, class_name, expected_value):
 	start_time = time.time()
 	while True:
@@ -24,6 +35,17 @@ def wait_for_page_title(context, expected_value):
 		else:
 			if time.time() - start_time > MAX_WAIT: 
 				raise TimeoutError('The page title was not found before MAX_WAIT reached!')
+			time.sleep(0.5)
+
+def wait_for_element_to_display_by_id(context, id):
+	start_time = time.time()
+	while True:
+		display_val = context.browser.find_element_by_id(id).value_of_css_property('display')
+		if display_val == 'block':
+			return True
+		else:
+			if time.time() - start_time > MAX_WAIT: 
+				raise TimeoutError('The display property was not set to block before MAX_WAIT reached! expected_value=' + expected_value + ' - new_value=' + str(new_value))
 			time.sleep(0.5)
 
 def wait_for_element_to_load_by_id(context, id):

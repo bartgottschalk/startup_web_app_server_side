@@ -145,8 +145,17 @@ def isChatMessageValid(message, max_length):
     else:
         return True
 
-
-
+def isHowExcitedValid(how_excited):
+    errors = []
+    if how_excited == '':
+        errors.append(required_error)
+        return errors
+    if str(how_excited) not in ['1', '2', '3', '4', '5']:
+        errors.append(out_of_range)
+    if len(errors) > 0: 
+        return errors
+    else:
+        return True
 
 required_error = {'type': 'required','description': 'This is a required field.'};
 not_valid_email = {'type': 'not_valid','description': 'Please enter a valid email address. For example johndoe@domain.com.'};

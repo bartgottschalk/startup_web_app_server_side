@@ -1122,5 +1122,33 @@ def put_chat_message(request):
         error_dict = {"name" : name_valid, "email_address" : email_address_valid, "message" : message_valid}
         return JsonResponse({'put_chat_message': 'validation_error','errors':error_dict,'user-api-version':user_api_version}, safe=False )
 
+def pythonabot_notify_me(request):
+    #raise ValueError('A very specific bad thing happened.')    
+    email_address = request.POST['email_address']
+    #print(email_address)
+    email_address_valid = validator.isEmailValid(email_address, 254)
+    #print(email_address_valid)
 
-
+    how_excited = request.POST['how_excited']
+    #print(how_excited)
+    how_excited_valid = validator.isHowExcitedValid(how_excited)
+    #print(how_excited_valid)
+    
+    if email_address_valid == True and how_excited_valid == True:
+        if Prospect.objects.filter(email=email_address).exists():
+            prospect_errors = []
+            duplicate_prospect_error = {'type': 'duplicate','description': 'I already know about this email address. Please enter a different email address.'};
+            prospect_errors.append(duplicate_prospect_error)
+            error_dict = {"email_address" : prospect_errors, "how_excited" : how_excited_valid}
+            return JsonResponse({'pythonabot_notify_me': 'duplicate_prospect','errors':error_dict,'user-api-version':user_api_version}, safe=False )
+        else:
+            now = timezone.now()
+            email_unsubscribe_string = identifier.getNewProspectEmailUnsubscribeString()
+            email_unsubscribe_string_signed = email_unsubscribe_signer.sign(email_unsubscribe_string) 
+            email_unsubscribe_string_signed = email_unsubscribe_string_signed.rsplit(':', 1)[1]
+            pr_cd = identifier.getNewProspectCode()
+            prospect = Prospect.objects.create(email=email_address, email_unsubscribed=True, email_unsubscribe_string=email_unsubscribe_string, email_unsubscribe_string_signed=email_unsubscribe_string_signed, swa_comment='This prospect would like to be notified when PythonABot is ready to be purchased.', pr_cd=pr_cd, created_date_time=now)
+            return JsonResponse({'pythonabot_notify_me':'success','user-api-version':user_api_version}, safe=False )
+    else:
+        error_dict = {"email_address" : email_address_valid, "how_excited" : how_excited_valid}
+        return JsonResponse({'pythonabot_notify_me': 'validation_error','errors':error_dict,'user-api-version':user_api_version}, safe=False )
