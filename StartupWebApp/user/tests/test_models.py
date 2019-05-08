@@ -69,7 +69,8 @@ class MemberModelTests(TestCase):
 		try:
 			prospect3 = Prospect.objects.create(first_name='first3', last_name='last3', email='test@email.com', phone='1-800-800-8000 ext 803', email_unsubscribed=False, email_unsubscribe_string=random_str3, email_unsubscribe_string_signed=signed_string3.rsplit(':', 1)[1], prospect_comment='prospect_commented here 2', swa_comment='swa_commented here 2', pr_cd=pr_cd3, created_date_time=timezone.now())
 		except IntegrityError as e:
-			self.assertEqual(str(e), '(1062, "Duplicate entry \'test@email.com\' for key \'email\'")')
+			print('Error! Code: {c}, Message, {m}'.format(c = type(e).__name__, m = str(e)))
+			self.assertEqual(type(e).__name__, 'IntegrityError')
 
 
 
