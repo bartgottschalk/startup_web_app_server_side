@@ -1147,7 +1147,7 @@ def pythonabot_notify_me(request):
             email_unsubscribe_string_signed = email_unsubscribe_signer.sign(email_unsubscribe_string) 
             email_unsubscribe_string_signed = email_unsubscribe_string_signed.rsplit(':', 1)[1]
             pr_cd = identifier.getNewProspectCode()
-            prospect = Prospect.objects.create(email=email_address, email_unsubscribed=True, email_unsubscribe_string=email_unsubscribe_string, email_unsubscribe_string_signed=email_unsubscribe_string_signed, swa_comment='This prospect would like to be notified when PythonABot is ready to be purchased.', pr_cd=pr_cd, created_date_time=now)
+            prospect = Prospect.objects.create(email=email_address, email_unsubscribed=True, email_unsubscribe_string=email_unsubscribe_string, email_unsubscribe_string_signed=email_unsubscribe_string_signed, prospect_comment=str(how_excited) + ' on a scale of 1-5 for how excited they are', swa_comment='This prospect would like to be notified when PythonABot is ready to be purchased.', pr_cd=pr_cd, created_date_time=now)
             return JsonResponse({'pythonabot_notify_me':'success','user-api-version':user_api_version}, safe=False )
     else:
         error_dict = {"email_address" : email_address_valid, "how_excited" : how_excited_valid}
