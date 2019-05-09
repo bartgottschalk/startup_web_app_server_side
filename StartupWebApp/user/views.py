@@ -312,7 +312,7 @@ def create_account(request):
             welcome_email_content += '\r\n\r\n'
             welcome_email_content += 'While we have your attention, we\'d love it if you took a few seconds to verify your email address. If it really was you who registered for an account at ' + settings.ENVIRONMENT_DOMAIN + ', please go to the following URL to confirm that you are authorized to use this email address:'
             welcome_email_content += '\r\n\r\n'
-            welcome_email_content += settings.ENVIRONMENT_DOMAIN + '/account?email_verification_code=' + signed_string
+            welcome_email_content += settings.ENVIRONMENT_DOMAIN + '/account/?email_verification_code=' + signed_string
             welcome_email_content += '\r\n\r\n'
             welcome_email_content += 'Your request to verify this email address will not be processed unless you confirm the address using this URL. This link expires 24 hours after you registered. However, you can always verify your email address at a future date using the options on your account page.'
             welcome_email_content += '\r\n\r\n'
@@ -366,7 +366,7 @@ def verify_email_address(request):
         verification_email_content += '\r\n\r\n'
         verification_email_content += 'We have received a request to verify this email address for the username "' + request.user.username + '"" at ' + settings.ENVIRONMENT_DOMAIN + '. If you requested this verification, please go to the following URL to confirm that you are authorized to use this email address:'
         verification_email_content += '\r\n\r\n'
-        verification_email_content += settings.ENVIRONMENT_DOMAIN + '/account?email_verification_code=' + signed_string
+        verification_email_content += settings.ENVIRONMENT_DOMAIN + '/account/?email_verification_code=' + signed_string
         verification_email_content += '\r\n\r\n'
         verification_email_content += 'Your request to verify this email address will not be processed unless you confirm the address using this URL. This link expires 24 hours after your original verification request.'
         verification_email_content += '\r\n\r\n'
@@ -623,7 +623,7 @@ def update_my_information(request):
             edit_my_information_email_content += '\r\n\r\n'
             edit_my_information_email_content += 'While we have your attention, we\'d love it if you took a few seconds to verify your new email address. Please go to the following URL to confirm that you are authorized to use this new email address:'
             edit_my_information_email_content += '\r\n\r\n'
-            edit_my_information_email_content += settings.ENVIRONMENT_DOMAIN + '/account?email_verification_code=' + signed_string
+            edit_my_information_email_content += settings.ENVIRONMENT_DOMAIN + '/account/?email_verification_code=' + signed_string
             edit_my_information_email_content += '\r\n\r\n'
             edit_my_information_email_content += 'Your request to verify this new email address will not be processed unless you confirm the address using this URL. This link expires 24 hours after you changed email addresses. However, you can always verify your new email address at a future date using the options on your account page.'
             edit_my_information_email_content += '\r\n\r\n'
