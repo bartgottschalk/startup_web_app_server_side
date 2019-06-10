@@ -12,6 +12,9 @@ from django.utils import timezone
 from user.models import Defaultshippingaddress, Member, Prospect, Emailunsubscribereasons, EmailunsubscribereasonsAdmin, Termsofuse, Membertermsofuseversionagreed, Emailtype, Emailstatus, Email, Emailsent, Ad, Adtype, Adstatus, Chatmessage
 from StartupWebApp.utilities import identifier
 
+from import_export import resources
+from import_export.admin import ImportExportModelAdmin
+
 email_unsubscribe_signer = Signer(salt='email_unsubscribe')
 
 # Define an inline admin descriptor for Member model
@@ -25,8 +28,13 @@ class MemberInline(admin.StackedInline):
 class UserAdmin(BaseUserAdmin):
     inlines = (MemberInline, )
     
+class ProspectResource(resources.ModelResource):
+    class Meta:
+        model = Prospect
+
 # Define a new Prospect admin
-class ProspectAdmin(admin.ModelAdmin):
+class ProspectAdmin(ImportExportModelAdmin):
+    resource_class = ProspectResource
     actions = ['populate_prospect_codes']
     list_display = ('first_name', 'last_name', 'email', 'phone', 'pr_cd', 'email_unsubscribed', 'prospect_comment', 'swa_comment', 'created_date_time', 'converted_date_time')
 

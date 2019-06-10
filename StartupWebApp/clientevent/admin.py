@@ -16,7 +16,7 @@ class AJAXErrorResource(resources.ModelResource):
     class Meta:
         model = AJAXError
 
-class AJAXErrorAdmin(admin.ModelAdmin):
+class AJAXErrorAdmin(ImportExportModelAdmin):
     resource_class = AJAXErrorResource
     list_display = ('user', 'anonymous_id', 'url', 'error_id', 'created_date_time')    
     list_filter = ('user', 'anonymous_id', 'url', 'error_id')
@@ -25,7 +25,7 @@ class ButtonclickResource(resources.ModelResource):
     class Meta:
         model = Buttonclick
 
-class ButtonclickAdmin(admin.ModelAdmin):
+class ButtonclickAdmin(ImportExportModelAdmin):
     resource_class = ButtonclickResource
     list_display = ('user', 'anonymous_id', 'url', 'button_id', 'created_date_time')    
     list_filter = ('user', 'anonymous_id', 'url', 'button_id')
@@ -34,7 +34,7 @@ class LinkeventResource(resources.ModelResource):
     class Meta:
         model = Linkevent
 
-class LinkeventAdmin(admin.ModelAdmin):
+class LinkeventAdmin(ImportExportModelAdmin):
     resource_class = LinkeventResource
     list_display = ('user', 'prospect', 'anonymous_id', 'email', 'ad', 'url', 'created_date_time')
     list_filter = ('user', 'prospect', 'anonymous_id', 'email', 'ad', 'url')
