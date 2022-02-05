@@ -1,3 +1,6 @@
+# Note 
+I no longer control the domain startupwebapp.com and am not responsbile for the content that is currently served from that domain. Use caution if you go there. 
+
 # startup_web_app_server_side
 I'm co-founder of a startup which
 
