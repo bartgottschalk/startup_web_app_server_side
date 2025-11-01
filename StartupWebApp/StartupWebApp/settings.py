@@ -33,6 +33,26 @@ from .settings_secret import *
 
 #ALLOWED_HOSTS = []
 
+# Security settings for production
+# These settings are only applied when DEBUG=False (production environment)
+# For local development, DEBUG=True in settings_secret.py overrides these
+if not DEBUG:
+    # HTTPS/SSL Settings
+    SECURE_SSL_REDIRECT = True  # Redirect all HTTP to HTTPS
+    SESSION_COOKIE_SECURE = True  # Only send session cookies over HTTPS
+    CSRF_COOKIE_SECURE = True  # Only send CSRF cookies over HTTPS
+
+    # HTTP Strict Transport Security (HSTS)
+    # Tells browsers to only use HTTPS for this site for 1 year
+    SECURE_HSTS_SECONDS = 31536000  # 1 year in seconds
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True  # Apply to all subdomains
+    SECURE_HSTS_PRELOAD = True  # Allow inclusion in browser HSTS preload lists
+
+    # Security Headers
+    SECURE_CONTENT_TYPE_NOSNIFF = True  # Prevent MIME-type sniffing
+    SECURE_BROWSER_XSS_FILTER = True  # Enable browser XSS filtering
+    X_FRAME_OPTIONS = 'DENY'  # Prevent clickjacking by denying framing
+
 # Application definition
 
 INSTALLED_APPS = [
