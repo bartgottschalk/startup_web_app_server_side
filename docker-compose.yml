@@ -1,0 +1,27 @@
+# Docker Compose for StartupWebApp Backend - Development Environment
+version: '3.9'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: startupwebapp-backend-dev
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount source code for hot-reloading during development
+      - ./StartupWebApp:/app
+      # Persist database between restarts
+      - sqlite_data:/app/data
+    environment:
+      - DJANGO_SETTINGS_MODULE=StartupWebApp.settings
+      - DEBUG=True
+      - PYTHONUNBUFFERED=1
+    command: python manage.py runserver 0.0.0.0:8000
+    stdin_open: true
+    tty: true
+
+volumes:
+  sqlite_data:
+    driver: local

@@ -3,7 +3,10 @@ import imghdr
 from django.contrib.auth.models import User
 
 def isEmail(email):
-    if re.match("^([a-zA-Z0-9_.+-])+\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$", email):	
+    # Email regex: local-part @ domain
+    # Local part: must start and end with alphanumeric, can contain . _ + - in middle
+    # Domain: standard domain format with TLD
+    if re.match(r"^[a-zA-Z0-9]([a-zA-Z0-9_.+-]*[a-zA-Z0-9])?\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$", email):
         return True
     else:
         return False
@@ -46,7 +49,7 @@ def containsCapitalLetter(string_val):
         return False
 
 def containsSpecialCharacter(string_val):
-    if re.match(".*[!@#$%^&*()~{}\[\]].*", string_val):	
+    if re.match(r".*[!@#$%^&*()~{}\[\]].*", string_val):
         return True
     else:
         return False

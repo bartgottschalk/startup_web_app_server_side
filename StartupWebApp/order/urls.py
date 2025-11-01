@@ -35,6 +35,6 @@ urlpatterns = [
     path('change-confirmation-email-address', views.change_confirmation_email_address, name='change_confirmation_email_address'),
 
 
-    re_path('(?P<order_identifier>^[a-zA-Z\d]+$)', views.order_detail, name='order_detail'), 
+    re_path(r'(?P<order_identifier>^[a-zA-Z\d]+$)', views.order_detail, name='order_detail'), 
 
 ]
