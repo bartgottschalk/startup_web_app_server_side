@@ -9,6 +9,7 @@ services:
     container_name: startupwebapp-backend-dev
     ports:
       - "8000:8000"
+      - "60767:60767"  # LiveServerTestCase API port for functional tests
     volumes:
       # Mount source code for hot-reloading during development
       - ./StartupWebApp:/app
@@ -18,6 +19,10 @@ services:
       - DJANGO_SETTINGS_MODULE=StartupWebApp.settings
       - DEBUG=True
       - PYTHONUNBUFFERED=1
+    extra_hosts:
+      # Allow container to access frontend on host machine for functional tests
+      - "localliveservertestcase.startupwebapp.com:host-gateway"
+      - "localliveservertestcaseapi.startupwebapp.com:host-gateway"
     command: python manage.py runserver 0.0.0.0:8000
     stdin_open: true
     tty: true
