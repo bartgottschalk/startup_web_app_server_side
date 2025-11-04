@@ -1,5 +1,4 @@
 import re
-import imghdr
 from django.contrib.auth.models import User
 
 def isEmail(email):
