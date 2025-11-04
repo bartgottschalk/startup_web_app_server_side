@@ -1,6 +1,6 @@
 from django.conf import settings
 import time
-import boto3 
+# import boto3  # Commented out - not used in any tests
 from selenium.common.exceptions import WebDriverException
 
 MAX_WAIT = 10
@@ -130,22 +130,25 @@ def wait_for_new_window_handle(context, previous_window_handles):
 		else:
 			return list(set(new_window_handles) - set(previous_window_handles))[0]
 
-def setupS3Connection():
-    session = boto3.Session(profile_name='aws-sdk-user')
-    # Any clients created from this session will use credentials
-    # from the [dev] section of ~/.aws/credentials.
-    s3 = session.resource('s3')
-    return s3
-    
-def putPDFOnS3(file_path, file_name):
-    #print('setup S3 Connection')
-    s3 = setupS3Connection()
-
-    # put PDF On S3
-    data = open(file_path + file_name, 'rb')
-    s3.Bucket(settings.S3_FUNCTIONAL_TESTING_BUCKET_NAME).put_object(Key=settings.S3_FUNCTIONAL_TESTING_BUCKET_PATH + file_name, Body=data, ContentType='image/png', CacheControl='max-age=1')
-
-    location = settings.S3_FUNCTIONAL_TESTING_DOMAIN + "/" + settings.S3_FUNCTIONAL_TESTING_BUCKET_NAME + file_name
-    print('location is: ' + location)
+# These S3 functions are not used in any functional tests (only commented out reference exists)
+# If needed in the future, uncomment and add boto3 to requirements.txt
+#
+# def setupS3Connection():
+#     session = boto3.Session(profile_name='aws-sdk-user')
+#     # Any clients created from this session will use credentials
+#     # from the [dev] section of ~/.aws/credentials.
+#     s3 = session.resource('s3')
+#     return s3
+#
+# def putPDFOnS3(file_path, file_name):
+#     #print('setup S3 Connection')
+#     s3 = setupS3Connection()
+#
+#     # put PDF On S3
+#     data = open(file_path + file_name, 'rb')
+#     s3.Bucket(settings.S3_FUNCTIONAL_TESTING_BUCKET_NAME).put_object(Key=settings.S3_FUNCTIONAL_TESTING_BUCKET_PATH + file_name, Body=data, ContentType='image/png', CacheControl='max-age=1')
+#
+#     location = settings.S3_FUNCTIONAL_TESTING_DOMAIN + "/" + settings.S3_FUNCTIONAL_TESTING_BUCKET_NAME + file_name
+#     print('location is: ' + location)
 
 

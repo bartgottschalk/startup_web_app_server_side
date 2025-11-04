@@ -1,5 +1,5 @@
 # Docker Compose for StartupWebApp Backend - Development Environment
-version: '3.9'
+# Note: version field removed as it's obsolete in Docker Compose v2+
 
 services:
   backend:

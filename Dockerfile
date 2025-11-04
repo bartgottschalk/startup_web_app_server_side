@@ -14,7 +14,17 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     sqlite3 \
+    firefox-esr \
+    wget \
     && rm -rf /var/lib/apt/lists/*
+
+# Install geckodriver for Selenium
+RUN GECKODRIVER_VERSION=0.33.0 && \
+    wget -q https://github.com/mozilla/geckodriver/releases/download/v${GECKODRIVER_VERSION}/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz && \
+    tar -xzf geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz && \
+    mv geckodriver /usr/local/bin/ && \
+    chmod +x /usr/local/bin/geckodriver && \
+    rm geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt /app/
