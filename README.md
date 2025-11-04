@@ -1,66 +1,136 @@
-# Note 
-I no longer control the domain startupwebapp.com and am not responsbile for the content that is currently served from that domain. Use caution if you go there. 
+# ⚠️ Important Domain Notice
+I no longer control the domain startupwebapp.com and am not responsible for the content that is currently served from that domain. Use caution if you go there.
 
 # startup_web_app_server_side
-I'm co-founder of a startup which
+
+A Django REST API backend for an e-commerce startup, featuring comprehensive test coverage, Docker containerization, and Python 3.12 compatibility.
+
+## Current Status (November 2025)
+
+✅ **626 Unit Tests Passing** - Comprehensive test coverage across all apps
+✅ **Python 3.12 Compatible** - Fully modernized for latest Python
+✅ **Docker Containerized** - Easy setup with Docker Compose
+✅ **Django 2.2.28** - Stable LTS version with security updates
+✅ **Production-Ready** - Extensive testing of user management, e-commerce, and analytics
+
+### Test Coverage Breakdown
+- **User App**: 286 tests (authentication, profiles, email management)
+- **Order App**: 239 tests (products, cart, checkout, payments via Stripe)
+- **ClientEvent App**: 51 tests (analytics event tracking)
+- **Validators**: 50 tests (input validation)
+- **Functional Tests**: 26 Selenium tests (requires frontend client)
+
+📚 **See [docs/README.md](docs/README.md) for detailed project timeline and completed phases.**
+
+## About This Project
+
+I'm co-founder of a startup which:
 
 1. Produces and sells a relatively small quantity of a relatively high number of customizable physical products, and
-2. Has future plans to build a complementary digital product. 
+2. Has future plans to build a complementary digital product.
 
-Soon after jumping into this idea it was clear we would need a web application to support our product's discovery, selection, customization, purchase and interactive experiences. We looked at using existing marketplaces and web-site building platforms such as Squarespace or Wix. These didn't work for us for a couple of reasons
+Soon after jumping into this idea it was clear we would need a web application to support our product's discovery, selection, customization, purchase and interactive experiences. We looked at using existing marketplaces and web-site building platforms such as Squarespace or Wix. These didn't work for us for a couple of reasons:
 
 1. The customizable nature of our products
 2. The large number of individual skus we would be managing
-3. Our customers can create skus dynamically.
+3. Our customers can create skus dynamically
 
-This made using “off-the-shelf” solutions unworkable, even for early prototyping and experimentation, and meant we needed to build a custom web application. Among our non-functional requirements were things like
+This made using "off-the-shelf" solutions unworkable, even for early prototyping and experimentation, and meant we needed to build a custom web application. Among our non-functional requirements were things like:
 
 1. The ability to iterate quickly
 2. Security
 3. Reliability
 4. Support growth and scalability (reasonably)
 5. Support future iterative exploration of our digital product
-6. Can’t be so costly that it sinks the business. 
+6. Can't be so costly that it sinks the business
 
-As the only technical co-founder, it landed on me to "figure this out." 
+As the only technical co-founder, it landed on me to "figure this out."
 
 This repository contains a simplified version of the server side application I built to launch our startup. To learn more about this project you can check out [slides from a talk I gave about the technical aspects of this project](https://docs.google.com/presentation/d/18Y_G3asKbeys7s5618N_VJkXCI0ePwJ0vKB_06c-P3w/edit#slide=id.g5820c97b01_0_114) or [slides from a talk I gave demoing use of the project for startup idea validation](https://docs.google.com/presentation/d/1O80AyN6jpFxfooDz8ILfYE1PyYlm917mP2EqYuMf5SE/edit#slide=id.g5820c97b01_0_90).
 
-## Getting Started
+## Quick Start with Docker (Recommended)
 
-These instructions will get you a copy of the project up and running on your local machine for experimentation and/or development purposes. 
+### Prerequisites
+- [Docker Desktop](https://www.docker.com/products/docker-desktop)
+- [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+
+### Setup
+
+1. **Clone the repository**
+```bash
+git clone https://github.com/bartgottschalk/startup_web_app_server_side.git
+cd startup_web_app_server_side
+```
+
+2. **Build and start the Docker container**
+```bash
+docker-compose build
+docker-compose up -d
+```
+
+3. **The API is now running at http://localhost:8000**
+
+### Run Tests
+
+**Run all unit tests** (626 tests):
+```bash
+docker-compose exec backend python manage.py test order.tests user.tests clientevent.tests StartupWebApp.tests
+```
+
+**Run functional tests** (requires frontend client):
+```bash
+docker-compose exec -e HEADLESS=TRUE backend python manage.py test functional_tests
+```
+
+### Access Django Admin
+```bash
+# Create admin user
+docker-compose exec backend python manage.py createsuperuser
+
+# Access at http://localhost:8000/admin/
+```
+
+### Stop the container
+```bash
+docker-compose down
+```
+
+---
+
+## Advanced: Manual Installation
+
+<details>
+<summary>Click to expand manual installation instructions (legacy method)</summary>
 
 ### Prerequisites
 
 You will need the following python packages and tools installed:
 
 #### For the Server application to function
-- [Python 3.x](https://www.python.org/downloads/)
-- A database to use with Django. [MySQL](https://dev.mysql.com/doc/refman/8.0/en/installing.html), [Postgres](https://www.postgresql.org/docs/11/tutorial-install.html), [SqlLite](https://sqlite.org/download.html) or other of your choice.
+- [Python 3.12](https://www.python.org/downloads/)
+- A database to use with Django. [MySQL](https://dev.mysql.com/doc/refman/8.0/en/installing.html), [Postgres](https://www.postgresql.org/docs/11/tutorial-install.html), [SQLite](https://sqlite.org/download.html) or other of your choice.
 - [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-- [configparser](https://pypi.org/project/configparser/)
-- [django](https://docs.djangoproject.com/en/2.2/topics/install/)
-- [django-cors-headers](https://pypi.org/project/django-cors-headers/)
-- [django-import-export](https://pypi.org/project/django-import-export/)
-- [titlecase](https://pypi.org/project/titlecase/)
-- [stripe](https://stripe.com/docs/libraries#python)
+- Python packages: see `requirements.txt`
 
-#### For the Selenium functional tests and unit test coverage report to function
-- [SqlLite](https://sqlite.org/download.html)
-- [firefox](https://support.mozilla.org/en-US/products/firefox/install-and-update-firefox)
+#### For the Selenium functional tests
+- [SQLite](https://sqlite.org/download.html)
+- [Firefox](https://support.mozilla.org/en-US/products/firefox/install-and-update-firefox)
 - [geckodriver](https://github.com/mozilla/geckodriver/releases)
-- [coverage](https://coverage.readthedocs.io/en/v4.5.x/install.html)
-- [selenium](https://pypi.org/project/selenium/)
 
-### Installing the Application
+### Installing the Application Manually
 
 #### Install from Github
-Note: These instructions assume that you will install the application at `~/StartupWebApp`. If you select another location you will need to adjust all other commands accordingly.  
+Note: These instructions assume that you will install the application at `~/StartupWebApp`. If you select another location you will need to adjust all other commands accordingly.
 
-```
+```bash
 cd ~/StartupWebApp
 git clone https://github.com/bartgottschalk/startup_web_app_server_side.git
 cd ~/StartupWebApp/startup_web_app_server_side
+```
+
+#### Install Python dependencies
+```bash
+pip install -r requirements.txt
 ```
 
 #### Configure Hosts File
@@ -233,8 +303,12 @@ Create a new record in table order_discount_code
 6. Create order_sku_image record for each sku (optional)
 	- Select Sku
 	- Provide the relative `/img/` or full image path `https://img.startupwebapp.com/product/sku/...`
-	- Select if this is the main image for this sku. There can only be one main image. The DB doesn't enforce this constraint so make sure you don't screw this up. 
+	- Select if this is the main image for this sku. There can only be one main image. The DB doesn't enforce this constraint so make sure you don't screw this up.
 	- Provide an optional caption for the image.
+
+</details>
+
+---
 
 ## Authors
 
