@@ -125,6 +125,12 @@ def linkevent(request):
     if request.method == 'GET' and 'url' in request.GET:    
         url = request.GET['url']
     if url is not None:
+        # Initialize all variables to None
+        user = None
+        prospect = None
+        email = None
+        ad = None
+
         try:
             if mb_cd is not None:
                 member = Member.objects.get(mb_cd=mb_cd)
@@ -139,12 +145,14 @@ def linkevent(request):
             prospect = None
             print(e)
         try:
-            email = Email.objects.get(em_cd=em_cd)
+            if em_cd is not None:
+                email = Email.objects.get(em_cd=em_cd)
         except (ObjectDoesNotExist, ValueError) as e:
             email = None
             print(e)
         try:
-            ad = Ad.objects.get(ad_cd=ad_cd)
+            if ad_cd is not None:
+                ad = Ad.objects.get(ad_cd=ad_cd)
         except (ObjectDoesNotExist, ValueError) as e:
             ad = None
             print(e)
