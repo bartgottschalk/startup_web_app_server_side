@@ -1,4 +1,4 @@
-# Docker Compose for StartupWebApp Backend - Development Environment
+# Docker Compose for StartupWebApp - Full Stack Development Environment
 # Note: version field removed as it's obsolete in Docker Compose v2+
 
 services:
@@ -19,14 +19,33 @@ services:
       - DJANGO_SETTINGS_MODULE=StartupWebApp.settings
       - DEBUG=True
       - PYTHONUNBUFFERED=1
-    extra_hosts:
-      # Allow container to access frontend on host machine for functional tests
-      - "localliveservertestcase.startupwebapp.com:host-gateway"
-      - "localliveservertestcaseapi.startupwebapp.com:host-gateway"
-    command: python manage.py runserver 0.0.0.0:8000
+      - DOCKER_ENV=true  # Flag to indicate running in Docker for functional tests
+    networks:
+      - startupwebapp
+    # Keep container running without starting server (allows functional tests to use port 60767)
+    command: tail -f /dev/null
     stdin_open: true
     tty: true
+
+  frontend:
+    image: nginx:alpine
+    container_name: startupwebapp-frontend-dev
+    ports:
+      - "8080:80"  # Frontend accessible at port 8080 on host
+    volumes:
+      # Mount frontend static files
+      - ../startup_web_app_client_side:/usr/share/nginx/html:ro
+      # Mount custom nginx configuration for extensionless HTML files
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - startupwebapp
+    depends_on:
+      - backend
 
 volumes:
   sqlite_data:
     driver: local
+
+networks:
+  startupwebapp:
+    driver: bridge

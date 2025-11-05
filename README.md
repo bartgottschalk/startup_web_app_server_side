@@ -97,6 +97,125 @@ docker-compose down
 
 ---
 
+## Full-Stack Development with Docker Compose
+
+The backend and frontend can be run together using Docker Compose for a complete development environment with functional tests.
+
+### Prerequisites
+- Docker Desktop installed
+- Frontend repository cloned as a sibling directory:
+  ```bash
+  cd /path/to/projects
+  git clone https://github.com/bartgottschalk/startup_web_app_client_side.git
+  git clone https://github.com/bartgottschalk/startup_web_app_server_side.git
+  ```
+- `settings_secret.py` configured (see CORS Configuration below)
+
+### Quick Start
+
+1. **Start both services**
+   ```bash
+   cd startup_web_app_server_side
+   docker-compose up -d
+   ```
+
+2. **Start the backend API server**
+   ```bash
+   docker-compose exec -d backend python manage.py runserver 0.0.0.0:8000
+   ```
+
+3. **Access the application**
+   - Frontend: http://localhost:8080
+   - Backend API: http://localhost:8000
+   - Admin interface: http://localhost:8000/admin/
+
+### Architecture
+
+The `docker-compose.yml` orchestrates two services:
+- **backend**: Django REST API (Python 3.12)
+- **frontend**: Nginx serving static HTML/CSS/JavaScript
+
+**Docker Networking**: Services communicate via a custom bridge network (`startupwebapp`), enabling:
+- Browser → Frontend (localhost:8080)
+- Browser → Backend API (localhost:8000)
+- Frontend (Docker) → Backend API (Docker network)
+- Functional tests → Both services
+
+### Nginx Configuration
+
+The `nginx.conf` file configures nginx to properly serve extensionless HTML files (e.g., `/about`, `/contact`, `/cart`) with the correct MIME type (`text/html`).
+
+**Why this is needed**: Without this configuration, browsers will download these files instead of rendering them, because nginx defaults to `application/octet-stream` for files without extensions.
+
+**Key configuration features**:
+- `try_files $uri $uri.html $uri/ =404` - Attempts to find files with or without `.html` extension
+- `default_type text/html` - Sets HTML as default MIME type
+- Gzip compression enabled
+- Static asset caching with 1-year expiration
+
+### CORS Configuration
+
+For Docker development, add these origins to `StartupWebApp/StartupWebApp/settings_secret.py`:
+
+```python
+CORS_ORIGIN_WHITELIST = (
+    'http://localhost:8080',  # Docker Compose frontend (browser access)
+    'http://frontend',  # Docker Compose frontend (internal Docker network)
+    'http://localliveservertestcase.startupwebapp.com',  # Legacy functional tests
+    'http://localhost.startupwebapp.com',  # Legacy local development
+)
+```
+
+**Important**: `settings_secret.py` is gitignored and must be created manually. See `settings_secret.py.template` for reference.
+
+### Running Functional Tests
+
+Functional tests use Selenium with headless Firefox to test the full stack from a user's perspective.
+
+**Run all functional tests**:
+```bash
+docker-compose exec -e HEADLESS=TRUE backend python manage.py test functional_tests --verbosity=2
+```
+
+**Run specific test suites**:
+```bash
+# Home page tests
+docker-compose exec -e HEADLESS=TRUE backend python manage.py test functional_tests.home --verbosity=2
+
+# About page tests
+docker-compose exec -e HEADLESS=TRUE backend python manage.py test functional_tests.about --verbosity=2
+
+# Contact page tests
+docker-compose exec -e HEADLESS=TRUE backend python manage.py test functional_tests.contact --verbosity=2
+```
+
+**How it works**:
+- The `DOCKER_ENV=true` environment variable enables Docker-specific networking
+- Tests access frontend at `http://frontend/` (Docker service name)
+- LiveServerTestCase provides test API at `http://backend:60767`
+- Selenium controls Firefox in headless mode
+
+### Troubleshooting
+
+**Frontend pages download instead of displaying:**
+- Verify `nginx.conf` is mounted in docker-compose.yml
+- Restart frontend: `docker-compose restart frontend`
+
+**CORS errors in browser console:**
+- Add required origins to `CORS_ORIGIN_WHITELIST` in `settings_secret.py`
+- Restart backend server
+
+**Functional tests hang:**
+- Ensure both backend and frontend containers are running: `docker-compose ps`
+- Check nginx is serving files correctly: `curl -I http://localhost:8080/about`
+- Verify CORS configuration includes Docker origins
+
+**Can't connect to API:**
+- Ensure backend server is running: `docker-compose exec backend ps aux | grep manage.py`
+- Check API responds: `curl http://localhost:8000/user/logged-in`
+
+---
+
 ## Advanced: Manual Installation
 
 <details>

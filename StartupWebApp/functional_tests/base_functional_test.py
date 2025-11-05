@@ -23,7 +23,8 @@ class BaseFunctionalTest(LiveServerTestCase):
 	port = 60767 # hardcoding the port so that I can access the LiveServerTestCase API from the staticically deployed client at a predictable url:port combo
 	yesterday = start_date_time=timezone.now() - timedelta(days=1)
 	tomorrow = start_date_time=timezone.now() + timedelta(days=1)
-	static_home_page_url = "http://localliveservertestcase.startupwebapp.com:8080/"  # Using port 8080 to avoid port 80 conflict
+	# Frontend accessible via Docker service name when running in containers
+	static_home_page_url = "http://frontend/" if os.environ.get('DOCKER_ENV') else "http://localliveservertestcase.startupwebapp.com:8080/"
 
 	def setUp(self):
 		self.browser = webdriver.Firefox(options=self.options)
