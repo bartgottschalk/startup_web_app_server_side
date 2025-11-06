@@ -3,11 +3,11 @@
 # See docs/DJANGO_UPGRADE_PLAN.md for upgrade tracking
 
 # Core Django
-Django==3.0.14  # Step 1: Django 2.2 → 3.0 (first stable 3.0.x)
+Django==3.1.14  # Step 2: Django 3.0 → 3.1 (last stable 3.1.x)
 
 # Django Extensions
-django-cors-headers==3.11.0  # Compatible with Django 3.0
-django-import-export==2.7.1  # Last version supporting Django 3.0-3.1
+django-cors-headers==3.11.0  # Compatible with Django 3.1
+django-import-export==2.7.1  # Compatible with Django 3.0-3.1
 
 # Utilities
 configparser==5.2.0
