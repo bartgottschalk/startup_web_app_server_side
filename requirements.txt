@@ -1,13 +1,13 @@
-# Requirements for baseline testing (verified working state)
-# Python 3.12.8 compatible versions
-# All tests pass with these versions (see BASELINE_TEST_RESULTS.md)
+# Django 4.2 LTS - UPGRADE COMPLETE! ✅
+# Python 3.12.12 compatible versions
+# Upgraded from Django 2.2.28 (EOL 2022) to 4.2.16 LTS (supported until April 2026)
 
 # Core Django
-Django==2.2.28  # Last 2.2.x release with security fixes
+Django==4.2.16  # Step 6: Django 4.1 → 4.2 LTS (supported until April 2026)
 
 # Django Extensions
-django-cors-headers==3.7.0  # Requires URLs with scheme in CORS_ORIGIN_WHITELIST
-django-import-export==2.6.1
+django-cors-headers==4.4.0  # Compatible with Django 4.2
+django-import-export==4.0.0  # Compatible with Django 4.2+
 
 # Utilities
 configparser==5.2.0

@@ -31,6 +31,28 @@ CSRF_COOKIE_SECURE = True #override in secrets for local ONLY
 # get secret settings again for overrides
 from .settings_secret import *
 
+# Django 4.0+ compatibility: Convert CSRF_TRUSTED_ORIGINS from old string format to new list format
+# In Django 4.0+, CSRF_TRUSTED_ORIGINS must be a list with schemes (http:// or https://)
+# Old format: CSRF_TRUSTED_ORIGINS = ".startupwebapp.com"
+# New format: CSRF_TRUSTED_ORIGINS = ['https://*.startupwebapp.com', 'http://localhost:8080', 'http://localhost:8000']
+if 'CSRF_TRUSTED_ORIGINS' in globals():
+    if isinstance(CSRF_TRUSTED_ORIGINS, str):
+        # Convert old string format to new list format
+        old_origin = CSRF_TRUSTED_ORIGINS
+        if DEBUG:
+            # Development: use http for localhost
+            CSRF_TRUSTED_ORIGINS = [
+                'http://localhost:8080',
+                'http://localhost:8000',
+                'http://localhost',
+            ]
+        else:
+            # Production: use https with wildcard subdomain
+            CSRF_TRUSTED_ORIGINS = [
+                f'https://*{old_origin}',
+                f'https://{old_origin.lstrip(".")}',
+            ]
+
 #ALLOWED_HOSTS = []
 
 # Security settings for production
@@ -52,6 +74,10 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True  # Prevent MIME-type sniffing
     SECURE_BROWSER_XSS_FILTER = True  # Enable browser XSS filtering
     X_FRAME_OPTIONS = 'DENY'  # Prevent clickjacking by denying framing
+
+# Django 3.2+ setting: Use AutoField for primary keys (maintains backward compatibility)
+# This prevents Django from creating new migrations for BigAutoField
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 # Application definition
 
