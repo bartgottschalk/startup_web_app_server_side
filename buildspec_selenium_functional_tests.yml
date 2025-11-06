@@ -45,10 +45,6 @@ env:
           }
       }
 
-      S3_QR_IMAGE_BUCKET_PATH = 'food/qr/local/'
-      S3_ORDER_PDF_BUCKET_PATH = 'pdf/local/'
-      S3_FOOD_IMAGE_BUCKET_PATH = 'food/main/local/'
-
       STRIPE_SERVER_SECRET_KEY = 'sk_test_123'
       STRIPE_PUBLISHABLE_SECRET_KEY = 'pk_test_123'
       STRIPE_LOG_LEVEL = 'debug'
