@@ -23,7 +23,8 @@ services:
     networks:
       - startupwebapp
     # Keep container running without starting server (allows functional tests to use port 60767)
-    command: tail -f /dev/null
+    # Commented out to enable normal development - Django starts via Dockerfile CMD
+    # command: tail -f /dev/null
     stdin_open: true
     tty: true
 
