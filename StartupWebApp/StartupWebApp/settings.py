@@ -31,6 +31,28 @@ CSRF_COOKIE_SECURE = True #override in secrets for local ONLY
 # get secret settings again for overrides
 from .settings_secret import *
 
+# Django 4.0+ compatibility: Convert CSRF_TRUSTED_ORIGINS from old string format to new list format
+# In Django 4.0+, CSRF_TRUSTED_ORIGINS must be a list with schemes (http:// or https://)
+# Old format: CSRF_TRUSTED_ORIGINS = ".startupwebapp.com"
+# New format: CSRF_TRUSTED_ORIGINS = ['https://*.startupwebapp.com', 'http://localhost:8080', 'http://localhost:8000']
+if 'CSRF_TRUSTED_ORIGINS' in globals():
+    if isinstance(CSRF_TRUSTED_ORIGINS, str):
+        # Convert old string format to new list format
+        old_origin = CSRF_TRUSTED_ORIGINS
+        if DEBUG:
+            # Development: use http for localhost
+            CSRF_TRUSTED_ORIGINS = [
+                'http://localhost:8080',
+                'http://localhost:8000',
+                'http://localhost',
+            ]
+        else:
+            # Production: use https with wildcard subdomain
+            CSRF_TRUSTED_ORIGINS = [
+                f'https://*{old_origin}',
+                f'https://{old_origin.lstrip(".")}',
+            ]
+
 #ALLOWED_HOSTS = []
 
 # Security settings for production
