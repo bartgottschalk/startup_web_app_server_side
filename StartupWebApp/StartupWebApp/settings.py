@@ -53,6 +53,10 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True  # Enable browser XSS filtering
     X_FRAME_OPTIONS = 'DENY'  # Prevent clickjacking by denying framing
 
+# Django 3.2+ setting: Use AutoField for primary keys (maintains backward compatibility)
+# This prevents Django from creating new migrations for BigAutoField
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
 # Application definition
 
 INSTALLED_APPS = [
