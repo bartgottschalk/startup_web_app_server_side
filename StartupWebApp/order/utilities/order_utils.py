@@ -89,10 +89,13 @@ def create_cart(request):
 
 def set_anonymous_cart_cookie(request, response, cart):
     if not request.user.is_authenticated:
+        from django.conf import settings
         cookie_value = random.getRandomString(20, 20)
         cart.anonymous_cart_id = cookie_value
         cart.save()
-        response.set_signed_cookie(key='an_ct', value=cookie_value, salt='anonymouscartcookieisthis', max_age=31536000, expires=None, path='/', domain='.startupwebapp.com', secure=None, httponly=False)
+        # Only set domain in production (DEBUG=False) to allow cookies to work with localhost
+        domain = '.startupwebapp.com' if not settings.DEBUG else None
+        response.set_signed_cookie(key='an_ct', value=cookie_value, salt='anonymouscartcookieisthis', max_age=31536000, expires=None, path='/', domain=domain, secure=None, httponly=False)
 
 def look_up_cart(request):
     cart = None

@@ -1111,11 +1111,17 @@ def put_chat_message(request):
             #raise ValueError('A very specific bad thing happened.')
             email.send(fail_silently=False)
             return JsonResponse({'put_chat_message':'true','user-api-version':user_api_version}, safe=False )
-        except (SMTPDataError, ValueError) as e:
+        except (SMTPDataError, ConnectionRefusedError, OSError, ValueError) as e:
             print('failed to send chat message email')
             print(e)
-            error_dict = {"email_failed" : True}
-            return JsonResponse({'put_chat_message': 'email_failed','errors':error_dict,'user-api-version':user_api_version}, safe=False )
+            # In development (DEBUG=True), SMTP server may not be running - this is OK
+            # Chat message was saved successfully, so return success
+            # In production (DEBUG=False), email failure is a real error that should be reported
+            if settings.DEBUG:
+                return JsonResponse({'put_chat_message':'true','user-api-version':user_api_version}, safe=False )
+            else:
+                error_dict = {"email_failed" : True}
+                return JsonResponse({'put_chat_message': 'email_failed','errors':error_dict,'user-api-version':user_api_version}, safe=False )
 
 
     else:

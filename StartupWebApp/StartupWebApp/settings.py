@@ -84,9 +84,14 @@ MIDDLEWARE = [
 CORS_ALLOW_CREDENTIALS = True
 
 #SESSION_COOKIE_DOMAIN = ".startupwebapp.com" # set in settings_secret.py by environment
-CSRF_COOKIE_DOMAIN = ".startupwebapp.com" # Leave here because this needs to be picked up by both the api sub domain and the static client domain
 #CSRF_TRUSTED_ORIGINS = ".startupwebapp.com" # set in settings_secret.py by environment
 #CSRF_COOKIE_AGE = 300  # 5 minutes, in seconds default is 31449600 or 1 year
+
+# CSRF Cookie Domain - only set for production
+# In production, this allows cookies to be shared between api.startupwebapp.com and www.startupwebapp.com
+# In development (DEBUG=True), leaving this unset allows cookies to work with localhost
+if not DEBUG:
+    CSRF_COOKIE_DOMAIN = ".startupwebapp.com"
 
 SESSION_COOKIE_AGE = 1209600  # 2 weeks, in seconds
 #SESSION_COOKIE_AGE = 300  # 5 minutes, in seconds
