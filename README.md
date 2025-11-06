@@ -353,21 +353,24 @@ Expected result: {"logged_in": false, "log_client_events": true, "client_event_i
 This application contains Selenium functional tests and python/Django unit tests.
 
 ### Run Selenium Functional Tests
+
+**Note**: All functional tests should be run with `HEADLESS=TRUE` to run Firefox in headless mode.
+
 ```
 cd ~/StartupWebApp/startup_web_app_server_side/StartupWebApp
 ```
 - run all tests
 ```
-python3 manage.py test functional_tests
+HEADLESS=TRUE python3 manage.py test functional_tests
 ```
 - run one module of tests
 ```
-python3 manage.py test functional_tests/home
+HEADLESS=TRUE python3 manage.py test functional_tests/home
 ```
 - run one specific test
 ```
-python3 manage.py test functional_tests.global.test_global_elements.AnonymousGlobalNavigationTests.test_header
-python3 manage.py test functional_tests.pythonabot.test_pythonabot.PythonABotPageFunctionalTests
+HEADLESS=TRUE python3 manage.py test functional_tests.global.test_global_elements.AnonymousGlobalNavigationTests.test_header
+HEADLESS=TRUE python3 manage.py test functional_tests.pythonabot.test_pythonabot.PythonABotPageFunctionalTests
 ```
 
 ### Run Unit Tests
