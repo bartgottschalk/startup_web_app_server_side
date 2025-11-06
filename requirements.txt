@@ -1,13 +1,13 @@
-# Requirements for baseline testing (verified working state)
-# Python 3.12.8 compatible versions
-# All tests pass with these versions (see BASELINE_TEST_RESULTS.md)
+# Django Upgrade to 4.2 LTS - In Progress
+# Python 3.12.12 compatible versions
+# See docs/DJANGO_UPGRADE_PLAN.md for upgrade tracking
 
 # Core Django
-Django==2.2.28  # Last 2.2.x release with security fixes
+Django==3.0.14  # Step 1: Django 2.2 → 3.0 (first stable 3.0.x)
 
 # Django Extensions
-django-cors-headers==3.7.0  # Requires URLs with scheme in CORS_ORIGIN_WHITELIST
-django-import-export==2.6.1
+django-cors-headers==3.11.0  # Compatible with Django 3.0
+django-import-export==2.7.1  # Last version supporting Django 3.0-3.1
 
 # Utilities
 configparser==5.2.0
