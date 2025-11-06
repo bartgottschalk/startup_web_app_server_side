@@ -14,42 +14,36 @@ This document tracks known issues and incomplete features discovered during deve
 ### Pre-Existing Application Issues Discovered
 
 #### 1. Product Detail API Endpoint Missing/Incomplete
+✅ **FIXED** - November 5, 2025 (PR #14)
+
 **Location**: `/order/product/{identifier}`
 **Impact**: HIGH
 **Description**:
 - Frontend calls `GET /order/product/{identifier}` in `js/product-0.0.1.js:21`
-- Backend endpoint doesn't exist or returns incomplete data
-- Causes JavaScript error: `TypeError: undefined is not an object (evaluating 'data['product_data']['title']')` at line 76
-- Database has minimal sample data (only 1 product record)
+- Backend endpoint was crashing with `DoesNotExist` error when accessing SKU inventory
+- Database was missing required Skuinventory reference records (id=1,2,3)
 
-**Steps to Reproduce**:
-1. Navigate to http://localhost:8080/product?id=bSusp6dBHm
-2. Check browser console
-3. See error about undefined `product_data`
-
-**Next Steps**:
-- Verify if `/order/product/{identifier}` endpoint exists in Django URLs
-- Check if Product API view is properly configured
-- Load full sample data from `db_inserts.sql` into database
-- Test product detail page functionality
+**Resolution**:
+- Created data migration `0002_add_default_inventory_statuses.py` that automatically creates 3 required Skuinventory records
+- Created management command `load_sample_data` to populate full sample data (products, SKUs, prices)
+- Migration skips during test runs to avoid conflicts with test data
+- Fixed CSRF, session, and anonymous cart cookie domain issues for localhost development
+- All 626 unit tests passing with no regressions
 
 #### 2. Account Page Authentication Redirect Loses Port
+✅ **FIXED** - November 5, 2025 (PR #14)
+
 **Location**: `/account/*` pages
 **Impact**: MEDIUM
 **Description**:
-- When accessing account pages without authentication, redirect strips port number
-- URL changes from `http://localhost:8080/account/` to `http://localhost/account/`
-- Results in connection failure (port 80 instead of 8080)
+- When accessing account pages, redirect was stripping port number
+- URL changed from `http://localhost:8080/account/` to `http://localhost/account/`
+- Resulted in connection failure (port 80 instead of 8080)
 
-**Steps to Reproduce**:
-1. Navigate to http://localhost:8080/account/
-2. Observe URL changes to http://localhost/account/ (missing :8080)
-3. Page fails to load
-
-**Next Steps**:
-- Review authentication redirect code in Django views
-- Check if redirect URLs are properly constructed with port preservation
-- May be related to `ALLOWED_HOSTS` or domain configuration
+**Resolution**:
+- Added `absolute_redirect off;` to nginx.conf
+- Nginx now uses relative redirects, preserving the original port from the browser request
+- Browser correctly maintains port 8080 when navigating
 
 ### Functional Test Failures (Pre-Existing)
 
@@ -98,22 +92,24 @@ docker-compose exec -d backend python manage.py runserver 0.0.0.0:8000
 
 ## Next Session Priorities
 
-1. **Fix Product Detail API** (HIGH)
-   - Implement or repair `/order/product/{identifier}` endpoint
-   - Load complete sample data into database
-   - Test product detail page end-to-end
+1. ✅ ~~**Fix Product Detail API** (HIGH)~~ - COMPLETED (PR #14)
+   - ✅ Implement or repair `/order/product/{identifier}` endpoint
+   - ✅ Load complete sample data into database
+   - ✅ Test product detail page end-to-end
 
-2. **Fix Account Redirect Issue** (MEDIUM)
-   - Debug authentication redirect code
-   - Ensure port preservation in redirects
-   - Test all account pages
+2. ✅ ~~**Fix Account Redirect Issue** (MEDIUM)~~ - COMPLETED (PR #14)
+   - ✅ Debug authentication redirect code
+   - ✅ Ensure port preservation in redirects
+   - ✅ Test all account pages
 
 3. **Address Functional Test Failures** (LOW)
    - Fix Selenium scrolling issues
    - Add proper waits for dynamic content
    - Ensure cart counter renders before testing
+   - Note: 28 functional tests currently failing due to Selenium/Firefox environment issues
 
 4. **Consider Django Upgrade** (FUTURE)
    - Current: Django 2.2.28 (EOL April 2022)
    - Target: Django 4.2 LTS or Django 5.0+
    - Requires compatibility testing
+   - Repositories should be in good shape first to identify upgrade-specific issues

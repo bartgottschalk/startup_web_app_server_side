@@ -68,7 +68,15 @@ docker-compose build
 docker-compose up -d
 ```
 
-3. **The API is now running at http://localhost:8000**
+3. **Initialize the database**
+```bash
+docker-compose exec backend python manage.py migrate
+docker-compose exec backend python manage.py load_sample_data
+```
+
+The migrations automatically create required reference data (Skuinventory records). The `load_sample_data` command populates the database with sample products, SKUs, and configuration data for development/testing.
+
+4. **The API is now running at http://localhost:8000**
 
 ### Run Tests
 
@@ -119,12 +127,18 @@ The backend and frontend can be run together using Docker Compose for a complete
    docker-compose up -d
    ```
 
-2. **Start the backend API server**
+2. **Initialize the database** (first time only)
+   ```bash
+   docker-compose exec backend python manage.py migrate
+   docker-compose exec backend python manage.py load_sample_data
+   ```
+
+3. **Start the backend API server**
    ```bash
    docker-compose exec -d backend python manage.py runserver 0.0.0.0:8000
    ```
 
-3. **Access the application**
+4. **Access the application**
    - Frontend: http://localhost:8080
    - Backend API: http://localhost:8000
    - Admin interface: http://localhost:8000/admin/
@@ -148,6 +162,7 @@ The `nginx.conf` file configures nginx to properly serve extensionless HTML file
 **Why this is needed**: Without this configuration, browsers will download these files instead of rendering them, because nginx defaults to `application/octet-stream` for files without extensions.
 
 **Key configuration features**:
+- `absolute_redirect off` - Uses relative redirects to preserve port numbers (e.g., keeps `:8080` when navigating)
 - `try_files $uri $uri.html $uri/ =404` - Attempts to find files with or without `.html` extension
 - `default_type text/html` - Sets HTML as default MIME type
 - Gzip compression enabled
@@ -295,14 +310,30 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER ON 
 cd ~/StartupWebApp/startup_web_app_server_side/StartupWebApp
 python3 manage.py migrate
 ```
-3. Create data records that are required for application to function. 
-These are all included in the file [db_inserts.sql](./db_inserts.sql) in this repository. Run these inserts against the database you created in step 1 above. 
+
+**Note**: The migrations automatically create required Skuinventory reference records (In Stock, Back Ordered, Out of Stock). See migration `0002_add_default_inventory_statuses.py` for details.
+
+3. Load sample data (recommended for development/testing):
+```
+python3 manage.py load_sample_data
+```
+
+This management command creates:
+- 3 sample products (Paper Clips, Binder Clips, Rubber Bands)
+- 6 SKUs with prices and images
+- Shipping methods, discount codes, order configuration
+- User data (terms of use, email types, ad types)
+- Client event configuration
+
+**Alternative**: You can manually load data from [db_inserts.sql](./db_inserts.sql) (legacy MySQL format), but the management command is recommended as it's database-agnostic and includes all required data.
 
 4. OPTIONAL: Create admin user. You need to do this to access the Django Admin site which is referenced below.
 Follow the instructions in the [Django documentation to create this user](https://docs.djangoproject.com/en/2.2/intro/tutorial02/#creating-an-admin-user)
 ```
 python3 manage.py createsuperuser
 ```
+
+**Important**: When creating users via `createsuperuser`, you must also create an associated Member record for the user to avoid application errors. See the codebase or use the Django admin interface to create Member records.
 
 ### Running the Local Server
 ```
