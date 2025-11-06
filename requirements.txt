@@ -3,11 +3,11 @@
 # See docs/DJANGO_UPGRADE_PLAN.md for upgrade tracking
 
 # Core Django
-Django==4.0.10  # Step 4: Django 3.2 → 4.0 (last 4.0.x)
+Django==4.1.13  # Step 5: Django 4.0 → 4.1 (last 4.1.x)
 
 # Django Extensions
-django-cors-headers==3.13.0  # Compatible with Django 4.0
-django-import-export==3.2.0  # Compatible with Django 4.0+
+django-cors-headers==4.0.0  # Compatible with Django 4.1
+django-import-export==3.3.0  # Compatible with Django 4.1+
 
 # Utilities
 configparser==5.2.0
