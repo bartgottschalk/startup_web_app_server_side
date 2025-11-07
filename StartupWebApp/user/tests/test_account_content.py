@@ -229,3 +229,45 @@ class AccountContentAPITest(TestCase):
             payment_data = account_content['shipping_billing_addresses_and_payment_data']
             self.assertEqual(payment_data['token']['card']['brand'], 'Visa')
             self.assertEqual(payment_data['token']['card']['last4'], '4242')
+
+    def test_expired_email_verification_token_handled(self):
+        """Test that expired email verification tokens are handled gracefully"""
+        from django.core.signing import TimestampSigner
+
+        user = User.objects.get(username='testuser')
+
+        # Create an expired verification token (simulate old token)
+        signer = TimestampSigner(salt='emailverificationsalt')
+        # Create a token that's already expired by setting it manually
+        # We'll use an invalid signature format to trigger the exception
+        user.member.email_verification_string_signed = 'invalid_signature_that_will_fail'
+        user.member.email_verified = False
+        user.member.save()
+
+        # Get account content
+        response = self.client.get('/user/account-content')
+        unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+        response_data = json.loads(response.content.decode('utf8'))
+        email_data = response_data['account_content']['email_data']
+
+        # Should show verification NOT sent within 24 hours (expired/invalid token)
+        self.assertFalse(email_data['verification_request_sent_within_24_hours'])
+        self.assertFalse(email_data['email_verified'])
+
+    def test_member_with_no_terms_agreed(self):
+        """Test that member with no terms agreed shows None for agreed_date_time"""
+        user = User.objects.get(username='testuser')
+
+        # Delete any existing terms agreements
+        Membertermsofuseversionagreed.objects.filter(member=user.member).delete()
+
+        # Get account content
+        response = self.client.get('/user/account-content')
+        unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+        response_data = json.loads(response.content.decode('utf8'))
+        personal_data = response_data['account_content']['personal_data']
+
+        # Should show None for terms_of_use_agreed_date_time
+        self.assertIsNone(personal_data['terms_of_use_agreed_date_time'])
