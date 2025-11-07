@@ -547,3 +547,71 @@ class ConfirmPaymentDataEndpointTest(TestCase):
         self.assertIsNotNone(self.cart.shipping_address)
         self.assertEqual(self.cart.shipping_address.name, 'Test User')
         self.assertEqual(self.cart.shipping_address.address_line1, '123 Main St')
+
+    def test_confirm_payment_data_retrieves_existing_stripe_customer(self):
+        """Test that confirm_payment_data retrieves existing Stripe customer data"""
+        from unittest.mock import patch, MagicMock
+
+        # Set up cart with payment and shipping address
+        cart_payment = Cartpayment.objects.create(
+            stripe_customer_token='cus_existing123',
+            stripe_card_id='card_existing456',
+            email='test@test.com'
+        )
+        cart_shipping = Cartshippingaddress.objects.create(
+            name='Test User',
+            address_line1='123 Main St',
+            city='Anytown',
+            state='CA',
+            zip='12345',
+            country='United States',
+            country_code='US'
+        )
+        self.cart.payment = cart_payment
+        self.cart.shipping_address = cart_shipping
+        self.cart.save()
+
+        with patch('stripe.Customer.retrieve') as mock_stripe_retrieve, \
+             patch('order.utilities.order_utils.get_stripe_customer_payment_data') as mock_get_customer_data:
+
+            # Mock Stripe customer object
+            mock_customer = MagicMock()
+            mock_customer.id = 'cus_existing123'
+            mock_customer.sources.data = []
+            mock_stripe_retrieve.return_value = mock_customer
+
+            # Mock customer data dictionary
+            expected_customer_data = {
+                'stripe_customer_token': 'cus_existing123',
+                'stripe_card_id': 'card_existing456',
+                'last4': '4242',
+                'brand': 'Visa',
+                'exp_month': 12,
+                'exp_year': 2025
+            }
+            mock_get_customer_data.return_value = expected_customer_data
+
+            self.client.login(username='testuser', password='testpass123')
+
+            response = self.client.get('/order/confirm-payment-data')
+
+            unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+            data = json.loads(response.content.decode('utf8'))
+            self.assertTrue(data['checkout_allowed'])
+
+            # Verify Stripe customer was retrieved
+            mock_stripe_retrieve.assert_called_once_with('cus_existing123')
+
+            # Verify get_stripe_customer_payment_data was called with correct args
+            self.assertEqual(mock_get_customer_data.call_count, 1)
+            call_args = mock_get_customer_data.call_args[0]
+            self.assertEqual(call_args[0], mock_customer)  # customer object
+            # call_args[1] is shipping_address_dict - verify it has expected structure
+            self.assertIn('name', call_args[1])
+            self.assertEqual(call_args[1]['name'], 'Test User')
+            self.assertEqual(call_args[2], 'card_existing456')  # stripe_card_id
+
+            # Verify customer data is returned in response
+            self.assertIn('customer_data', data)
+            self.assertEqual(data['customer_data'], expected_customer_data)
