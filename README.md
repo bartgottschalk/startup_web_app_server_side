@@ -10,7 +10,7 @@ A Django REST API backend for an e-commerce startup, featuring comprehensive tes
 ✅ **679 Unit Tests Passing** - Comprehensive test coverage across all apps
 ✅ **Python 3.12 Compatible** - Fully modernized for latest Python
 ✅ **Docker Containerized** - Easy setup with Docker Compose
-✅ **Django 2.2.28** - Stable LTS version with security updates
+✅ **Django 4.2.16 LTS** - Modern Django with security support until April 2026
 ✅ **Production-Ready** - Extensive testing of user management, e-commerce, and analytics
 
 ### Test Coverage Breakdown
@@ -308,7 +308,7 @@ Token is acquired from api server via GET request (js/utilities/utilities-0.0.1.
 
 This GET request returns both a token embedded in JSON as well as a cookie containing a token - csrftoken cookie is set automatically by Django. The token explicitly returned in the view response is ignored and discarded by the client in favor of using the cookie value. The application uses the cookie token in javascript and returns it in a Request header "X-CSRFToken". The token returned in JSON is ignored. 
 
-See [Django CSRF Documentation](https://docs.djangoproject.com/en/2.2/ref/csrf/)
+See [Django CSRF Documentation](https://docs.djangoproject.com/en/4.2/ref/csrf/)
 
 ##### settings_secret.py from settings_secret.py.template
 ```
@@ -346,7 +346,7 @@ This management command creates:
 **Alternative**: You can manually load data from [db_inserts.sql](./db_inserts.sql) (legacy MySQL format), but the management command is recommended as it's database-agnostic and includes all required data.
 
 4. OPTIONAL: Create admin user. You need to do this to access the Django Admin site which is referenced below.
-Follow the instructions in the [Django documentation to create this user](https://docs.djangoproject.com/en/2.2/intro/tutorial02/#creating-an-admin-user)
+Follow the instructions in the [Django documentation to create this user](https://docs.djangoproject.com/en/4.2/intro/tutorial02/#creating-an-admin-user)
 ```
 python3 manage.py createsuperuser
 ```
