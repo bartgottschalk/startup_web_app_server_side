@@ -1016,4 +1016,281 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
                 self.assertIsNotNone(self.member.default_shipping_address)
                 self.assertEqual(self.member.default_shipping_address.name, 'Test User Saved')
                 self.assertEqual(self.member.default_shipping_address.city, 'Defaultcity')
+
+    def test_confirm_place_order_updates_existing_default_shipping(self):
+        """Test that save_defaults updates existing default shipping address"""
+        from user.models import Defaultshippingaddress
+        from unittest.mock import patch, MagicMock
+
+        # Create existing default shipping address for member
+        existing_default = Defaultshippingaddress.objects.create(
+            name='Old Name',
+            address_line1='Old Address',
+            city='Old City',
+            state='CA',
+            zip='11111',
+            country='United States',
+            country_code='US'
+        )
+        self.member.default_shipping_address = existing_default
+        self.member.save()
+
+        # Mock email sending and Stripe API
+        with patch('user.models.Email.objects.get') as mock_email_get, \
+             patch('user.models.Emailtype.objects.get') as mock_emailtype_get, \
+             patch('stripe.Customer.modify') as mock_stripe_modify:
+
+            mock_email = MagicMock()
+            mock_email.subject = 'Order Confirmation'
+            mock_email.body_text = 'Thank you. Order info: {order_information}'
+            mock_email.from_address = 'noreply@test.com'
+            mock_email.bcc_address = ''
+            mock_email.em_cd = 'order_confirmation_member'
+            mock_email.email_type = MagicMock()
+            mock_email.email_type.id = 999
+            mock_email_get.return_value = mock_email
+
+            def emailtype_side_effect(title):
+                mock_type = MagicMock()
+                mock_type.title = title
+                mock_type.id = hash(title)
+                return mock_type
+            mock_emailtype_get.side_effect = emailtype_side_effect
+            mock_stripe_modify.return_value = {'id': 'cus_test123'}
+
+            with patch('django.core.mail.EmailMultiAlternatives.send') as mock_send_email:
+                self.client.login(username='testuser', password='testpass123')
+
+                response = self.client.post('/order/confirm-place-order', {
+                    'agree_to_terms_of_sale': 'true',
+                    'save_defaults': 'true',
+                    'stripe_payment_info': json.dumps({
+                        'email': 'testuser@test.com',
+                        'payment_type': 'card',
+                        'card_name': 'Test User',
+                        'card_brand': 'Visa',
+                        'card_last4': '4242',
+                        'card_exp_month': '12',
+                        'card_exp_year': '2025',
+                        'card_zip': '12345'
+                    }),
+                    'stripe_shipping_addr': json.dumps({
+                        'name': 'Updated Name',
+                        'address_line1': 'Updated Address',
+                        'address_city': 'Updated City',
+                        'address_state': 'NY',
+                        'address_zip': '99999',
+                        'address_country': 'United States',
+                        'address_country_code': 'US'
+                    }),
+                    'stripe_billing_addr': json.dumps({
+                        'name': 'Test User',
+                        'address_line1': '123 Main St',
+                        'address_city': 'Anytown',
+                        'address_state': 'CA',
+                        'address_zip': '12345',
+                        'address_country': 'United States',
+                        'address_country_code': 'US'
+                    })
+                })
+
+                unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+                data = json.loads(response.content.decode('utf8'))
+                self.assertEqual(data['confirm_place_order'], 'success')
+
+                # Refresh member from database
+                self.member.refresh_from_db()
+
+                # Verify existing default shipping address was updated (not replaced)
+                self.assertEqual(self.member.default_shipping_address.id, existing_default.id)
+                self.assertEqual(self.member.default_shipping_address.name, 'Updated Name')
+                self.assertEqual(self.member.default_shipping_address.address_line1, 'Updated Address')
+                self.assertEqual(self.member.default_shipping_address.city, 'Updated City')
+                self.assertEqual(self.member.default_shipping_address.state, 'NY')
+                self.assertEqual(self.member.default_shipping_address.zip, '99999')
                 self.assertTrue(self.member.use_default_shipping_and_payment_info)
+
+    def test_confirm_place_order_anonymous_with_newsletter_true(self):
+        """Test anonymous order with newsletter subscription opted in"""
+        from order.models import Order
+        from unittest.mock import patch, MagicMock
+
+        with patch('user.models.Email.objects.get') as mock_email_get, \
+             patch('user.models.Emailtype.objects.get') as mock_emailtype_get:
+
+            mock_email = MagicMock()
+            mock_email.subject = 'Order Confirmation'
+            mock_email.body_text = 'Thank you. Order info: {order_information}'
+            mock_email.from_address = 'noreply@test.com'
+            mock_email.bcc_address = ''
+            mock_email.em_cd = 'order_confirmation_prospect'
+            mock_email.email_type = MagicMock()
+            mock_email.email_type.id = 999
+            mock_email_get.return_value = mock_email
+
+            def emailtype_side_effect(title):
+                mock_type = MagicMock()
+                mock_type.title = title
+                mock_type.id = hash(title)
+                return mock_type
+            mock_emailtype_get.side_effect = emailtype_side_effect
+
+            with patch('django.core.mail.EmailMultiAlternatives.send') as mock_send_email, \
+                 patch('order.utilities.order_utils.look_up_cart') as mock_look_up_cart:
+
+                # Create prospect for anonymous user
+                prospect = Prospect.objects.create(
+                    email='newsletter@test.com',
+                    pr_cd='PROSPECT_NEWS',
+                    email_unsubscribed=True,  # Start unsubscribed
+                    email_unsubscribe_string_signed='test_signed_string_123',
+                    created_date_time=timezone.now()
+                )
+
+                # Create anonymous cart
+                anonymous_cart = Cart.objects.create(anonymous_cart_id='anon_newsletter_123')
+                Cartsku.objects.create(cart=anonymous_cart, sku=self.sku, quantity=1)
+                mock_look_up_cart.return_value = anonymous_cart
+
+                # Add shipping method
+                from order.models import Cartshippingmethod, Shippingmethod
+                shipping_method = Shippingmethod.objects.get(identifier='standard')
+                Cartshippingmethod.objects.create(
+                    cart=anonymous_cart,
+                    shippingmethod=shipping_method
+                )
+
+                response = self.client.post('/order/confirm-place-order', {
+                    'agree_to_terms_of_sale': 'true',
+                    'newsletter': 'true',  # User opts in to newsletter
+                    'stripe_payment_info': json.dumps({
+                        'email': 'newsletter@test.com',
+                        'payment_type': 'card',
+                        'card_name': 'Newsletter User',
+                        'card_brand': 'Visa',
+                        'card_last4': '4242',
+                        'card_exp_month': '12',
+                        'card_exp_year': '2025',
+                        'card_zip': '12345'
+                    }),
+                    'stripe_shipping_addr': json.dumps({
+                        'name': 'Newsletter User',
+                        'address_line1': '123 News St',
+                        'address_city': 'Newstown',
+                        'address_state': 'CA',
+                        'address_zip': '12345',
+                        'address_country': 'United States',
+                        'address_country_code': 'US'
+                    }),
+                    'stripe_billing_addr': json.dumps({
+                        'name': 'Newsletter User',
+                        'address_line1': '123 News St',
+                        'address_city': 'Newstown',
+                        'address_state': 'CA',
+                        'address_zip': '12345',
+                        'address_country': 'United States',
+                        'address_country_code': 'US'
+                    })
+                })
+
+                unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+                data = json.loads(response.content.decode('utf8'))
+                self.assertEqual(data['confirm_place_order'], 'success')
+
+                # Verify prospect was updated to be subscribed to newsletter
+                prospect.refresh_from_db()
+                self.assertFalse(prospect.email_unsubscribed)  # Should be subscribed now
+
+    def test_confirm_place_order_anonymous_without_newsletter(self):
+        """Test anonymous order without newsletter subscription"""
+        from order.models import Order
+        from unittest.mock import patch, MagicMock
+
+        with patch('user.models.Email.objects.get') as mock_email_get, \
+             patch('user.models.Emailtype.objects.get') as mock_emailtype_get:
+
+            mock_email = MagicMock()
+            mock_email.subject = 'Order Confirmation'
+            mock_email.body_text = 'Thank you. Order info: {order_information}'
+            mock_email.from_address = 'noreply@test.com'
+            mock_email.bcc_address = ''
+            mock_email.em_cd = 'order_confirmation_prospect'
+            mock_email.email_type = MagicMock()
+            mock_email.email_type.id = 999
+            mock_email_get.return_value = mock_email
+
+            def emailtype_side_effect(title):
+                mock_type = MagicMock()
+                mock_type.title = title
+                mock_type.id = hash(title)
+                return mock_type
+            mock_emailtype_get.side_effect = emailtype_side_effect
+
+            with patch('django.core.mail.EmailMultiAlternatives.send') as mock_send_email, \
+                 patch('order.utilities.order_utils.look_up_cart') as mock_look_up_cart:
+
+                # Create prospect for anonymous user
+                prospect = Prospect.objects.create(
+                    email='nonews@test.com',
+                    pr_cd='PROSPECT_NONEWS',
+                    email_unsubscribed=False,  # Start subscribed
+                    email_unsubscribe_string_signed='test_signed_string_456',
+                    created_date_time=timezone.now()
+                )
+
+                # Create anonymous cart
+                anonymous_cart = Cart.objects.create(anonymous_cart_id='anon_nonews_123')
+                Cartsku.objects.create(cart=anonymous_cart, sku=self.sku, quantity=1)
+                mock_look_up_cart.return_value = anonymous_cart
+
+                # Add shipping method
+                from order.models import Cartshippingmethod, Shippingmethod
+                shipping_method = Shippingmethod.objects.get(identifier='standard')
+                Cartshippingmethod.objects.create(
+                    cart=anonymous_cart,
+                    shippingmethod=shipping_method
+                )
+
+                response = self.client.post('/order/confirm-place-order', {
+                    'agree_to_terms_of_sale': 'true',
+                    'newsletter': 'false',  # User opts out of newsletter
+                    'stripe_payment_info': json.dumps({
+                        'email': 'nonews@test.com',
+                        'payment_type': 'card',
+                        'card_name': 'No News User',
+                        'card_brand': 'Mastercard',
+                        'card_last4': '5555',
+                        'card_exp_month': '06',
+                        'card_exp_year': '2026',
+                        'card_zip': '54321'
+                    }),
+                    'stripe_shipping_addr': json.dumps({
+                        'name': 'No News User',
+                        'address_line1': '456 Quiet Ave',
+                        'address_city': 'Quiettown',
+                        'address_state': 'NY',
+                        'address_zip': '54321',
+                        'address_country': 'United States',
+                        'address_country_code': 'US'
+                    }),
+                    'stripe_billing_addr': json.dumps({
+                        'name': 'No News User',
+                        'address_line1': '456 Quiet Ave',
+                        'address_city': 'Quiettown',
+                        'address_state': 'NY',
+                        'address_zip': '54321',
+                        'address_country': 'United States',
+                        'address_country_code': 'US'
+                    })
+                })
+
+                unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+                data = json.loads(response.content.decode('utf8'))
+                self.assertEqual(data['confirm_place_order'], 'success')
+
+                # Verify prospect remains unsubscribed from newsletter
+                prospect.refresh_from_db()
+                self.assertTrue(prospect.email_unsubscribed)  # Should still be unsubscribed
