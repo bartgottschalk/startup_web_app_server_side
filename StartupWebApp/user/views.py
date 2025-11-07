@@ -1054,10 +1054,10 @@ def process_stripe_payment_token(request):
             print("Message is: %s" % err.get('message'))
 
             error_dict = {"error" : 'error-creating-stripe-customer', 'description': 'An error occurred while processing your request.'}
-            response = JsonResponse({'checkout_allowed':checkout_allowed, 'process_stripe_payment_token':'error', 'errors': error_dict, 'user-api-version':user_api_version}, safe=False)
+            response = JsonResponse({'process_stripe_payment_token':'error', 'errors': error_dict, 'user-api-version':user_api_version}, safe=False)
     else:
         error_dict = {"error" : 'stripe-token-required', 'description': 'Stripe token is required'}
-        response = JsonResponse({'checkout_allowed':checkout_allowed, 'process_stripe_payment_token':'error', 'errors': error_dict, 'user-api-version':user_api_version}, safe=False)
+        response = JsonResponse({'process_stripe_payment_token':'error', 'errors': error_dict, 'user-api-version':user_api_version}, safe=False)
     return response     
 
 def put_chat_message(request):
