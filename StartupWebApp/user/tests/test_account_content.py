@@ -159,3 +159,115 @@ class AccountContentAPITest(TestCase):
         self.assertEqual(first_order['identifier'], 'TEST123')
         self.assertEqual(float(first_order['sales_tax_amt']), 5.00)
         self.assertEqual(float(first_order['order_total']), 55.00)
+
+    def test_retrieves_stripe_customer_payment_data_with_defaults(self):
+        """Test that Stripe customer payment data is retrieved when member has saved defaults"""
+        from unittest.mock import patch, MagicMock
+        from user.models import Defaultshippingaddress
+
+        # Create default shipping address for member
+        user = User.objects.get(username='testuser')
+        default_address = Defaultshippingaddress.objects.create(
+            name='Test User',
+            address_line1='123 Main St',
+            city='Anytown',
+            state='CA',
+            zip='12345',
+            country='United States',
+            country_code='US'
+        )
+
+        # Set member to use defaults with Stripe customer
+        user.member.default_shipping_address = default_address
+        user.member.use_default_shipping_and_payment_info = True
+        user.member.stripe_customer_token = 'cus_test_default_123'
+        user.member.save()
+
+        with patch('stripe.Customer.retrieve') as mock_stripe_retrieve, \
+             patch('order.utilities.order_utils.get_stripe_customer_payment_data') as mock_get_payment_data:
+
+            # Mock Stripe customer
+            mock_customer = MagicMock()
+            mock_customer.id = 'cus_test_default_123'
+            mock_stripe_retrieve.return_value = mock_customer
+
+            # Mock payment data response
+            mock_payment_data = {
+                'token': {
+                    'card': {
+                        'brand': 'Visa',
+                        'last4': '4242',
+                        'exp_month': 12,
+                        'exp_year': 2025
+                    },
+                    'email': 'testuser@test.com',
+                    'type': 'card'
+                },
+                'args': {
+                    'shipping_name': 'Test User',
+                    'shipping_address_line1': '123 Main St',
+                    'shipping_address_city': 'Anytown'
+                }
+            }
+            mock_get_payment_data.return_value = mock_payment_data
+
+            # Get account content
+            response = self.client.get('/user/account-content')
+            unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+            response_data = json.loads(response.content.decode('utf8'))
+            account_content = response_data['account_content']
+
+            # Verify Stripe customer was retrieved
+            mock_stripe_retrieve.assert_called_once_with('cus_test_default_123')
+
+            # Verify get_stripe_customer_payment_data was called
+            self.assertEqual(mock_get_payment_data.call_count, 1)
+
+            # Verify payment data is in response
+            self.assertIn('shipping_billing_addresses_and_payment_data', account_content)
+            payment_data = account_content['shipping_billing_addresses_and_payment_data']
+            self.assertEqual(payment_data['token']['card']['brand'], 'Visa')
+            self.assertEqual(payment_data['token']['card']['last4'], '4242')
+
+    def test_expired_email_verification_token_handled(self):
+        """Test that expired email verification tokens are handled gracefully"""
+        from django.core.signing import TimestampSigner
+
+        user = User.objects.get(username='testuser')
+
+        # Create an expired verification token (simulate old token)
+        signer = TimestampSigner(salt='emailverificationsalt')
+        # Create a token that's already expired by setting it manually
+        # We'll use an invalid signature format to trigger the exception
+        user.member.email_verification_string_signed = 'invalid_signature_that_will_fail'
+        user.member.email_verified = False
+        user.member.save()
+
+        # Get account content
+        response = self.client.get('/user/account-content')
+        unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+        response_data = json.loads(response.content.decode('utf8'))
+        email_data = response_data['account_content']['email_data']
+
+        # Should show verification NOT sent within 24 hours (expired/invalid token)
+        self.assertFalse(email_data['verification_request_sent_within_24_hours'])
+        self.assertFalse(email_data['email_verified'])
+
+    def test_member_with_no_terms_agreed(self):
+        """Test that member with no terms agreed shows None for agreed_date_time"""
+        user = User.objects.get(username='testuser')
+
+        # Delete any existing terms agreements
+        Membertermsofuseversionagreed.objects.filter(member=user.member).delete()
+
+        # Get account content
+        response = self.client.get('/user/account-content')
+        unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+        response_data = json.loads(response.content.decode('utf8'))
+        personal_data = response_data['account_content']['personal_data']
+
+        # Should show None for terms_of_use_agreed_date_time
+        self.assertIsNone(personal_data['terms_of_use_agreed_date_time'])

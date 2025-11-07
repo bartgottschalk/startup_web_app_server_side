@@ -484,3 +484,263 @@ class GetConfirmationEmailDiscountCodeTextFormatTest(TestCase):
         self.assertIn('Code: FIRST', result)
         self.assertIn('Code: SECOND', result)
         self.assertIn('\r\n', result)  # Line breaks between codes
+
+
+class GetStripeCustomerPaymentDataTest(TestCase):
+    """Test the get_stripe_customer_payment_data utility function"""
+
+    def test_with_shipping_address_provided(self):
+        """Test formatting customer payment data with shipping address provided"""
+        from unittest.mock import MagicMock
+
+        # Mock Stripe customer object
+        mock_customer = MagicMock()
+        mock_customer.email = 'test@test.com'
+        mock_customer.default_source = 'card_123'
+
+        # Mock card/source object
+        mock_source = MagicMock()
+        mock_source.id = 'card_123'
+        mock_source.name = 'Test Cardholder'
+        mock_source.brand = 'Visa'
+        mock_source.last4 = '4242'
+        mock_source.exp_month = 12
+        mock_source.exp_year = 2025
+        mock_source.address_line1 = '999 Card Address'
+        mock_source.address_city = 'Cardtown'
+        mock_source.address_state = 'CA'
+        mock_source.address_zip = '99999'
+        mock_source.address_country = 'United States'
+        mock_source.country = 'US'
+        mock_source.object = 'card'
+
+        mock_customer.sources.data = [mock_source]
+
+        # Shipping address that overrides card address
+        shipping_address = {
+            'name': 'Shipping Name',
+            'address_line1': '123 Shipping St',
+            'city': 'Shiptown',
+            'state': 'NY',
+            'zip': '12345',
+            'country': 'United States',
+            'country_code': 'US'
+        }
+
+        result = order_utils.get_stripe_customer_payment_data(
+            mock_customer,
+            shipping_address,
+            'card_123'
+        )
+
+        # Verify shipping address from parameter is used
+        self.assertEqual(result['args']['shipping_name'], 'Shipping Name')
+        self.assertEqual(result['args']['shipping_address_line1'], '123 Shipping St')
+        self.assertEqual(result['args']['shipping_address_city'], 'Shiptown')
+        self.assertEqual(result['args']['shipping_address_state'], 'NY')
+        self.assertEqual(result['args']['shipping_address_zip'], '12345')
+
+        # Verify billing address from card
+        self.assertEqual(result['args']['billing_name'], 'Test Cardholder')
+        self.assertEqual(result['args']['billing_address_line1'], '999 Card Address')
+
+        # Verify card data in token
+        self.assertEqual(result['token']['card']['brand'], 'Visa')
+        self.assertEqual(result['token']['card']['last4'], '4242')
+        self.assertEqual(result['token']['email'], 'test@test.com')
+
+    def test_without_shipping_address(self):
+        """Test formatting customer payment data without shipping address (uses card address)"""
+        from unittest.mock import MagicMock
+
+        # Mock Stripe customer object
+        mock_customer = MagicMock()
+        mock_customer.email = 'test@test.com'
+        mock_customer.default_source = 'card_456'
+
+        # Mock card/source object
+        mock_source = MagicMock()
+        mock_source.id = 'card_456'
+        mock_source.name = 'Card Owner'
+        mock_source.brand = 'Mastercard'
+        mock_source.last4 = '5555'
+        mock_source.exp_month = 6
+        mock_source.exp_year = 2026
+        mock_source.address_line1 = '456 Card St'
+        mock_source.address_city = 'Cardcity'
+        mock_source.address_state = 'TX'
+        mock_source.address_zip = '54321'
+        mock_source.address_country = 'United States'
+        mock_source.country = 'US'
+        mock_source.object = 'card'
+
+        mock_customer.sources.data = [mock_source]
+
+        result = order_utils.get_stripe_customer_payment_data(
+            mock_customer,
+            None,  # No shipping address provided
+            'card_456'
+        )
+
+        # Verify shipping address comes from card when not provided
+        self.assertEqual(result['args']['shipping_name'], 'Card Owner')
+        self.assertEqual(result['args']['shipping_address_line1'], '456 Card St')
+        self.assertEqual(result['args']['shipping_address_city'], 'Cardcity')
+        self.assertEqual(result['args']['shipping_address_state'], 'TX')
+        self.assertEqual(result['args']['shipping_address_zip'], '54321')
+
+    def test_with_no_card_id_uses_default(self):
+        """Test that None card_id uses customer's default_source"""
+        from unittest.mock import MagicMock
+
+        # Mock Stripe customer object
+        mock_customer = MagicMock()
+        mock_customer.email = 'test@test.com'
+        mock_customer.default_source = 'card_default'
+
+        # Mock card/source object
+        mock_source = MagicMock()
+        mock_source.id = 'card_default'
+        mock_source.name = 'Default Card'
+        mock_source.brand = 'Amex'
+        mock_source.last4 = '1234'
+        mock_source.exp_month = 3
+        mock_source.exp_year = 2027
+        mock_source.address_line1 = '789 Default Ave'
+        mock_source.address_city = 'Defcity'
+        mock_source.address_state = 'FL'
+        mock_source.address_zip = '78901'
+        mock_source.address_country = 'United States'
+        mock_source.country = 'US'
+        mock_source.object = 'card'
+
+        mock_customer.sources.data = [mock_source]
+
+        result = order_utils.get_stripe_customer_payment_data(
+            mock_customer,
+            None,
+            None  # No card_id provided, should use default_source
+        )
+
+        # Verify default card was found and used
+        self.assertEqual(result['token']['card']['brand'], 'Amex')
+        self.assertEqual(result['token']['card']['last4'], '1234')
+        self.assertEqual(result['args']['shipping_name'], 'Default Card')
+
+
+class LookUpMemberCartTest(TestCase):
+    """Test the look_up_member_cart utility function"""
+
+    def setUp(self):
+        from django.contrib.auth.models import User, Group
+        from user.models import Member, Termsofuse
+        from django.utils import timezone
+
+        Group.objects.create(name='Members')
+        Termsofuse.objects.create(
+            version='1',
+            version_note='Test',
+            publication_date_time=timezone.now()
+        )
+
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@test.com',
+            password='testpass123'
+        )
+        self.member = Member.objects.create(user=self.user, mb_cd='MEMBER123')
+
+    def test_returns_member_cart_when_exists(self):
+        """Test that member's cart is returned when it exists"""
+        from django.test import RequestFactory
+        from order.models import Cart
+
+        # Create cart for member
+        cart = Cart.objects.create(member=self.member)
+
+        # Create request with authenticated user
+        factory = RequestFactory()
+        request = factory.get('/')
+        request.user = self.user
+
+        result = order_utils.look_up_member_cart(request)
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result.id, cart.id)
+        self.assertEqual(result.member, self.member)
+
+    def test_returns_none_when_no_cart_exists(self):
+        """Test that None is returned when member has no cart"""
+        from django.test import RequestFactory
+
+        # Don't create any cart for member
+
+        # Create request with authenticated user
+        factory = RequestFactory()
+        request = factory.get('/')
+        request.user = self.user
+
+        result = order_utils.look_up_member_cart(request)
+
+        self.assertIsNone(result)
+
+
+class LookUpAnonymousCartTest(TestCase):
+    """Test the look_up_anonymous_cart utility function"""
+
+    def test_returns_anonymous_cart_when_exists(self):
+        """Test that anonymous cart is returned when cookie and cart exist"""
+        from django.test import RequestFactory
+        from order.models import Cart
+
+        # Create anonymous cart
+        anonymous_cart_id = 'anon_cart_123'
+        cart = Cart.objects.create(anonymous_cart_id=anonymous_cart_id)
+
+        # Create request with signed cookie
+        factory = RequestFactory()
+        request = factory.get('/')
+        request.user = type('AnonymousUser', (), {'is_authenticated': False})()
+
+        # Mock get_signed_cookie to return our anonymous cart ID
+        request.get_signed_cookie = lambda key, default=None, salt=None: anonymous_cart_id
+
+        result = order_utils.look_up_anonymous_cart(request)
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result.id, cart.id)
+        self.assertEqual(result.anonymous_cart_id, anonymous_cart_id)
+
+    def test_returns_none_when_no_cart_exists(self):
+        """Test that None is returned when cookie exists but no cart"""
+        from django.test import RequestFactory
+
+        # Don't create any cart
+
+        # Create request with signed cookie
+        factory = RequestFactory()
+        request = factory.get('/')
+        request.user = type('AnonymousUser', (), {'is_authenticated': False})()
+
+        # Mock get_signed_cookie to return a cart ID that doesn't exist
+        request.get_signed_cookie = lambda key, default=None, salt=None: 'nonexistent_cart'
+
+        result = order_utils.look_up_anonymous_cart(request)
+
+        self.assertIsNone(result)
+
+    def test_returns_none_when_cookie_is_false(self):
+        """Test that None is returned when cookie is False (default)"""
+        from django.test import RequestFactory
+
+        # Create request without signed cookie (returns False)
+        factory = RequestFactory()
+        request = factory.get('/')
+        request.user = type('AnonymousUser', (), {'is_authenticated': False})()
+
+        # Mock get_signed_cookie to return False (default when cookie doesn't exist)
+        request.get_signed_cookie = lambda key, default=None, salt=None: False
+
+        result = order_utils.look_up_anonymous_cart(request)
+
+        self.assertIsNone(result)
