@@ -1294,3 +1294,109 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
                 # Verify prospect remains unsubscribed from newsletter
                 prospect.refresh_from_db()
                 self.assertTrue(prospect.email_unsubscribed)  # Should still be unsubscribed
+
+    def test_confirm_place_order_with_discount_code(self):
+        """Test order placement with discount code creates Orderdiscount record"""
+        from order.models import Discountcode, Discounttype, Cartdiscount, Order, Orderdiscount
+        from unittest.mock import patch, MagicMock
+        from datetime import timedelta
+
+        # Create discount type
+        discount_type = Discounttype.objects.create(
+            title='Percentage Off',
+            description='Percentage off total',
+            applies_to='order',
+            action='subtract'
+        )
+
+        # Create a discount code
+        now = timezone.now()
+        discount_code = Discountcode.objects.create(
+            code='TESTCODE10',
+            description='10% off test code',
+            start_date_time=now,
+            end_date_time=now + timedelta(days=30),
+            combinable=False,
+            discounttype=discount_type,
+            discount_amount=10.0,
+            order_minimum=0.0
+        )
+
+        # Add discount code to cart
+        Cartdiscount.objects.create(
+            cart=self.cart,
+            discountcode=discount_code
+        )
+
+        # Mock email sending
+        with patch('user.models.Email.objects.get') as mock_email_get, \
+             patch('user.models.Emailtype.objects.get') as mock_emailtype_get:
+
+            mock_email = MagicMock()
+            mock_email.subject = 'Order Confirmation'
+            mock_email.body_text = 'Thank you. Order info: {order_information}'
+            mock_email.from_address = 'noreply@test.com'
+            mock_email.bcc_address = ''
+            mock_email.em_cd = 'order_confirmation_member'
+            mock_email.email_type = MagicMock()
+            mock_email.email_type.id = 999
+            mock_email_get.return_value = mock_email
+
+            def emailtype_side_effect(title):
+                mock_type = MagicMock()
+                mock_type.title = title
+                mock_type.id = hash(title)
+                return mock_type
+            mock_emailtype_get.side_effect = emailtype_side_effect
+
+            with patch('django.core.mail.EmailMultiAlternatives.send') as mock_send_email:
+                self.client.login(username='testuser', password='testpass123')
+
+                response = self.client.post('/order/confirm-place-order', {
+                    'agree_to_terms_of_sale': 'true',
+                    'save_defaults': 'false',
+                    'stripe_payment_info': json.dumps({
+                        'email': 'testuser@test.com',
+                        'payment_type': 'card',
+                        'card_name': 'Test User',
+                        'card_brand': 'Visa',
+                        'card_last4': '4242',
+                        'card_exp_month': '12',
+                        'card_exp_year': '2025',
+                        'card_zip': '12345'
+                    }),
+                    'stripe_shipping_addr': json.dumps({
+                        'name': 'Test User',
+                        'address_line1': '123 Main St',
+                        'address_city': 'Anytown',
+                        'address_state': 'CA',
+                        'address_zip': '12345',
+                        'address_country': 'United States',
+                        'address_country_code': 'US'
+                    }),
+                    'stripe_billing_addr': json.dumps({
+                        'name': 'Test User',
+                        'address_line1': '123 Main St',
+                        'address_city': 'Anytown',
+                        'address_state': 'CA',
+                        'address_zip': '12345',
+                        'address_country': 'United States',
+                        'address_country_code': 'US'
+                    })
+                })
+
+                unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+                data = json.loads(response.content.decode('utf8'))
+                self.assertEqual(data['confirm_place_order'], 'success')
+
+                # Verify order was created
+                order = Order.objects.get(identifier=data['order_identifier'])
+
+                # Verify Orderdiscount record was created
+                order_discounts = Orderdiscount.objects.filter(order=order)
+                self.assertEqual(order_discounts.count(), 1)
+
+                order_discount = order_discounts.first()
+                self.assertEqual(order_discount.discountcode.code, 'TESTCODE10')
+                self.assertTrue(order_discount.applied)  # Discount was applied

@@ -615,3 +615,28 @@ class ConfirmPaymentDataEndpointTest(TestCase):
             # Verify customer data is returned in response
             self.assertIn('customer_data', data)
             self.assertEqual(data['customer_data'], expected_customer_data)
+
+    def test_confirm_payment_data_creates_payment_from_member_default(self):
+        """Test that confirm_payment_data creates cart payment from member's default token"""
+        # Set member to use default payment info with saved stripe token
+        self.member.use_default_shipping_and_payment_info = True
+        self.member.stripe_customer_token = 'cus_member_default_123'
+        self.member.save()
+
+        # Ensure cart has no payment
+        self.assertIsNone(self.cart.payment)
+
+        self.client.login(username='testuser', password='testpass123')
+
+        response = self.client.get('/order/confirm-payment-data')
+
+        unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+        data = json.loads(response.content.decode('utf8'))
+        self.assertTrue(data['checkout_allowed'])
+
+        # Verify cart payment was created from member's default token
+        self.cart.refresh_from_db()
+        self.assertIsNotNone(self.cart.payment)
+        self.assertEqual(self.cart.payment.stripe_customer_token, 'cus_member_default_123')
+        self.assertEqual(self.cart.payment.email, 'test@test.com')
