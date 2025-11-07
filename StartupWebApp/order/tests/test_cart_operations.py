@@ -583,6 +583,88 @@ class CartRemoveSkuEndpointTest(TestCase):
         self.assertIn('cart_totals_data', data)
         self.assertIn('discount_code_data', data)
 
+    def test_cart_remove_sku_deletes_existing_shipping_method(self):
+        """Test that removing SKU also deletes cart's selected shipping method"""
+        from order.models import Shippingmethod, Cartshippingmethod
+
+        # Create a shipping method and assign it to cart
+        shipping_method = Shippingmethod.objects.create(
+            identifier='standard',
+            carrier='USPS',
+            shipping_cost=5.00,
+            active=True
+        )
+        cart_shipping_method = Cartshippingmethod.objects.create(
+            cart=self.cart,
+            shippingmethod=shipping_method
+        )
+
+        self.client.login(username='testuser', password='testpass123')
+
+        # Verify shipping method is assigned to cart
+        self.assertTrue(Cartshippingmethod.objects.filter(cart=self.cart).exists())
+
+        response = self.client.post('/order/cart-remove-sku', {
+            'sku_id': str(self.sku.id)
+        })
+
+        unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+        data = json.loads(response.content.decode('utf8'))
+        self.assertEqual(data['cart_remove_sku'], 'success')
+
+        # Verify shipping method was deleted from cart
+        self.assertFalse(Cartshippingmethod.objects.filter(cart=self.cart).exists())
+
+    def test_cart_remove_sku_returns_available_shipping_methods(self):
+        """Test that response includes available shipping methods when they exist"""
+        from order.models import Shippingmethod
+
+        # Create active shipping methods
+        shipping_method_1 = Shippingmethod.objects.create(
+            identifier='express',
+            carrier='FedEx',
+            shipping_cost=15.00,
+            tracking_code_base_url='https://www.fedex.com/track',
+            active=True
+        )
+        shipping_method_2 = Shippingmethod.objects.create(
+            identifier='standard',
+            carrier='USPS',
+            shipping_cost=5.00,
+            tracking_code_base_url='https://tools.usps.com/track',
+            active=True
+        )
+
+        self.client.login(username='testuser', password='testpass123')
+
+        response = self.client.post('/order/cart-remove-sku', {
+            'sku_id': str(self.sku.id)
+        })
+
+        unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+        data = json.loads(response.content.decode('utf8'))
+        self.assertEqual(data['cart_remove_sku'], 'success')
+
+        # Verify shipping methods are in response (ordered by shipping_cost descending)
+        cart_shipping_methods = data['cart_shipping_methods']
+        self.assertEqual(len(cart_shipping_methods), 2)
+
+        # Shipping methods are returned as dict with numeric keys: {0: {...}, 1: {...}}
+        # First method should be express (higher cost)
+        self.assertIn('0', cart_shipping_methods)
+        self.assertEqual(cart_shipping_methods['0']['identifier'], 'express')
+        self.assertEqual(cart_shipping_methods['0']['carrier'], 'FedEx')
+        self.assertEqual(cart_shipping_methods['0']['shipping_cost'], 15.00)
+        self.assertEqual(cart_shipping_methods['0']['tracking_code_base_url'], 'https://www.fedex.com/track')
+
+        # Second method should be standard (lower cost)
+        self.assertIn('1', cart_shipping_methods)
+        self.assertEqual(cart_shipping_methods['1']['identifier'], 'standard')
+        self.assertEqual(cart_shipping_methods['1']['carrier'], 'USPS')
+        self.assertEqual(cart_shipping_methods['1']['shipping_cost'], 5.00)
+
 
 class CartDeleteCartEndpointTest(TestCase):
     """Test the cart_delete_cart endpoint"""
