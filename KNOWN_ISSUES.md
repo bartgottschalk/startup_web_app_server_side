@@ -45,18 +45,18 @@ This document tracks known issues and incomplete features discovered during deve
 - Nginx now uses relative redirects, preserving the original port from the browser request
 - Browser correctly maintains port 8080 when navigating
 
-### Functional Tests Status ✅ (24/28 Passing)
+### Functional Tests Status ✅ (28/28 Passing)
 
-**Status as of November 6, 2025**: Functional tests are now working in Docker with headless Firefox!
+**Status as of November 7, 2025**: All functional tests passing in Docker with headless Firefox!
 
 **Test Command**:
 ```bash
 docker-compose exec -e HEADLESS=TRUE backend python manage.py test functional_tests
 ```
 
-**Results**: 24 out of 28 tests passing (86%)
+**Results**: 28 out of 28 tests passing (100%)
 
-**Passing Tests** (24):
+**Passing Tests** (28):
 - ✅ About page tests
 - ✅ Account page tests
 - ✅ Change password tests
@@ -77,17 +77,10 @@ docker-compose exec -e HEADLESS=TRUE backend python manage.py test functional_te
 - ✅ Shipping tests
 - ✅ Terms of service tests
 - ✅ Forgot username tests
-
-**Pre-Existing Failures** (4):
-These 4 tests have been failing since before the functional test infrastructure was fixed:
-
-1. **test_chat** - `ElementNotInteractableException: Element could not be scrolled into view`
-2. **test_review_and_accept_terms_of_service** - `ElementNotInteractableException: Element could not be scrolled into view`
-3. **test_footer** - `ElementNotInteractableException: Element could not be scrolled into view`
-4. **test_header** - `NoSuchElementException: Unable to locate element: [id="cart-item-count-wrapper"]`
-
-**Impact**: LOW (Test infrastructure/timing issues, not application bugs)
-**Next Steps**: Fix Selenium test timing/scrolling issues (optional - not blocking Django upgrade)
+- ✅ Global chat tests
+- ✅ Global terms acceptance tests
+- ✅ Global footer tests
+- ✅ Global header tests
 
 ## Working Features Verified
 
@@ -134,21 +127,14 @@ docker-compose exec -d backend python manage.py runserver 0.0.0.0:8000
    - ✅ Ensure port preservation in redirects
    - ✅ Test all account pages
 
-3. ✅ ~~**Get Functional Tests Working** (HIGH)~~ - COMPLETED (November 6, 2025)
+3. ✅ ~~**Get Functional Tests Working** (HIGH)~~ - COMPLETED (November 7, 2025)
    - ✅ Fix Firefox/Selenium WebDriverException
    - ✅ Ensure HEADLESS=TRUE is used for all test runs
-   - ✅ Verify 24/28 tests passing (86%)
-   - ✅ Document 4 pre-existing failures (scrolling/timing issues)
+   - ✅ All 28/28 functional tests passing (100%)
 
 4. **Begin Django Upgrade** (HIGH - NOW READY!)
    - Current: Django 2.2.28 (EOL April 2022)
    - Target: Django 4.2 LTS (supported until April 2026)
-   - Test coverage: 626/626 unit tests + 24/28 functional tests ✅
+   - Test coverage: 679/679 unit tests + 28/28 functional tests ✅
    - Repositories are in excellent shape for upgrade
    - Comprehensive test suite will catch any upgrade issues
-
-5. **Optional: Fix Remaining 4 Functional Test Failures** (LOW)
-   - Fix Selenium scrolling issues
-   - Add proper waits for dynamic content
-   - Ensure cart counter renders before testing
-   - Not blocking Django upgrade

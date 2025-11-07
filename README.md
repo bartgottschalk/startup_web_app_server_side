@@ -7,18 +7,18 @@ A Django REST API backend for an e-commerce startup, featuring comprehensive tes
 
 ## Current Status (November 2025)
 
-✅ **626 Unit Tests Passing** - Comprehensive test coverage across all apps
+✅ **679 Unit Tests Passing** - Comprehensive test coverage across all apps
 ✅ **Python 3.12 Compatible** - Fully modernized for latest Python
 ✅ **Docker Containerized** - Easy setup with Docker Compose
 ✅ **Django 2.2.28** - Stable LTS version with security updates
 ✅ **Production-Ready** - Extensive testing of user management, e-commerce, and analytics
 
 ### Test Coverage Breakdown
-- **User App**: 286 tests (authentication, profiles, email management)
-- **Order App**: 239 tests (products, cart, checkout, payments via Stripe)
+- **User App**: 289 tests (authentication, profiles, email management)
+- **Order App**: 289 tests (products, cart, checkout, payments via Stripe)
 - **ClientEvent App**: 51 tests (analytics event tracking)
 - **Validators**: 50 tests (input validation)
-- **Functional Tests**: 28 Selenium tests (requires frontend client)
+- **Functional Tests**: 28 Selenium tests (full user journey testing)
 
 📚 **See [docs/README.md](docs/README.md) for detailed project timeline and completed phases.**
 
@@ -80,12 +80,12 @@ The migrations automatically create required reference data (Skuinventory record
 
 ### Run Tests
 
-**Run all unit tests** (626 tests):
+**Run all unit tests** (679 tests):
 ```bash
 docker-compose exec backend python manage.py test order.tests user.tests clientevent.tests StartupWebApp.tests
 ```
 
-**Run functional tests** (requires frontend client):
+**Run functional tests** (28 tests):
 ```bash
 # IMPORTANT: Setup hosts file first (required after each container restart)
 docker-compose exec backend bash /app/setup_docker_test_hosts.sh
