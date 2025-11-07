@@ -1,6 +1,8 @@
-# Documentation
+# Project History & Development Timeline
 
-This directory contains all project documentation for the StartupWebApp modernization effort.
+> **For installation, setup, and getting started**, see the [main README](../README.md)
+
+This document tracks the complete development history and modernization effort for the StartupWebApp project. For detailed information about specific phases, see the individual milestone documents linked below.
 
 ## Project Timeline
 

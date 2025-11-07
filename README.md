@@ -20,7 +20,7 @@ A Django REST API backend for an e-commerce startup, featuring comprehensive tes
 - **Validators**: 50 tests (input validation)
 - **Functional Tests**: 28 Selenium tests (full user journey testing)
 
-📚 **See [docs/README.md](docs/README.md) for detailed project timeline and completed phases.**
+📚 **See [docs/PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md) for detailed project timeline and completed phases.**
 
 ## About This Project
 
