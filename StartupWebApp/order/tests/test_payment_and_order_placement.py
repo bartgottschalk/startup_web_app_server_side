@@ -321,8 +321,96 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
             string_value='*'
         )
 
-        # Create cart
-        self.cart = Cart.objects.create(member=self.member)
+        # Create order status and shipping configurations
+        from order.models import Status, Shippingmethod
+
+        status = Status.objects.create(
+            identifier='processing',
+            title='Processing',
+            description='Order is being processed'
+        )
+
+        shipping_method = Shippingmethod.objects.create(
+            identifier='standard',
+            carrier='USPS',
+            shipping_cost=5.00,
+            tracking_code_base_url='https://tools.usps.com/go/TrackConfirmAction?tLabels='
+        )
+
+        Orderconfiguration.objects.create(
+            key='initial_order_status',
+            string_value='processing'
+        )
+
+        Orderconfiguration.objects.create(
+            key='default_shipping_method',
+            string_value='standard'
+        )
+
+        Orderconfiguration.objects.create(
+            key='order_confirmation_em_cd_member',
+            string_value='order_confirmation_member'
+        )
+
+        Orderconfiguration.objects.create(
+            key='order_confirmation_em_cd_prospect',
+            string_value='order_confirmation_prospect'
+        )
+
+        # Create product and SKU data for cart
+        skutype = Skutype.objects.create(title='product')
+        skuinventory = Skuinventory.objects.create(
+            title='In Stock',
+            identifier='in-stock'
+        )
+
+        product = Product.objects.create(
+            title='Test Product',
+            title_url='TestProduct',
+            identifier='PROD001'
+        )
+
+        Productimage.objects.create(
+            product=product,
+            image_url='https://example.com/product.jpg',
+            main_image=True
+        )
+
+        self.sku = Sku.objects.create(
+            color='Blue',
+            size='Medium',
+            sku_type=skutype,
+            sku_inventory=skuinventory,
+            description='Test SKU'
+        )
+
+        Skuprice.objects.create(
+            sku=self.sku,
+            price=25.00,
+            created_date_time=timezone.now()
+        )
+
+        Productsku.objects.create(product=product, sku=self.sku)
+
+        # Create cart payment
+        self.cart_payment = Cartpayment.objects.create(
+            stripe_customer_token='cus_test123',
+            stripe_card_id='card_test456'
+        )
+
+        # Create cart with items and link payment
+        self.cart = Cart.objects.create(
+            member=self.member,
+            payment=self.cart_payment
+        )
+        Cartsku.objects.create(cart=self.cart, sku=self.sku, quantity=2)
+
+        # Create cart shipping method
+        from order.models import Cartshippingmethod
+        Cartshippingmethod.objects.create(
+            cart=self.cart,
+            shippingmethod=shipping_method
+        )
 
     def test_confirm_place_order_when_checkout_not_allowed(self):
         """Test that endpoint requires checkout permission"""
@@ -420,3 +508,280 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
         data = json.loads(response.content.decode('utf8'))
         self.assertEqual(data['confirm_place_order'], 'error')
         self.assertEqual(data['errors']['error'], 'cart-not-found')
+
+    def test_confirm_place_order_success_authenticated_user(self):
+        """Test successful order placement for authenticated user"""
+        from order.models import Order, Orderpayment, Ordershippingaddress, Orderbillingaddress
+        from unittest.mock import patch, MagicMock
+
+        # Mock email sending to avoid needing Email templates
+        with patch('user.models.Email.objects.get') as mock_email_get, \
+             patch('user.models.Emailtype.objects.get') as mock_emailtype_get:
+
+            mock_email = MagicMock()
+            mock_email.subject = 'Order Confirmation'
+            mock_email.body_html = '<p>Thank you for your order</p>'
+            mock_email.body_text = 'Thank you for your order. Order info: {order_information}'
+            mock_email.from_address = 'noreply@test.com'
+            mock_email.bcc_address = ''
+            mock_email.em_cd = 'order_confirmation_member'
+            # Create a mock email_type that won't match any comparisons
+            mock_email.email_type = MagicMock()
+            mock_email.email_type.id = 999  # Unique ID that won't match
+            mock_email_get.return_value = mock_email
+
+            # Mock Emailtype lookups to return distinct objects
+            def emailtype_side_effect(title):
+                mock_type = MagicMock()
+                mock_type.title = title
+                mock_type.id = hash(title)  # Different ID for each type
+                return mock_type
+            mock_emailtype_get.side_effect = emailtype_side_effect
+
+            with patch('django.core.mail.EmailMultiAlternatives.send') as mock_send_email:
+                self.client.login(username='testuser', password='testpass123')
+
+                response = self.client.post('/order/confirm-place-order', {
+                    'agree_to_terms_of_sale': 'true',
+                    'save_defaults': 'false',
+                    'stripe_payment_info': json.dumps({
+                        'email': 'testuser@test.com',
+                        'payment_type': 'card',
+                        'card_name': 'Test User',
+                        'card_brand': 'Visa',
+                        'card_last4': '4242',
+                        'card_exp_month': '12',
+                        'card_exp_year': '2025',
+                        'card_zip': '12345'
+                    }),
+                    'stripe_shipping_addr': json.dumps({
+                        'name': 'Test User',
+                        'address_line1': '123 Main St',
+                        'address_city': 'Anytown',
+                        'address_state': 'CA',
+                        'address_zip': '12345',
+                        'address_country': 'United States',
+                        'address_country_code': 'US'
+                    }),
+                    'stripe_billing_addr': json.dumps({
+                        'name': 'Test User',
+                        'address_line1': '123 Main St',
+                        'address_city': 'Anytown',
+                        'address_state': 'CA',
+                        'address_zip': '12345',
+                        'address_country': 'United States',
+                        'address_country_code': 'US'
+                    })
+                })
+
+                unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+                data = json.loads(response.content.decode('utf8'))
+                self.assertEqual(data['confirm_place_order'], 'success')
+                self.assertIn('order_identifier', data)
+
+                # Verify order was created
+                order = Order.objects.get(identifier=data['order_identifier'])
+                self.assertEqual(order.member, self.member)
+                self.assertEqual(order.agreed_with_terms_of_sale, True)
+                self.assertTrue(order.order_total > 0)
+
+                # Verify payment was created
+                self.assertEqual(order.payment.email, 'testuser@test.com')
+                self.assertEqual(order.payment.card_brand, 'Visa')
+                self.assertEqual(order.payment.card_last4, '4242')
+
+                # Verify shipping address was created
+                self.assertEqual(order.shipping_address.name, 'Test User')
+                self.assertEqual(order.shipping_address.city, 'Anytown')
+
+                # Verify billing address was created
+                self.assertEqual(order.billing_address.name, 'Test User')
+                self.assertEqual(order.billing_address.city, 'Anytown')
+
+                # Verify cart was cleared
+                self.assertEqual(Cart.objects.filter(member=self.member).count(), 0)
+
+    def test_confirm_place_order_success_anonymous_user(self):
+        """Test successful order placement for anonymous user"""
+        from order.models import Order
+        from unittest.mock import patch, MagicMock
+
+        # Mock email sending to avoid needing Email templates
+        with patch('user.models.Email.objects.get') as mock_email_get, \
+             patch('user.models.Emailtype.objects.get') as mock_emailtype_get:
+
+            mock_email = MagicMock()
+            mock_email.subject = 'Order Confirmation'
+            mock_email.body_html = '<p>Thank you for your order</p>'
+            mock_email.body_text = 'Thank you for your order. Order info: {order_information}'
+            mock_email.from_address = 'noreply@test.com'
+            mock_email.bcc_address = ''
+            mock_email.em_cd = 'order_confirmation_prospect'
+            mock_email.email_type = MagicMock()
+            mock_email.email_type.id = 999
+            mock_email_get.return_value = mock_email
+
+            def emailtype_side_effect(title):
+                mock_type = MagicMock()
+                mock_type.title = title
+                mock_type.id = hash(title)
+                return mock_type
+            mock_emailtype_get.side_effect = emailtype_side_effect
+
+            with patch('django.core.mail.EmailMultiAlternatives.send') as mock_send_email, \
+                 patch('order.utilities.order_utils.look_up_cart') as mock_look_up_cart:
+                # Create prospect for anonymous user
+                prospect = Prospect.objects.create(
+                    email='anonymous@test.com',
+                    created_date_time=timezone.now()
+                )
+
+                # Create anonymous cart
+                anonymous_cart_id = 'test_anon_cart_123'
+
+                # Create cart for anonymous user
+                anonymous_cart = Cart.objects.create(anonymous_cart_id=anonymous_cart_id)
+                Cartsku.objects.create(cart=anonymous_cart, sku=self.sku, quantity=1)
+
+                # Mock look_up_cart to return our anonymous cart
+                mock_look_up_cart.return_value = anonymous_cart
+
+                # Add shipping method for anonymous cart
+                from order.models import Cartshippingmethod, Shippingmethod
+                shipping_method = Shippingmethod.objects.get(identifier='standard')
+                Cartshippingmethod.objects.create(
+                    cart=anonymous_cart,
+                    shippingmethod=shipping_method
+                )
+
+                response = self.client.post('/order/confirm-place-order', {
+                    'agree_to_terms_of_sale': 'true',
+                    'stripe_payment_info': json.dumps({
+                        'email': 'anonymous@test.com',
+                        'payment_type': 'card',
+                        'card_name': 'Anonymous User',
+                        'card_brand': 'Mastercard',
+                        'card_last4': '5555',
+                        'card_exp_month': '06',
+                        'card_exp_year': '2026',
+                        'card_zip': '54321'
+                    }),
+                    'stripe_shipping_addr': json.dumps({
+                        'name': 'Anonymous User',
+                        'address_line1': '456 Oak Ave',
+                        'address_city': 'Somewhere',
+                        'address_state': 'NY',
+                        'address_zip': '54321',
+                        'address_country': 'United States',
+                        'address_country_code': 'US'
+                    }),
+                    'stripe_billing_addr': json.dumps({
+                        'name': 'Anonymous User',
+                        'address_line1': '456 Oak Ave',
+                        'address_city': 'Somewhere',
+                        'address_state': 'NY',
+                        'address_zip': '54321',
+                        'address_country': 'United States',
+                        'address_country_code': 'US'
+                    })
+                })
+
+                unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+                data = json.loads(response.content.decode('utf8'))
+                self.assertEqual(data['confirm_place_order'], 'success')
+
+                # Verify order was created with prospect
+                order = Order.objects.get(identifier=data['order_identifier'])
+                self.assertIsNone(order.member)
+                self.assertIsNotNone(order.prospect)
+                self.assertEqual(order.prospect.email, 'anonymous@test.com')
+
+                # Verify cart was cleared
+                self.assertEqual(Cart.objects.filter(anonymous_cart_id=anonymous_cart_id).count(), 0)
+
+    def test_confirm_place_order_with_save_defaults(self):
+        """Test order placement with save defaults enabled"""
+        from user.models import Defaultshippingaddress
+        from unittest.mock import patch, MagicMock
+
+        # Mock email sending and Stripe API
+        with patch('user.models.Email.objects.get') as mock_email_get, \
+             patch('user.models.Emailtype.objects.get') as mock_emailtype_get, \
+             patch('stripe.Customer.modify') as mock_stripe_modify:
+
+            mock_email = MagicMock()
+            mock_email.subject = 'Order Confirmation'
+            mock_email.body_html = '<p>Thank you for your order</p>'
+            mock_email.body_text = 'Thank you for your order. Order info: {order_information}'
+            mock_email.from_address = 'noreply@test.com'
+            mock_email.bcc_address = ''
+            mock_email.em_cd = 'order_confirmation_member'
+            mock_email.email_type = MagicMock()
+            mock_email.email_type.id = 999
+            mock_email_get.return_value = mock_email
+
+            def emailtype_side_effect(title):
+                mock_type = MagicMock()
+                mock_type.title = title
+                mock_type.id = hash(title)
+                return mock_type
+            mock_emailtype_get.side_effect = emailtype_side_effect
+
+            # Mock Stripe Customer.modify to avoid real API calls
+            mock_stripe_modify.return_value = {'id': 'cus_test123'}
+
+            with patch('django.core.mail.EmailMultiAlternatives.send') as mock_send_email:
+                self.client.login(username='testuser', password='testpass123')
+
+                # Verify no default shipping address exists
+                self.assertIsNone(self.member.default_shipping_address)
+                self.assertFalse(self.member.use_default_shipping_and_payment_info)
+
+                response = self.client.post('/order/confirm-place-order', {
+                    'agree_to_terms_of_sale': 'true',
+                    'save_defaults': 'true',
+                    'stripe_payment_info': json.dumps({
+                        'email': 'testuser@test.com',
+                        'payment_type': 'card',
+                        'card_name': 'Test User',
+                        'card_brand': 'Visa',
+                        'card_last4': '4242',
+                        'card_exp_month': '12',
+                        'card_exp_year': '2025',
+                        'card_zip': '12345'
+                    }),
+                    'stripe_shipping_addr': json.dumps({
+                        'name': 'Test User Saved',
+                        'address_line1': '789 Pine Rd',
+                        'address_city': 'Defaultcity',
+                        'address_state': 'TX',
+                        'address_zip': '78901',
+                        'address_country': 'United States',
+                        'address_country_code': 'US'
+                    }),
+                    'stripe_billing_addr': json.dumps({
+                        'name': 'Test User',
+                        'address_line1': '123 Main St',
+                        'address_city': 'Anytown',
+                        'address_state': 'CA',
+                        'address_zip': '12345',
+                        'address_country': 'United States',
+                        'address_country_code': 'US'
+                    })
+                })
+
+                unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+                data = json.loads(response.content.decode('utf8'))
+                self.assertEqual(data['confirm_place_order'], 'success')
+
+                # Refresh member from database
+                self.member.refresh_from_db()
+
+                # Verify default shipping address was saved
+                self.assertIsNotNone(self.member.default_shipping_address)
+                self.assertEqual(self.member.default_shipping_address.name, 'Test User Saved')
+                self.assertEqual(self.member.default_shipping_address.city, 'Defaultcity')
+                self.assertTrue(self.member.use_default_shipping_and_payment_info)
