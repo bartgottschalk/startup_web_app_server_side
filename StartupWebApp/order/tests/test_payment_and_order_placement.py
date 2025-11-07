@@ -290,6 +290,238 @@ class ProcessStripePaymentTokenEndpointTest(TestCase):
         self.assertEqual(data['process_stripe_payment_token'], 'error')
         self.assertEqual(data['errors']['error'], 'stripe-token-required')
 
+    def test_process_stripe_payment_token_first_payment_authenticated_user(self):
+        """Test creating first Stripe customer and cart payment for authenticated user"""
+        from unittest.mock import patch, MagicMock
+
+        with patch('order.utilities.order_utils.create_stripe_customer') as mock_create_customer:
+            # Mock Stripe customer creation
+            mock_customer = MagicMock()
+            mock_customer.id = 'cus_test_authenticated'
+            mock_customer.default_source = 'card_test123'
+            mock_create_customer.return_value = mock_customer
+
+            self.client.login(username='testuser', password='testpass123')
+
+            response = self.client.post('/order/process-stripe-payment-token', {
+                'stripe_token': 'tok_test123',
+                'email': 'test@test.com',
+                'stripe_payment_args': json.dumps({
+                    'shipping_name': 'Test User',
+                    'shipping_address_line1': '123 Main St',
+                    'shipping_address_city': 'Anytown',
+                    'shipping_address_state': 'CA',
+                    'shipping_address_zip': '12345',
+                    'shipping_address_country': 'United States',
+                    'shipping_address_country_code': 'US'
+                })
+            })
+
+            unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+            data = json.loads(response.content.decode('utf8'))
+            self.assertEqual(data['process_stripe_payment_token'], 'success')
+
+            # Verify Stripe customer was created with correct parameters
+            mock_create_customer.assert_called_once_with(
+                'tok_test123', 'test@test.com', 'member_username', 'testuser'
+            )
+
+            # Verify cart payment was created
+            self.cart.refresh_from_db()
+            self.assertIsNotNone(self.cart.payment)
+            self.assertEqual(self.cart.payment.stripe_customer_token, 'cus_test_authenticated')
+            self.assertEqual(self.cart.payment.stripe_card_id, 'card_test123')
+            self.assertEqual(self.cart.payment.email, 'test@test.com')
+
+            # Verify shipping address was created
+            self.assertIsNotNone(self.cart.shipping_address)
+            self.assertEqual(self.cart.shipping_address.name, 'Test User')
+            self.assertEqual(self.cart.shipping_address.address_line1, '123 Main St')
+            self.assertEqual(self.cart.shipping_address.city, 'Anytown')
+            self.assertEqual(self.cart.shipping_address.state, 'CA')
+
+    def test_process_stripe_payment_token_first_payment_anonymous_user(self):
+        """Test creating first Stripe customer for anonymous user"""
+        from unittest.mock import patch, MagicMock
+
+        with patch('order.utilities.order_utils.create_stripe_customer') as mock_create_customer, \
+             patch('order.utilities.order_utils.look_up_cart') as mock_look_up_cart:
+
+            # Mock Stripe customer creation
+            mock_customer = MagicMock()
+            mock_customer.id = 'cus_test_anonymous'
+            mock_customer.default_source = 'card_test456'
+            mock_create_customer.return_value = mock_customer
+
+            # Create anonymous cart
+            anon_cart = Cart.objects.create(anonymous_cart_id='anon_123')
+            mock_look_up_cart.return_value = anon_cart
+
+            response = self.client.post('/order/process-stripe-payment-token', {
+                'stripe_token': 'tok_anon_test',
+                'email': 'anonymous@test.com',
+                'stripe_payment_args': json.dumps({
+                    'shipping_name': 'Anonymous User',
+                    'shipping_address_line1': '456 Oak Ave',
+                    'shipping_address_city': 'Somewhere',
+                    'shipping_address_zip': '54321',
+                    'shipping_address_country': 'United States',
+                    'shipping_address_country_code': 'US'
+                })
+            })
+
+            unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+            data = json.loads(response.content.decode('utf8'))
+            self.assertEqual(data['process_stripe_payment_token'], 'success')
+
+            # Verify Stripe customer was created for anonymous user (prospect)
+            mock_create_customer.assert_called_once_with(
+                'tok_anon_test', 'anonymous@test.com', 'prospect_email_addr', 'anonymous@test.com'
+            )
+
+            # Verify cart payment was created
+            anon_cart.refresh_from_db()
+            self.assertIsNotNone(anon_cart.payment)
+            self.assertEqual(anon_cart.payment.stripe_customer_token, 'cus_test_anonymous')
+
+    def test_process_stripe_payment_token_add_card_to_existing_customer(self):
+        """Test adding a new card to existing customer payment"""
+        from unittest.mock import patch, MagicMock
+        from order.models import Cartpayment
+
+        # Create existing cart payment
+        existing_payment = Cartpayment.objects.create(
+            stripe_customer_token='cus_existing',
+            stripe_card_id='card_old',
+            email='test@test.com'
+        )
+        self.cart.payment = existing_payment
+        self.cart.save()
+
+        with patch('order.utilities.order_utils.stripe_customer_add_card') as mock_add_card:
+            # Mock adding new card
+            mock_card = MagicMock()
+            mock_card.id = 'card_new123'
+            mock_add_card.return_value = mock_card
+
+            self.client.login(username='testuser', password='testpass123')
+
+            response = self.client.post('/order/process-stripe-payment-token', {
+                'stripe_token': 'tok_new_card',
+                'email': 'test@test.com',
+                'stripe_payment_args': json.dumps({
+                    'shipping_name': 'Test User',
+                    'shipping_address_line1': '123 Main St',
+                    'shipping_address_city': 'Anytown',
+                    'shipping_address_zip': '12345',
+                    'shipping_address_country': 'United States',
+                    'shipping_address_country_code': 'US'
+                })
+            })
+
+            unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+            data = json.loads(response.content.decode('utf8'))
+            self.assertEqual(data['process_stripe_payment_token'], 'success')
+
+            # Verify card was added to existing customer
+            mock_add_card.assert_called_once_with('cus_existing', 'tok_new_card')
+
+            # Verify cart payment was updated with new card
+            self.cart.refresh_from_db()
+            self.assertEqual(self.cart.payment.stripe_card_id, 'card_new123')
+            # Customer token should remain the same
+            self.assertEqual(self.cart.payment.stripe_customer_token, 'cus_existing')
+
+    def test_process_stripe_payment_token_update_existing_shipping_address(self):
+        """Test updating existing cart shipping address"""
+        from unittest.mock import patch, MagicMock
+        from order.models import Cartshippingaddress
+
+        # Create existing shipping address
+        existing_address = Cartshippingaddress.objects.create(
+            name='Old Name',
+            address_line1='Old Address',
+            city='Old City',
+            state='CA',
+            zip='11111',
+            country='United States',
+            country_code='US'
+        )
+        self.cart.shipping_address = existing_address
+        self.cart.save()
+
+        with patch('order.utilities.order_utils.create_stripe_customer') as mock_create_customer:
+            mock_customer = MagicMock()
+            mock_customer.id = 'cus_test'
+            mock_customer.default_source = 'card_test'
+            mock_create_customer.return_value = mock_customer
+
+            self.client.login(username='testuser', password='testpass123')
+
+            response = self.client.post('/order/process-stripe-payment-token', {
+                'stripe_token': 'tok_test',
+                'email': 'test@test.com',
+                'stripe_payment_args': json.dumps({
+                    'shipping_name': 'Updated Name',
+                    'shipping_address_line1': 'Updated Address',
+                    'shipping_address_city': 'Updated City',
+                    'shipping_address_state': 'NY',
+                    'shipping_address_zip': '99999',
+                    'shipping_address_country': 'United States',
+                    'shipping_address_country_code': 'US'
+                })
+            })
+
+            unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+            data = json.loads(response.content.decode('utf8'))
+            self.assertEqual(data['process_stripe_payment_token'], 'success')
+
+            # Verify existing address was updated (not replaced)
+            self.cart.refresh_from_db()
+            self.assertEqual(self.cart.shipping_address.id, existing_address.id)
+            self.assertEqual(self.cart.shipping_address.name, 'Updated Name')
+            self.assertEqual(self.cart.shipping_address.address_line1, 'Updated Address')
+            self.assertEqual(self.cart.shipping_address.city, 'Updated City')
+            self.assertEqual(self.cart.shipping_address.state, 'NY')
+            self.assertEqual(self.cart.shipping_address.zip, '99999')
+
+    def test_process_stripe_payment_token_stripe_error_handling(self):
+        """Test Stripe error handling (CardError, etc.)"""
+        from unittest.mock import patch
+        import stripe
+
+        with patch('order.utilities.order_utils.create_stripe_customer') as mock_create_customer:
+            # Mock Stripe error
+            error_body = {'error': {'type': 'card_error', 'code': 'card_declined', 'message': 'Your card was declined.'}}
+            mock_create_customer.side_effect = stripe.error.CardError(
+                'Card declined', 'card', 'card_declined', http_status=402, json_body=error_body
+            )
+
+            self.client.login(username='testuser', password='testpass123')
+
+            response = self.client.post('/order/process-stripe-payment-token', {
+                'stripe_token': 'tok_invalid',
+                'email': 'test@test.com',
+                'stripe_payment_args': json.dumps({
+                    'shipping_name': 'Test User',
+                    'shipping_address_line1': '123 Main St',
+                    'shipping_address_city': 'Anytown',
+                    'shipping_address_zip': '12345',
+                    'shipping_address_country': 'United States',
+                    'shipping_address_country_code': 'US'
+                })
+            })
+
+            unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+            data = json.loads(response.content.decode('utf8'))
+            self.assertEqual(data['process_stripe_payment_token'], 'error')
+            self.assertEqual(data['errors']['error'], 'error-creating-stripe-customer')
+
 
 class ConfirmPlaceOrderEndpointTest(TestCase):
     """Test the confirm_place_order endpoint (simplified - no actual order creation)"""
