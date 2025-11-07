@@ -12,7 +12,9 @@ from order.models import (
     Product, Productsku, Productimage,
     Sku, Skuprice, Skutype, Skuinventory,
     Shippingmethod, Discountcode, Discounttype,
-    Orderconfiguration
+    Orderconfiguration, Order, Orderdiscount,
+    Orderpayment, Ordershippingaddress, Orderbillingaddress,
+    Ordershippingmethod
 )
 from user.models import Member, Termsofuse
 
@@ -291,3 +293,194 @@ class CalculateShippingDiscountTest(TestCase):
         discount = order_utils.calculate_shipping_discount(self.cart, item_subtotal)
         # Implementation always gives 100% off (full shipping_cost), not the discount_amount
         self.assertEqual(discount, 10.0)
+
+
+class GetOrderDiscountCodesTest(TestCase):
+    """Test the get_order_discount_codes utility function"""
+
+    def setUp(self):
+        # Create user and member
+        Group.objects.create(name='Members')
+        Termsofuse.objects.create(
+            version='1',
+            version_note='Test',
+            publication_date_time=timezone.now()
+        )
+
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@test.com',
+            password='testpass123'
+        )
+        self.member = Member.objects.create(user=self.user, mb_cd='MEMBER123')
+
+        # Create discount type
+        self.discount_type = Discounttype.objects.create(
+            title='Percent Off',
+            applies_to='item_total',
+            action='percent-off'
+        )
+
+        # Create shipping method for order
+        self.shipping_method = Shippingmethod.objects.create(
+            identifier='standard',
+            carrier='USPS',
+            shipping_cost=10.00,
+            tracking_code_base_url='https://test.com',
+            active=True
+        )
+
+        # Create order
+        self.order = Order.objects.create(
+            member=self.member,
+            identifier='TEST-ORDER-123',
+            item_subtotal=100.00,
+            item_discount_amt=10.00,
+            shipping_amt=10.00,
+            shipping_discount_amt=0.00,
+            order_total=100.00,
+            agreed_with_terms_of_sale=True,
+            order_date_time=timezone.now()
+        )
+
+    def _create_discount_code(self, code, discounttype, discount_amount, order_minimum=0.0, combinable=True):
+        """Helper method to create discount codes"""
+        return Discountcode.objects.create(
+            code=code,
+            description=f'{code} - {{}}% off',
+            discounttype=discounttype,
+            discount_amount=discount_amount,
+            order_minimum=order_minimum,
+            combinable=combinable,
+            start_date_time=timezone.now(),
+            end_date_time=timezone.now() + timedelta(days=30)
+        )
+
+    def test_no_discount_codes_returns_empty_dict(self):
+        """Test that function returns empty dict when no discount codes"""
+        discount_dict = order_utils.get_order_discount_codes(self.order)
+        self.assertEqual(discount_dict, {})
+
+    def test_single_discount_code_returns_complete_data(self):
+        """Test that function returns complete discount code data"""
+        discount_code = self._create_discount_code(
+            'SAVE20', self.discount_type, 20.0, combinable=False
+        )
+        Orderdiscount.objects.create(
+            order=self.order,
+            discountcode=discount_code,
+            applied=True
+        )
+
+        discount_dict = order_utils.get_order_discount_codes(self.order)
+
+        self.assertEqual(len(discount_dict), 1)
+        self.assertIn(discount_code.id, discount_dict)
+
+        data = discount_dict[discount_code.id]
+        self.assertEqual(data['discount_code_id'], discount_code.id)
+        self.assertEqual(data['code'], 'SAVE20')
+        self.assertEqual(data['discount_amount'], 20.0)
+        self.assertEqual(data['combinable'], False)
+        self.assertEqual(data['discount_applied'], True)
+        self.assertEqual(data['discounttype__title'], 'Percent Off')
+        self.assertEqual(data['discounttype__action'], 'percent-off')
+
+    def test_multiple_discount_codes_returns_all(self):
+        """Test that function returns all discount codes"""
+        discount_code1 = self._create_discount_code(
+            'FIRST10', self.discount_type, 10.0
+        )
+        discount_code2 = self._create_discount_code(
+            'SECOND15', self.discount_type, 15.0
+        )
+
+        Orderdiscount.objects.create(
+            order=self.order,
+            discountcode=discount_code1,
+            applied=True
+        )
+        Orderdiscount.objects.create(
+            order=self.order,
+            discountcode=discount_code2,
+            applied=False
+        )
+
+        discount_dict = order_utils.get_order_discount_codes(self.order)
+
+        self.assertEqual(len(discount_dict), 2)
+        self.assertIn(discount_code1.id, discount_dict)
+        self.assertIn(discount_code2.id, discount_dict)
+        self.assertEqual(discount_dict[discount_code1.id]['discount_applied'], True)
+        self.assertEqual(discount_dict[discount_code2.id]['discount_applied'], False)
+
+
+class GetConfirmationEmailDiscountCodeTextFormatTest(TestCase):
+    """Test the get_confirmation_email_discount_code_text_format utility function"""
+
+    def test_empty_dict_returns_none(self):
+        """Test that empty discount dict returns 'None'"""
+        result = order_utils.get_confirmation_email_discount_code_text_format({})
+        self.assertEqual(result, 'None')
+
+    def test_single_applied_discount_formats_correctly(self):
+        """Test that a single applied discount formats correctly"""
+        discount_dict = {
+            1: {
+                'code': 'SAVE20',
+                'description': '{}% off items',
+                'discount_amount': 20.0,
+                'combinable': True,
+                'discount_applied': True
+            }
+        }
+
+        result = order_utils.get_confirmation_email_discount_code_text_format(discount_dict)
+
+        self.assertIn('Code: SAVE20', result)
+        self.assertIn('20.0% off items', result)
+        self.assertIn('Combinable: Yes', result)
+        self.assertNotIn('[This code cannot be combined', result)
+
+    def test_unapplied_discount_shows_warning(self):
+        """Test that unapplied discount shows warning message"""
+        discount_dict = {
+            1: {
+                'code': 'INVALID',
+                'description': '{}% off items',
+                'discount_amount': 10.0,
+                'combinable': False,
+                'discount_applied': False
+            }
+        }
+
+        result = order_utils.get_confirmation_email_discount_code_text_format(discount_dict)
+
+        self.assertIn('Code: INVALID', result)
+        self.assertIn('[This code cannot be combined or does not qualify for your order.]', result)
+        self.assertIn('Combinable: No', result)
+
+    def test_multiple_discounts_format_with_line_breaks(self):
+        """Test that multiple discounts are separated by line breaks"""
+        discount_dict = {
+            1: {
+                'code': 'FIRST',
+                'description': '{}% off',
+                'discount_amount': 10.0,
+                'combinable': True,
+                'discount_applied': True
+            },
+            2: {
+                'code': 'SECOND',
+                'description': '{}% off',
+                'discount_amount': 15.0,
+                'combinable': True,
+                'discount_applied': True
+            }
+        }
+
+        result = order_utils.get_confirmation_email_discount_code_text_format(discount_dict)
+
+        self.assertIn('Code: FIRST', result)
+        self.assertIn('Code: SECOND', result)
+        self.assertIn('\r\n', result)  # Line breaks between codes
