@@ -59,11 +59,6 @@ This document tracks the complete development history and modernization effort f
 - Prepare containers for AWS deployment
 - Setup CI/CD pipeline
 
-### Phase 6: Frontend Upgrades (Future)
-- jQuery modernization
-- Frontend automated testing setup
-- Consider frontend framework modernization
-
 ## Documentation Structure
 
 ### `/milestones`
