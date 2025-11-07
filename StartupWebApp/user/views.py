@@ -4,6 +4,7 @@ from django.http import HttpResponse
 from django.core import serializers
 from django.views.decorators.cache import cache_control
 from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.template import loader
 from django.contrib.auth import authenticate, login, logout
 from django.conf import settings
@@ -46,13 +47,14 @@ def index(request):
     return HttpResponse("Hello, you're at the user API (version " + user_api_version + ") root. Nothing to see here...")
 
 def token(request):
-    #raise ValueError('A very specific bad thing happened.')    
+    #raise ValueError('A very specific bad thing happened.')
     template = loader.get_template('user/token.html')
     context = {}
     #return HttpResponse(template.render(context, request))
     return JsonResponse({'token':template.render(context, request),'user-api-version':user_api_version}, safe=False)
     #return HttpResponse("login_form")
 
+@ensure_csrf_cookie
 def logged_in(request):
     #raise ValueError('A very specific bad thing happened.')    
     #print(request.user.session)

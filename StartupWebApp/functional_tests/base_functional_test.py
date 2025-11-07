@@ -20,11 +20,13 @@ class BaseFunctionalTest(LiveServerTestCase):
 	options = Options()
 	if "HEADLESS" in os.environ and os.environ['HEADLESS'] == 'TRUE':
 		options.headless = True
+	host = '0.0.0.0'  # Bind to all interfaces so test server is accessible via Docker network hostname 'backend'
 	port = 60767 # hardcoding the port so that I can access the LiveServerTestCase API from the staticically deployed client at a predictable url:port combo
 	yesterday = start_date_time=timezone.now() - timedelta(days=1)
 	tomorrow = start_date_time=timezone.now() + timedelta(days=1)
-	# Frontend accessible via Docker service name when running in containers
-	static_home_page_url = "http://frontend/" if os.environ.get('DOCKER_ENV') else "http://localliveservertestcase.startupwebapp.com:8080/"
+	# Use localliveservertestcase.startupwebapp.com for cookie sharing between frontend and backend
+	# In Docker, frontend is on port 80 (internal); outside Docker, frontend is on port 8080 (host)
+	static_home_page_url = "http://localliveservertestcase.startupwebapp.com/" if os.environ.get('DOCKER_ENV') else "http://localliveservertestcase.startupwebapp.com:8080/"
 
 	def setUp(self):
 		self.browser = webdriver.Firefox(options=self.options)

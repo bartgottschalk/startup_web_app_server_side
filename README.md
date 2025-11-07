@@ -18,7 +18,7 @@ A Django REST API backend for an e-commerce startup, featuring comprehensive tes
 - **Order App**: 239 tests (products, cart, checkout, payments via Stripe)
 - **ClientEvent App**: 51 tests (analytics event tracking)
 - **Validators**: 50 tests (input validation)
-- **Functional Tests**: 26 Selenium tests (requires frontend client)
+- **Functional Tests**: 28 Selenium tests (requires frontend client)
 
 📚 **See [docs/README.md](docs/README.md) for detailed project timeline and completed phases.**
 
@@ -87,6 +87,10 @@ docker-compose exec backend python manage.py test order.tests user.tests cliente
 
 **Run functional tests** (requires frontend client):
 ```bash
+# IMPORTANT: Setup hosts file first (required after each container restart)
+docker-compose exec backend bash /app/setup_docker_test_hosts.sh
+
+# Then run functional tests
 docker-compose exec -e HEADLESS=TRUE backend python manage.py test functional_tests
 ```
 
@@ -187,6 +191,18 @@ CORS_ORIGIN_WHITELIST = (
 
 Functional tests use Selenium with headless Firefox to test the full stack from a user's perspective.
 
+**⚠️ IMPORTANT: Setup Required Before First Run**
+
+Before running functional tests, you must configure the Docker container's `/etc/hosts` file to enable cookie sharing between frontend and backend:
+
+```bash
+docker-compose exec backend bash /app/setup_docker_test_hosts.sh
+```
+
+This script maps `localliveservertestcase.startupwebapp.com` and `localliveservertestcaseapi.startupwebapp.com` hostnames to the Docker container IPs, allowing CSRF cookies to be shared across subdomains.
+
+**Note**: This setup is required after each container restart/rebuild.
+
 **Run all functional tests**:
 ```bash
 docker-compose exec -e HEADLESS=TRUE backend python manage.py test functional_tests --verbosity=2
@@ -220,7 +236,9 @@ docker-compose exec -e HEADLESS=TRUE backend python manage.py test functional_te
 - Add required origins to `CORS_ORIGIN_WHITELIST` in `settings_secret.py`
 - Restart backend server
 
-**Functional tests hang:**
+**Functional tests hang or fail with CSRF/cookie errors:**
+- **IMPORTANT**: Run the hosts setup script first: `docker-compose exec backend bash /app/setup_docker_test_hosts.sh`
+- This is required after each container restart/rebuild
 - Ensure both backend and frontend containers are running: `docker-compose ps`
 - Check nginx is serving files correctly: `curl -I http://localhost:8080/about`
 - Verify CORS configuration includes Docker origins
