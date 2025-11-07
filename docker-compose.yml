@@ -1,5 +1,9 @@
 # Docker Compose for StartupWebApp - Full Stack Development Environment
 # Note: version field removed as it's obsolete in Docker Compose v2+
+#
+# IMPORTANT: Before running functional tests, execute the hosts setup script:
+#   docker-compose exec backend bash /app/setup_docker_test_hosts.sh
+# This is required after each container restart to enable cookie sharing for CSRF tokens.
 
 services:
   backend:

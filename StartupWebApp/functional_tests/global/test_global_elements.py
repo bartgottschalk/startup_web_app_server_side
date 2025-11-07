@@ -57,29 +57,9 @@ class AnonymousGlobalNavigationTests(BaseFunctionalTest):
 		functional_testing_utilities.wait_for_element_to_load_by_id(self, 'menu-home-link')
 		functional_testing_utilities.wait_click_by_id(self, 'header-logo-image')
 		self.assertEqual('Home Page', self.browser.title)
-		
-		# she notices the Twitter icon and clicks on it
-		previous_window_handles = self.browser.window_handles
-		functional_testing_utilities.wait_click_by_id(self, 'header-twitter')
-		new_window_handle = functional_testing_utilities.wait_for_new_window_handle(self, previous_window_handles)
-		self.browser.switch_to_window(new_window_handle)
-		#functional_testing_utilities.wait_for_element_to_load_by_id(self, 'search-query')
-		functional_testing_utilities.wait_for_page_title(self, 'Twitter. It\'s what\'s happening.')
-		self.assertEqual('Twitter. It\'s what\'s happening.', self.browser.title)
-		# she closes the tab to go back to the previous tab
-		#self.browser.find_element_by_tag_name('body').send_keys(Keys.COMMAND + 'w')
-		self.browser.switch_to_window(main_window)
 
-		# she notices the Facebook icon and clicks on it
-		previous_window_handles = self.browser.window_handles
-		functional_testing_utilities.wait_click_by_id(self, 'header-facebook')
-		new_window_handle = functional_testing_utilities.wait_for_new_window_handle(self, previous_window_handles)
-		self.browser.switch_to_window(new_window_handle)
-		functional_testing_utilities.wait_for_page_title(self, 'Facebook - Log In or Sign Up')
-		self.assertEqual('Facebook - Log In or Sign Up', self.browser.title)
-		# she closes the tab to go back to the previous tab
-		#self.browser.find_element_by_tag_name('body').send_keys(Keys.COMMAND + 'w')
-		self.browser.switch_to_window(main_window)
+		# NOTE: Removed Twitter and Facebook external link checks - external sites are outside our control
+		# and their page titles can change, making tests brittle and unreliable
 
 		# she clicks the home image button to see what it does
 		functional_testing_utilities.wait_click_by_id(self, 'header-logo-image')
@@ -126,6 +106,8 @@ class AnonymousGlobalFunctionalTests(BaseFunctionalTest):
 
 		self.browser.switch_to_window(new_window_handle)
 
+		# Wait for the Privacy Policy page to load
+		functional_testing_utilities.wait_for_page_title(self, 'Privacy Policy')
 		self.assertEqual('Privacy Policy', self.browser.title)
 		#self.browser.find_element_by_tag_name('body').send_keys(Keys.COMMAND + 'w')
 		self.browser.switch_to_window(main_window)
