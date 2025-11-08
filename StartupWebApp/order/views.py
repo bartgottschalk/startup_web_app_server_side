@@ -310,13 +310,14 @@ def confirm_payment_data(request):
             if cart.shipping_address is not None and cart.payment is not None:
                 if cart.payment.stripe_customer_token is not None:
                     stripe_customer_token = cart.payment.stripe_customer_token
-                    customer = stripe.Customer.retrieve(stripe_customer_token)
+                    customer = order_utils.retrieve_stripe_customer(stripe_customer_token)
                     #print('### CUSTOMER ###')
                     #print(customer)
                     #print(customer.sources)
                     #print(customer.sources.data)
                     #print('### END CUSTOMER ###')
-                    customer_dict = order_utils.get_stripe_customer_payment_data(customer, shipping_address_dict, cart.payment.stripe_card_id)    
+                    if customer is not None:
+                        customer_dict = order_utils.get_stripe_customer_payment_data(customer, shipping_address_dict, cart.payment.stripe_card_id)
                     #print(customer_dict)                
         else:
             email = None

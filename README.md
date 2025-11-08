@@ -7,15 +7,15 @@ A Django REST API backend for an e-commerce startup, featuring comprehensive tes
 
 ## Current Status (November 2025)
 
-✅ **679 Unit Tests Passing** - Comprehensive test coverage across all apps
+✅ **689 Unit Tests Passing** - Comprehensive test coverage across all apps
 ✅ **Python 3.12 Compatible** - Fully modernized for latest Python
 ✅ **Docker Containerized** - Easy setup with Docker Compose
 ✅ **Django 4.2.16 LTS** - Modern Django with security support until April 2026
 ✅ **Production-Ready** - Extensive testing of user management, e-commerce, and analytics
 
 ### Test Coverage Breakdown
-- **User App**: 289 tests (authentication, profiles, email management)
-- **Order App**: 289 tests (products, cart, checkout, payments via Stripe)
+- **User App**: 292 tests (authentication, profiles, email management, Stripe error handling)
+- **Order App**: 296 tests (products, cart, checkout, payments via Stripe)
 - **ClientEvent App**: 51 tests (analytics event tracking)
 - **Validators**: 50 tests (input validation)
 - **Functional Tests**: 28 Selenium tests (full user journey testing)
@@ -68,7 +68,23 @@ docker-compose build
 docker-compose up -d
 ```
 
-3. **Initialize the database**
+3. **Configure local domain names** (Required for full-stack development)
+
+The application uses custom domain names to enable proper CSRF cookie sharing between frontend and backend. Add these entries to your **host machine's** `/etc/hosts` file:
+
+```bash
+# Mac/Linux: Add entries to /etc/hosts
+echo "127.0.0.1    localhost.startupwebapp.com" | sudo tee -a /etc/hosts
+echo "127.0.0.1    localapi.startupwebapp.com" | sudo tee -a /etc/hosts
+```
+
+**Why is this needed?**
+- Frontend runs on `http://localhost.startupwebapp.com:8080`
+- Backend API runs on `http://localapi.startupwebapp.com:8000`
+- Both domains share the `.startupwebapp.com` suffix, allowing CSRF cookies to work across subdomains
+- Without this, you'll get CSRF and CORS errors when the frontend tries to call the backend
+
+4. **Initialize the database**
 ```bash
 docker-compose exec backend python manage.py migrate
 docker-compose exec backend python manage.py load_sample_data
@@ -76,11 +92,14 @@ docker-compose exec backend python manage.py load_sample_data
 
 The migrations automatically create required reference data (Skuinventory records). The `load_sample_data` command populates the database with sample products, SKUs, and configuration data for development/testing.
 
-4. **The API is now running at http://localhost:8000**
+5. **Access the application**
+- **Frontend**: http://localhost.startupwebapp.com:8080
+- **Backend API**: http://localapi.startupwebapp.com:8000
+- **Django Admin**: http://localapi.startupwebapp.com:8000/admin/
 
 ### Run Tests
 
-**Run all unit tests** (679 tests):
+**Run all unit tests** (689 tests):
 ```bash
 docker-compose exec backend python manage.py test order.tests user.tests clientevent.tests StartupWebApp.tests
 ```
@@ -99,7 +118,7 @@ docker-compose exec -e HEADLESS=TRUE backend python manage.py test functional_te
 # Create admin user
 docker-compose exec backend python manage.py createsuperuser
 
-# Access at http://localhost:8000/admin/
+# Access at http://localapi.startupwebapp.com:8000/admin/
 ```
 
 ### Stop the container
@@ -143,9 +162,11 @@ The backend and frontend can be run together using Docker Compose for a complete
    ```
 
 4. **Access the application**
-   - Frontend: http://localhost:8080
-   - Backend API: http://localhost:8000
-   - Admin interface: http://localhost:8000/admin/
+   - Frontend: http://localhost.startupwebapp.com:8080
+   - Backend API: http://localapi.startupwebapp.com:8000
+   - Admin interface: http://localapi.startupwebapp.com:8000/admin/
+
+   **Note**: Remember to configure your /etc/hosts file first (see Quick Start guide above)
 
 ### Architecture
 
@@ -154,10 +175,12 @@ The `docker-compose.yml` orchestrates two services:
 - **frontend**: Nginx serving static HTML/CSS/JavaScript
 
 **Docker Networking**: Services communicate via a custom bridge network (`startupwebapp`), enabling:
-- Browser → Frontend (localhost:8080)
-- Browser → Backend API (localhost:8000)
+- Browser → Frontend (localhost.startupwebapp.com:8080)
+- Browser → Backend API (localapi.startupwebapp.com:8000)
 - Frontend (Docker) → Backend API (Docker network)
 - Functional tests → Both services
+
+Custom domain names (`.startupwebapp.com`) enable proper CSRF cookie sharing between frontend and backend during development.
 
 ### Nginx Configuration
 
@@ -178,14 +201,17 @@ For Docker development, add these origins to `StartupWebApp/StartupWebApp/settin
 
 ```python
 CORS_ORIGIN_WHITELIST = (
-    'http://localhost:8080',  # Docker Compose frontend (browser access)
+    'http://localhost:8080',  # Docker Compose frontend (browser access - legacy)
     'http://frontend',  # Docker Compose frontend (internal Docker network)
-    'http://localliveservertestcase.startupwebapp.com',  # Legacy functional tests
-    'http://localhost.startupwebapp.com',  # Legacy local development
+    'http://localliveservertestcase.startupwebapp.com',  # Functional tests
+    'http://localhost.startupwebapp.com:8080',  # Local development (recommended)
 )
 ```
 
-**Important**: `settings_secret.py` is gitignored and must be created manually. See `settings_secret.py.template` for reference.
+**Important Notes:**
+- `settings_secret.py` is gitignored and must be created manually. See `settings_secret.py.template` for reference.
+- The `:8080` port must be included in `http://localhost.startupwebapp.com:8080` for the frontend to communicate with the backend
+- CSRF cookies require matching domain suffixes (`.startupwebapp.com`) to work properly
 
 ### Running Functional Tests
 
@@ -245,7 +271,8 @@ docker-compose exec -e HEADLESS=TRUE backend python manage.py test functional_te
 
 **Can't connect to API:**
 - Ensure backend server is running: `docker-compose exec backend ps aux | grep manage.py`
-- Check API responds: `curl http://localhost:8000/user/logged-in`
+- Check API responds: `curl http://localapi.startupwebapp.com:8000/user/logged-in`
+- Verify /etc/hosts has the required domain entries (see Quick Start guide)
 
 ---
 

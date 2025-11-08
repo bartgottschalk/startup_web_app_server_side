@@ -41,8 +41,7 @@ Hi Claude. I want to continue working on these two repositories together:
   2. Verify no pending branches with changes
   3. Read key documentation files:
      - `docs/PROJECT_HISTORY.md` - Project timeline and current status
-     - `KNOWN_ISSUES.md` - Current priorities and blockers
-     - `docs/milestones/2025-11-06-phase-4-django-upgrade-to-4-2-lts.md` - Most recent work
+     - `docs/technical-notes/2025-11-08-stripe-error-handling-refactor.md` - Most recent work
   4. Review full gitignore files in both projects and respect them
   5. Flag any new files/extensions that should be added to gitignore
 
@@ -77,16 +76,23 @@ Hi Claude. I want to continue working on these two repositories together:
 
   **Documentation Requirements:**
   - Every commit MUST include updated documentation
-  - Key doc files: `docs/PROJECT_HISTORY.md`, `README.md`, `KNOWN_ISSUES.md`
+  - Key doc files: `docs/PROJECT_HISTORY.md`, `README.md`
   - Key doc directories: `docs/milestones/`, `docs/technical-notes/`
   - Create new milestone docs for significant work (follow existing naming: YYYY-MM-DD-phase-description.md)
+  - Create technical notes for bug fixes and refactorings (follow existing naming: YYYY-MM-DD-description.md)
   - Update test counts and coverage stats when changed
-  - Document all bugs found and fixed
+  - Document all bugs found and fixed in technical notes
 
   **Testing Conventions:**
+  - **Test-Driven Development (TDD)**: ALWAYS write tests first before implementing code changes
+    - Write tests that demonstrate the bug or desired feature
+    - Run tests to verify they fail (proving the issue exists)
+    - Implement the minimum code needed to make tests pass
+    - Refactor while keeping all tests passing
+    - This approach maintains high code coverage and prevents regressions
   - Use unittest.mock for external API calls (especially Stripe)
   - Test both authenticated (Member) and anonymous (Prospect) user flows
-  - Include edge cases and error handling scenarios
+  - Include edge cases and error handling scenarios (InvalidRequestError, AuthenticationError, APIConnectionError)
   - Target 90%+ coverage for critical payment/order/auth paths
   - Follow existing test patterns in codebase
 
@@ -114,32 +120,20 @@ Hi Claude. I want to continue working on these two repositories together:
 
   ## Planned Work Items (Priority Order)
 
-  1. **Address Known Issues List**
-     - Review and prioritize items in KNOWN_ISSUES.md
-     - Identify urgent production bugs vs. enhancements
-     - Triage and fix documented issues in priority order
-     - Update KNOWN_ISSUES.md as items are resolved
-
-  2. **Fix Stripe Errors on Account Page**
-     - Investigate and resolve Stripe-related errors on account page
-     - May already be documented in Known Issues List
-     - Add tests to prevent regression
-     - User-facing issue requiring prompt resolution
-
-  3. **Linting**
+  1. **Linting**
      - Run code linters (pylint, flake8, or similar for Python; ESLint for JavaScript)
      - Address style and quality issues
      - Enforce consistent code standards across both repos
      - May reveal hidden bugs (unused imports, undefined variables, etc.)
      - Establishes baseline before making more changes
 
-  4. **Replace print statements with proper logging**
+  2. **Replace print statements with proper logging**
      - Convert print() to logging.debug(), logging.warning(), logging.error()
      - Set up proper logging configuration in settings.py
      - Improves production debugging and monitoring
      - Makes debugging easier for deployment
 
-  5. **Migrate from SQLite to production database**
+  3. **Migrate from SQLite to production database**
      - Critical for production deployment
      - Evaluate AWS database options:
        - Amazon RDS PostgreSQL (most popular Django choice)
@@ -149,42 +143,42 @@ Hi Claude. I want to continue working on these two repositories together:
      - Consider factors: cost, performance, backup/restore, scaling needs
      - Update Django settings.py database configuration
      - Install appropriate database driver (psycopg2 for PostgreSQL, mysqlclient for MySQL)
-     - Test all 679 unit tests against new database
+     - Test all 689 unit tests against new database
      - Test all 28 functional tests against new database
      - Verify Stripe integration works with new database
      - Document migration process and rollback procedure
      - Update requirements.txt with database driver dependencies
-     - Must complete before AWS deployment (task #8)
+     - Must complete before AWS deployment (task #6)
 
-  6. **Consider Stripe library upgrade (optional)**
+  4. **Consider Stripe library upgrade (optional)**
      - Current: stripe==5.5.0
      - Evaluate upgrade path and breaking changes
      - Review Stripe API changelog for new features and deprecations
-     - Test thoroughly with existing payment flows (especially after fixing task #2)
+     - Test thoroughly with existing payment flows
      - Only proceed if benefits outweigh risks
 
-  7. **Consider Selenium 4 upgrade (optional)**
+  5. **Consider Selenium 4 upgrade (optional)**
      - Current: Selenium 3.141.0
      - Evaluate benefits (better waits, modern WebDriver API, improved stability)
      - May require functional test refactoring
      - All 28 tests currently passing - low priority
      - Consider during major test infrastructure updates
 
-  8. **Prepare containers for deployment to AWS for "production"**
+  6. **Prepare containers for deployment to AWS for "production"**
      - Configure production-ready Docker images (security, optimization)
      - Set up environment variable management for secrets (AWS Secrets Manager or Parameter Store)
-     - Configure production database connection (from task #5)
+     - Configure production database connection (from task #3)
      - Set up S3 for static files and media storage
      - Configure CloudFront CDN for frontend
      - Implement health checks and monitoring
      - Security hardening (disable DEBUG, set ALLOWED_HOSTS, configure HTTPS)
      - Review and configure AWS security groups, IAM roles
-     - Depends on task #5 (database migration)
+     - Depends on task #3 (database migration)
 
-  9. **Setup CI/CD pipeline**
+  7. **Setup CI/CD pipeline**
      - Configure GitHub Actions or AWS CodePipeline
      - Automated testing on push:
-       - Run all 679 unit tests
+       - Run all 689 unit tests
        - Run all 28 functional tests (with HEADLESS=TRUE)
        - Fail pipeline if any tests fail
      - Trigger deployment on successful test run:
@@ -193,8 +187,8 @@ Hi Claude. I want to continue working on these two repositories together:
      - Configure deployment to AWS (ECS, EKS, or Elastic Beanstalk)
      - Set up rollback mechanism for failed deployments
      - Configure deployment notifications (Slack, email, etc.)
-     - Depends on task #8 (AWS infrastructure ready)
+     - Depends on task #6 (AWS infrastructure ready)
 
   ## Next Steps
 
-  Please review all documentation (especially `docs/PROJECT_HISTORY.md` and `KNOWN_ISSUES.md`) and propose next steps based on the Planned Work Items above, starting with #1: Address Known Issues List.
+  Please review all documentation (especially `docs/PROJECT_HISTORY.md` and recent technical notes in `docs/technical-notes/`) and propose next steps based on the Planned Work Items above, starting with #1: Linting.

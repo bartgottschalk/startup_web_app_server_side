@@ -534,28 +534,60 @@ def get_confirmation_email_order_address_text_format(address):
     address_information += str(address.country)
     return address_information
 
+def retrieve_stripe_customer(customer_token):
+    """Wrapper for stripe.Customer.retrieve with error handling"""
+    try:
+        customer = stripe.Customer.retrieve(customer_token)
+        return customer
+    except (stripe.error.CardError, stripe.error.RateLimitError, stripe.error.InvalidRequestError, stripe.error.AuthenticationError, stripe.error.APIConnectionError, stripe.error.StripeError) as e:
+        # Log the error and return None to allow graceful handling by caller
+        print(f"Stripe error in retrieve_stripe_customer: {type(e).__name__}: {str(e)}")
+        return None
+
 def create_stripe_customer(stripe_token, email, metadata_key, metadata_value):
-    customer = stripe.Customer.create(
-        source=stripe_token,
-        email=email,
-        metadata={metadata_key: metadata_value},
-    )
-    return customer
+    try:
+        customer = stripe.Customer.create(
+            source=stripe_token,
+            email=email,
+            metadata={metadata_key: metadata_value},
+        )
+        return customer
+    except (stripe.error.CardError, stripe.error.RateLimitError, stripe.error.InvalidRequestError, stripe.error.AuthenticationError, stripe.error.APIConnectionError, stripe.error.StripeError) as e:
+        # Log the error and return None to allow graceful handling by caller
+        print(f"Stripe error in create_stripe_customer: {type(e).__name__}: {str(e)}")
+        return None
 
 def stripe_customer_replace_default_payemnt(customer_token, stripe_token):
-    stripe.Customer.modify(customer_token,
-        source=stripe_token,
-    )                        
-    return
+    try:
+        stripe.Customer.modify(customer_token,
+            source=stripe_token,
+        )
+        return True
+    except (stripe.error.CardError, stripe.error.RateLimitError, stripe.error.InvalidRequestError, stripe.error.AuthenticationError, stripe.error.APIConnectionError, stripe.error.StripeError) as e:
+        # Log the error and return None to indicate failure
+        print(f"Stripe error in stripe_customer_replace_default_payemnt: {type(e).__name__}: {str(e)}")
+        return None
 
 def stripe_customer_add_card(customer_token, stripe_token):
-    customer = stripe.Customer.retrieve(customer_token)
-    card = customer.sources.create(source=stripe_token)
-    return card
+    try:
+        customer = retrieve_stripe_customer(customer_token)
+        if customer is None:
+            return None
+        card = customer.sources.create(source=stripe_token)
+        return card
+    except (stripe.error.CardError, stripe.error.RateLimitError, stripe.error.InvalidRequestError, stripe.error.AuthenticationError, stripe.error.APIConnectionError, stripe.error.StripeError) as e:
+        # Log the error and return None to allow graceful handling by caller
+        print(f"Stripe error in stripe_customer_add_card: {type(e).__name__}: {str(e)}")
+        return None
 
 def stripe_customer_change_default_payemnt(customer_token, card_id):
-    stripe.Customer.modify(customer_token,
-        default_source=card_id,
-    )                        
-    return
+    try:
+        stripe.Customer.modify(customer_token,
+            default_source=card_id,
+        )
+        return True
+    except (stripe.error.CardError, stripe.error.RateLimitError, stripe.error.InvalidRequestError, stripe.error.AuthenticationError, stripe.error.APIConnectionError, stripe.error.StripeError) as e:
+        # Log the error and return None to indicate failure
+        print(f"Stripe error in stripe_customer_change_default_payemnt: {type(e).__name__}: {str(e)}")
+        return None
 
