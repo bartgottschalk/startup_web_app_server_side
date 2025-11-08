@@ -271,3 +271,134 @@ class AccountContentAPITest(TestCase):
 
         # Should show None for terms_of_use_agreed_date_time
         self.assertIsNone(personal_data['terms_of_use_agreed_date_time'])
+
+    def test_stripe_invalid_request_error_handled_gracefully(self):
+        """Test that Stripe InvalidRequestError is handled without crashing endpoint"""
+        from unittest.mock import patch
+        from user.models import Defaultshippingaddress
+        import stripe
+
+        # Setup member with saved payment defaults
+        user = User.objects.get(username='testuser')
+        default_address = Defaultshippingaddress.objects.create(
+            name='Test User',
+            address_line1='123 Main St',
+            city='Anytown',
+            state='CA',
+            zip='12345',
+            country='United States',
+            country_code='US'
+        )
+        user.member.default_shipping_address = default_address
+        user.member.use_default_shipping_and_payment_info = True
+        user.member.stripe_customer_token = 'cus_invalid_token_123'
+        user.member.save()
+
+        # Mock Stripe to raise InvalidRequestError
+        with patch('stripe.Customer.retrieve') as mock_stripe_retrieve:
+            mock_stripe_retrieve.side_effect = stripe.error.InvalidRequestError(
+                message='No such customer: cus_invalid_token_123',
+                param='id'
+            )
+
+            # Get account content - should NOT crash
+            response = self.client.get('/user/account-content')
+            unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+            response_data = json.loads(response.content.decode('utf8'))
+            account_content = response_data['account_content']
+
+            # Verify basic account data is still returned
+            self.assertEqual(account_content['authenticated'], 'true')
+            self.assertIn('personal_data', account_content)
+
+            # Verify payment data is empty (gracefully degraded)
+            self.assertIn('shipping_billing_addresses_and_payment_data', account_content)
+            payment_data = account_content['shipping_billing_addresses_and_payment_data']
+            self.assertEqual(payment_data, {})
+
+    def test_stripe_authentication_error_handled_gracefully(self):
+        """Test that Stripe AuthenticationError is handled without crashing endpoint"""
+        from unittest.mock import patch
+        from user.models import Defaultshippingaddress
+        import stripe
+
+        # Setup member with saved payment defaults
+        user = User.objects.get(username='testuser')
+        default_address = Defaultshippingaddress.objects.create(
+            name='Test User',
+            address_line1='456 Oak Ave',
+            city='Testville',
+            state='NY',
+            zip='54321',
+            country='United States',
+            country_code='US'
+        )
+        user.member.default_shipping_address = default_address
+        user.member.use_default_shipping_and_payment_info = True
+        user.member.stripe_customer_token = 'cus_test_auth_error_456'
+        user.member.save()
+
+        # Mock Stripe to raise AuthenticationError
+        with patch('stripe.Customer.retrieve') as mock_stripe_retrieve:
+            mock_stripe_retrieve.side_effect = stripe.error.AuthenticationError(
+                message='Invalid API Key provided'
+            )
+
+            # Get account content - should NOT crash
+            response = self.client.get('/user/account-content')
+            unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+            response_data = json.loads(response.content.decode('utf8'))
+            account_content = response_data['account_content']
+
+            # Verify basic account data is still returned
+            self.assertEqual(account_content['authenticated'], 'true')
+            self.assertIn('personal_data', account_content)
+
+            # Verify payment data is empty (gracefully degraded)
+            payment_data = account_content['shipping_billing_addresses_and_payment_data']
+            self.assertEqual(payment_data, {})
+
+    def test_stripe_api_connection_error_handled_gracefully(self):
+        """Test that Stripe APIConnectionError is handled without crashing endpoint"""
+        from unittest.mock import patch
+        from user.models import Defaultshippingaddress
+        import stripe
+
+        # Setup member with saved payment defaults
+        user = User.objects.get(username='testuser')
+        default_address = Defaultshippingaddress.objects.create(
+            name='Test User',
+            address_line1='789 Pine Rd',
+            city='Hometown',
+            state='TX',
+            zip='67890',
+            country='United States',
+            country_code='US'
+        )
+        user.member.default_shipping_address = default_address
+        user.member.use_default_shipping_and_payment_info = True
+        user.member.stripe_customer_token = 'cus_test_connection_error_789'
+        user.member.save()
+
+        # Mock Stripe to raise APIConnectionError
+        with patch('stripe.Customer.retrieve') as mock_stripe_retrieve:
+            mock_stripe_retrieve.side_effect = stripe.error.APIConnectionError(
+                message='Network communication with Stripe failed'
+            )
+
+            # Get account content - should NOT crash
+            response = self.client.get('/user/account-content')
+            unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+            response_data = json.loads(response.content.decode('utf8'))
+            account_content = response_data['account_content']
+
+            # Verify basic account data is still returned
+            self.assertEqual(account_content['authenticated'], 'true')
+            self.assertIn('personal_data', account_content)
+
+            # Verify payment data is empty (gracefully degraded)
+            payment_data = account_content['shipping_billing_addresses_and_payment_data']
+            self.assertEqual(payment_data, {})

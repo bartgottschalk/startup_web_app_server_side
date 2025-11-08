@@ -640,3 +640,130 @@ class ConfirmPaymentDataEndpointTest(TestCase):
         self.assertIsNotNone(self.cart.payment)
         self.assertEqual(self.cart.payment.stripe_customer_token, 'cus_member_default_123')
         self.assertEqual(self.cart.payment.email, 'test@test.com')
+
+    def test_confirm_payment_data_stripe_invalid_request_error_handled(self):
+        """Test that Stripe InvalidRequestError is handled gracefully in confirm_payment_data"""
+        from unittest.mock import patch
+        import stripe
+
+        # Set up cart with payment and shipping address
+        cart_payment = Cartpayment.objects.create(
+            stripe_customer_token='cus_invalid_token_999',
+            stripe_card_id='card_test_999',
+            email='test@test.com'
+        )
+        cart_shipping = Cartshippingaddress.objects.create(
+            name='Test User',
+            address_line1='123 Test St',
+            city='Testtown',
+            state='CA',
+            zip='12345',
+            country='United States',
+            country_code='US'
+        )
+        self.cart.payment = cart_payment
+        self.cart.shipping_address = cart_shipping
+        self.cart.save()
+
+        # Mock Stripe to raise InvalidRequestError
+        with patch('stripe.Customer.retrieve') as mock_stripe_retrieve:
+            mock_stripe_retrieve.side_effect = stripe.error.InvalidRequestError(
+                message='No such customer: cus_invalid_token_999',
+                param='id'
+            )
+
+            self.client.login(username='testuser', password='testpass123')
+
+            # Call should NOT crash with 500 error
+            response = self.client.get('/order/confirm-payment-data')
+            unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+            data = json.loads(response.content.decode('utf8'))
+            self.assertTrue(data['checkout_allowed'])
+
+            # Verify customer_data is None (graceful degradation)
+            self.assertIsNone(data['customer_data'])
+
+    def test_confirm_payment_data_stripe_authentication_error_handled(self):
+        """Test that Stripe AuthenticationError is handled gracefully in confirm_payment_data"""
+        from unittest.mock import patch
+        import stripe
+
+        # Set up cart with payment and shipping address
+        cart_payment = Cartpayment.objects.create(
+            stripe_customer_token='cus_test_auth_888',
+            stripe_card_id='card_test_888',
+            email='test@test.com'
+        )
+        cart_shipping = Cartshippingaddress.objects.create(
+            name='Test User',
+            address_line1='456 Auth St',
+            city='Authtown',
+            state='NY',
+            zip='54321',
+            country='United States',
+            country_code='US'
+        )
+        self.cart.payment = cart_payment
+        self.cart.shipping_address = cart_shipping
+        self.cart.save()
+
+        # Mock Stripe to raise AuthenticationError
+        with patch('stripe.Customer.retrieve') as mock_stripe_retrieve:
+            mock_stripe_retrieve.side_effect = stripe.error.AuthenticationError(
+                message='Invalid API Key provided'
+            )
+
+            self.client.login(username='testuser', password='testpass123')
+
+            # Call should NOT crash with 500 error
+            response = self.client.get('/order/confirm-payment-data')
+            unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+            data = json.loads(response.content.decode('utf8'))
+            self.assertTrue(data['checkout_allowed'])
+
+            # Verify customer_data is None (graceful degradation)
+            self.assertIsNone(data['customer_data'])
+
+    def test_confirm_payment_data_stripe_api_connection_error_handled(self):
+        """Test that Stripe APIConnectionError is handled gracefully in confirm_payment_data"""
+        from unittest.mock import patch
+        import stripe
+
+        # Set up cart with payment and shipping address
+        cart_payment = Cartpayment.objects.create(
+            stripe_customer_token='cus_test_conn_777',
+            stripe_card_id='card_test_777',
+            email='test@test.com'
+        )
+        cart_shipping = Cartshippingaddress.objects.create(
+            name='Test User',
+            address_line1='789 Network St',
+            city='Conntown',
+            state='TX',
+            zip='67890',
+            country='United States',
+            country_code='US'
+        )
+        self.cart.payment = cart_payment
+        self.cart.shipping_address = cart_shipping
+        self.cart.save()
+
+        # Mock Stripe to raise APIConnectionError
+        with patch('stripe.Customer.retrieve') as mock_stripe_retrieve:
+            mock_stripe_retrieve.side_effect = stripe.error.APIConnectionError(
+                message='Network communication with Stripe failed'
+            )
+
+            self.client.login(username='testuser', password='testpass123')
+
+            # Call should NOT crash with 500 error
+            response = self.client.get('/order/confirm-payment-data')
+            unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+            data = json.loads(response.content.decode('utf8'))
+            self.assertTrue(data['checkout_allowed'])
+
+            # Verify customer_data is None (graceful degradation)
+            self.assertIsNone(data['customer_data'])

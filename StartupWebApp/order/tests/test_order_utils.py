@@ -744,3 +744,85 @@ class LookUpAnonymousCartTest(TestCase):
         result = order_utils.look_up_anonymous_cart(request)
 
         self.assertIsNone(result)
+
+
+class StripeUtilityFunctionsErrorHandlingTest(TestCase):
+    """Test error handling in Stripe utility functions"""
+
+    def test_create_stripe_customer_handles_invalid_request_error(self):
+        """Test that create_stripe_customer handles Stripe InvalidRequestError gracefully"""
+        from unittest.mock import patch
+        import stripe
+
+        with patch('stripe.Customer.create') as mock_stripe_create:
+            mock_stripe_create.side_effect = stripe.error.InvalidRequestError(
+                message='Invalid token: tok_invalid',
+                param='source'
+            )
+
+            result = order_utils.create_stripe_customer(
+                stripe_token='tok_invalid',
+                email='test@test.com',
+                metadata_key='test_key',
+                metadata_value='test_value'
+            )
+
+            # Should return None instead of raising exception
+            self.assertIsNone(result)
+
+    def test_create_stripe_customer_handles_authentication_error(self):
+        """Test that create_stripe_customer handles Stripe AuthenticationError gracefully"""
+        from unittest.mock import patch
+        import stripe
+
+        with patch('stripe.Customer.create') as mock_stripe_create:
+            mock_stripe_create.side_effect = stripe.error.AuthenticationError(
+                message='Invalid API Key provided'
+            )
+
+            result = order_utils.create_stripe_customer(
+                stripe_token='tok_test',
+                email='test@test.com',
+                metadata_key='test_key',
+                metadata_value='test_value'
+            )
+
+            # Should return None instead of raising exception
+            self.assertIsNone(result)
+
+    def test_stripe_customer_add_card_handles_invalid_request_error(self):
+        """Test that stripe_customer_add_card handles Stripe InvalidRequestError gracefully"""
+        from unittest.mock import patch
+        import stripe
+
+        with patch('stripe.Customer.retrieve') as mock_stripe_retrieve:
+            mock_stripe_retrieve.side_effect = stripe.error.InvalidRequestError(
+                message='No such customer: cus_invalid',
+                param='id'
+            )
+
+            result = order_utils.stripe_customer_add_card(
+                customer_token='cus_invalid',
+                stripe_token='tok_test'
+            )
+
+            # Should return None instead of raising exception
+            self.assertIsNone(result)
+
+    def test_stripe_customer_add_card_handles_api_connection_error(self):
+        """Test that stripe_customer_add_card handles Stripe APIConnectionError gracefully"""
+        from unittest.mock import patch
+        import stripe
+
+        with patch('stripe.Customer.retrieve') as mock_stripe_retrieve:
+            mock_stripe_retrieve.side_effect = stripe.error.APIConnectionError(
+                message='Network communication with Stripe failed'
+            )
+
+            result = order_utils.stripe_customer_add_card(
+                customer_token='cus_test',
+                stripe_token='tok_test'
+            )
+
+            # Should return None instead of raising exception
+            self.assertIsNone(result)

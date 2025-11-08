@@ -190,13 +190,14 @@ def account_content(request):
             if request.user.member.default_shipping_address is not None and request.user.member.stripe_customer_token is not None:
                 shipping_address_dict = order_utils.load_address_dict(request.user.member.default_shipping_address)
                 stripe_customer_token = request.user.member.stripe_customer_token
-                customer = stripe.Customer.retrieve(stripe_customer_token)
+                customer = order_utils.retrieve_stripe_customer(stripe_customer_token)
                 #print('### CUSTOMER ###')
                 #print(customer)
                 #print(customer.sources)
                 #print(customer.sources.data)
                 #print('### END CUSTOMER ###')
-                shipping_billing_addresses_and_payment_dict = order_utils.get_stripe_customer_payment_data(customer, shipping_address_dict, None)    
+                if customer is not None:
+                    shipping_billing_addresses_and_payment_dict = order_utils.get_stripe_customer_payment_data(customer, shipping_address_dict, None)
                 #print(customer_dict)     
 
         response_data = {"authenticated": "true", "personal_data": personal_data, "email_data": email_data, "orders_data": orders_data, "shipping_billing_addresses_and_payment_data":shipping_billing_addresses_and_payment_dict, 'stripe_publishable_key':stripe_publishable_key}
