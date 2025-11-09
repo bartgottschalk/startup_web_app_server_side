@@ -7,7 +7,7 @@ A Django REST API backend for an e-commerce startup, featuring comprehensive tes
 
 ## Current Status (November 2025)
 
-✅ **717 Tests Passing** - Comprehensive test coverage (689 unit + 28 functional)
+✅ **721 Tests Passing** - Comprehensive test coverage (693 unit + 28 functional)
 ✅ **Python 3.12 Compatible** - Fully modernized for latest Python
 ✅ **Docker Containerized** - Easy setup with Docker Compose
 ✅ **Django 4.2.16 LTS** - Modern Django with security support until April 2026
@@ -15,7 +15,7 @@ A Django REST API backend for an e-commerce startup, featuring comprehensive tes
 ✅ **Production-Ready** - Extensive testing of user management, e-commerce, and analytics
 
 ### Test Coverage Breakdown
-- **User App**: 292 tests (authentication, profiles, email management, Stripe error handling)
+- **User App**: 296 tests (authentication, profiles, email management, Stripe error handling, admin actions)
 - **Order App**: 296 tests (products, cart, checkout, payments via Stripe)
 - **ClientEvent App**: 51 tests (analytics event tracking)
 - **Validators**: 50 tests (input validation)

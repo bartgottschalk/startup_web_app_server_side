@@ -8,6 +8,7 @@ from django.core.signing import TimestampSigner, Signer, SignatureExpired, BadSi
 from django.core.mail import send_mail, EmailMessage, EmailMultiAlternatives
 from django.conf import settings
 from django.utils import timezone
+from smtplib import SMTPDataError
 
 from user.models import Defaultshippingaddress, Member, Prospect, Emailunsubscribereasons, EmailunsubscribereasonsAdmin, Termsofuse, Membertermsofuseversionagreed, Emailtype, Emailstatus, Email, Emailsent, Ad, Adtype, Adstatus, Chatmessage
 from StartupWebApp.utilities import identifier
