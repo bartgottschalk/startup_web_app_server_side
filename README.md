@@ -7,10 +7,11 @@ A Django REST API backend for an e-commerce startup, featuring comprehensive tes
 
 ## Current Status (November 2025)
 
-✅ **689 Unit Tests Passing** - Comprehensive test coverage across all apps
+✅ **717 Tests Passing** - Comprehensive test coverage (689 unit + 28 functional)
 ✅ **Python 3.12 Compatible** - Fully modernized for latest Python
 ✅ **Docker Containerized** - Easy setup with Docker Compose
 ✅ **Django 4.2.16 LTS** - Modern Django with security support until April 2026
+✅ **Code Quality Tools** - Linting analysis completed (pylint, flake8, ESLint)
 ✅ **Production-Ready** - Extensive testing of user management, e-commerce, and analytics
 
 ### Test Coverage Breakdown
@@ -19,6 +20,12 @@ A Django REST API backend for an e-commerce startup, featuring comprehensive tes
 - **ClientEvent App**: 51 tests (analytics event tracking)
 - **Validators**: 50 tests (input validation)
 - **Functional Tests**: 28 Selenium tests (full user journey testing)
+
+### Code Quality
+- **Backend**: pylint 4.0.2, flake8 7.3.0 (runs in Docker)
+- **Frontend**: ESLint 9.39.1 with Node.js 25.1.0 (runs on host)
+- **Analysis**: 9,313 issues catalogued with prioritized recommendations
+- See `docs/technical-notes/2025-11-09-code-linting-analysis.md` for details
 
 📚 **See [docs/PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md) for detailed project timeline and completed phases.**
 
@@ -51,8 +58,9 @@ This repository contains a simplified version of the server side application I b
 ## Quick Start with Docker (Recommended)
 
 ### Prerequisites
-- [Docker Desktop](https://www.docker.com/products/docker-desktop)
-- [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop) - Required
+- [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) - Required
+- [Node.js](https://nodejs.org/) (v25+) - Optional, for JavaScript linting only
 
 ### Setup
 
@@ -112,6 +120,21 @@ docker-compose exec backend bash /app/setup_docker_test_hosts.sh
 # Then run functional tests
 docker-compose exec -e HEADLESS=TRUE backend python manage.py test functional_tests
 ```
+
+### Code Quality & Linting
+
+**Run Python linting** (backend):
+```bash
+docker-compose exec backend flake8 user order clientevent StartupWebApp --max-line-length=100 --statistics
+```
+
+**Run JavaScript linting** (frontend - requires Node.js on host):
+```bash
+cd ../startup_web_app_client_side
+npx eslint js/**/*.js --ignore-pattern "js/jquery/**"
+```
+
+**Note**: Linting identifies code quality issues. Run before committing to maintain code standards. See `docs/technical-notes/2025-11-09-code-linting-analysis.md` for baseline and priorities.
 
 ### Access Django Admin
 ```bash

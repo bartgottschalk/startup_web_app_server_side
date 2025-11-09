@@ -15,35 +15,43 @@ Hi Claude. I want to continue working on these two repositories together:
   - Frontend: jQuery 3.7.1, nginx:alpine
   - Infrastructure: Docker Compose with custom bridge network "startupwebapp"
   - Testing: Selenium 3.141.0 with Firefox ESR (headless mode)
+  - Code Quality: pylint 4.0.2, flake8 7.3.0, ESLint 9.39.1, Node.js 25.1.0
 
   **Current State:**
   - Django upgrade: ✅ Completed (2.2.28 → 4.2.16 LTS) - November 6, 2025
   - Post-upgrade documentation: ✅ Completed - November 7, 2025
-  - Test suite: 707/707 tests passing (679 unit + 28 functional)
+  - Code linting analysis: ✅ Completed - November 9, 2025
+  - Test suite: 717/717 tests passing (689 unit + 28 functional)
   - Master branch is clean and up-to-date
   - Both repositories cloned to: ~/Projects/startup_web_app_server_side and ~/Projects/startup_web_app_client_side
 
   **Recent Completed Work:**
+  - **Phase 5.1 (November 9, 2025)**: Code linting analysis
+    - Installed linting tools: pylint, flake8, ESLint, Node.js 25.1.0
+    - Analyzed 9,313 code quality issues (3,978 Python + 5,335 JavaScript)
+    - Identified 1 critical bug: SMTPDataError undefined in user/admin.py
+    - Created comprehensive findings report with prioritized recommendations
+    - Added linting to development workflow (run before commits)
+  - **Phase 4.5 (November 8, 2025)**: Stripe error handling refactor
+    - Fixed critical bug: unhandled Stripe API errors could crash endpoints
+    - Added 10 new unit tests (679→689 total) using TDD methodology
+    - Centralized error handling in utility functions
   - **Phase 4 (November 6, 2025)**: Django 2.2.28 → 4.2.16 LTS upgrade
     - Incremental 6-step upgrade completed in 3.8 hours
     - Zero test regressions, minimal code changes
     - Security support extended until April 2026
-  - **Phase 3 (November 7, 2025)**: Additional test coverage
-    - Added 53 new unit tests (626→679 total)
-    - Fixed critical production bug: checkout_allowed NameError in user/views.py:1057,1060
-    - Achieved 100% functional test pass rate (was 24/28, now 28/28)
-    - Coverage improvements: order/views.py (99%), order_utils.py (96%), user/views.py (89%)
 
   ## Pre-Session Checklist
 
   Before starting work:
-  1. Verify both repos are on master branch with no uncommitted changes
-  2. Verify no pending branches with changes
-  3. Read key documentation files:
+  1. **HUMAN: START DOCKER DESKTOP FIRST!** - You need to manually start Docker before Claude can run any docker-compose commands
+  2. Verify both repos are on master branch with no uncommitted changes
+  3. Verify no pending branches with changes
+  4. Read key documentation files:
      - `docs/PROJECT_HISTORY.md` - Project timeline and current status
      - `docs/technical-notes/2025-11-08-stripe-error-handling-refactor.md` - Most recent work
-  4. Review full gitignore files in both projects and respect them
-  5. Flag any new files/extensions that should be added to gitignore
+  5. Review full gitignore files in both projects and respect them
+  6. Flag any new files/extensions that should be added to gitignore
 
   ## Development Workflow Requirements
 
@@ -57,7 +65,7 @@ Hi Claude. I want to continue working on these two repositories together:
   - Clean up local and remote branches after merge
 
   **Testing Requirements:**
-  - Unit tests: `docker-compose exec backend python manage.py test order.tests user.tests clientevent.tests StartupWebApp.tests` (679 tests)
+  - Unit tests: `docker-compose exec backend python manage.py test order.tests user.tests clientevent.tests StartupWebApp.tests` (689 tests)
   - **Functional tests: MUST run hosts setup first, then tests:**
     ```bash
     docker-compose exec backend bash /app/setup_docker_test_hosts.sh
@@ -66,6 +74,20 @@ Hi Claude. I want to continue working on these two repositories together:
   - IMPORTANT: All functional tests MUST use HEADLESS=TRUE environment variable
   - If documentation contradicts HEADLESS=TRUE requirement, flag it for correction
   - Coverage analysis: `coverage run --source='.' manage.py test && coverage report`
+
+  **Code Quality (Linting) - Run before committing:**
+  - Backend Python linting:
+    ```bash
+    docker-compose exec backend flake8 user order clientevent StartupWebApp --max-line-length=100 --statistics
+    ```
+  - Frontend JavaScript linting (requires Node.js on host):
+    ```bash
+    cd ~/Projects/startup_web_app_client_side
+    npx eslint js/**/*.js --ignore-pattern "js/jquery/**"
+    ```
+  - IMPORTANT: Run linting alongside unit and functional tests to catch code quality issues early
+  - Goal: Zero new linting errors introduced (warnings acceptable for now)
+  - See `docs/technical-notes/2025-11-09-code-linting-analysis.md` for baseline and priorities
 
   **Docker Environment:**
   - Backend API: http://localhost:8000
@@ -120,12 +142,12 @@ Hi Claude. I want to continue working on these two repositories together:
 
   ## Planned Work Items (Priority Order)
 
-  1. **Linting**
-     - Run code linters (pylint, flake8, or similar for Python; ESLint for JavaScript)
-     - Address style and quality issues
-     - Enforce consistent code standards across both repos
-     - May reveal hidden bugs (unused imports, undefined variables, etc.)
-     - Establishes baseline before making more changes
+  1. **✅ Linting (Completed - November 9, 2025)**
+     - ✅ Installed linting tools: pylint, flake8, ESLint, Node.js 25.1.0
+     - ✅ Analyzed 9,313 code quality issues across both repositories
+     - ✅ Created comprehensive findings report (see technical notes)
+     - ✅ Added linting to development workflow
+     - ⏳ **Next**: Fix critical bug (SMTPDataError) and decide on fixing strategy
 
   2. **Replace print statements with proper logging**
      - Convert print() to logging.debug(), logging.warning(), logging.error()
@@ -191,4 +213,10 @@ Hi Claude. I want to continue working on these two repositories together:
 
   ## Next Steps
 
-  Please review all documentation (especially `docs/PROJECT_HISTORY.md` and recent technical notes in `docs/technical-notes/`) and propose next steps based on the Planned Work Items above, starting with #1: Linting.
+  Please review all documentation (especially `docs/PROJECT_HISTORY.md` and recent technical notes in `docs/technical-notes/`) and propose next steps based on the Planned Work Items above.
+
+  **Current Focus**: Linting completed. Next priorities:
+  1. Fix critical SMTPDataError bug identified in linting analysis
+  2. Decide on strategy for addressing remaining 9,312 linting issues
+  3. Replace print statements with proper logging (Planned Work Item #2)
+  4. Database migration planning (Planned Work Item #3)
