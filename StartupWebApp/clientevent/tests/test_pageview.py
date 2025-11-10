@@ -1,6 +1,5 @@
 # Unit tests for pageview endpoint
 
-import json
 
 from django.test import TestCase
 from django.utils import timezone

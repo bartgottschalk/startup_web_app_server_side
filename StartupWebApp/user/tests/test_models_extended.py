@@ -1,12 +1,10 @@
 # Extended model tests for user app models
 # Focus on model instance creation, __str__ methods, field behavior, and relationships
 
-import json
 
 from django.test import TestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group
-from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
 from user.models import (

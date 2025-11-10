@@ -4,11 +4,11 @@ import json
 
 from django.test import TestCase
 from django.utils import timezone
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import Group
 
 from clientevent.models import Configuration as ClientEventConfiguration
 from order.models import Skutype, Skuinventory, Product, Sku, Skuprice, Productsku
-from user.models import Member, Termsofuse, Prospect
+from user.models import Termsofuse, Prospect
 
 from StartupWebApp.utilities import unittest_utilities
 

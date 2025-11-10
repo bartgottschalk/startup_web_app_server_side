@@ -1,15 +1,14 @@
 # Unit tests for forgot username endpoint
 
-import json
 
 from django.test import TestCase
 from django.utils import timezone
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import Group
 from django.core import mail
 
 from clientevent.models import Configuration as ClientEventConfiguration
-from order.models import Cart, Cartsku, Skutype, Skuinventory, Product, Sku, Skuprice, Productsku
-from user.models import Member, Termsofuse
+from order.models import Skutype, Skuinventory, Product, Sku, Skuprice, Productsku
+from user.models import Termsofuse
 
 from StartupWebApp.utilities import unittest_utilities
 

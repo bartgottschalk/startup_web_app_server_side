@@ -1,7 +1,6 @@
 # Unit tests for set new password endpoint
 
 import json
-import time
 
 from django.test import TestCase
 from django.utils import timezone
@@ -9,8 +8,8 @@ from django.contrib.auth.models import User, Group
 from django.core.signing import TimestampSigner
 
 from clientevent.models import Configuration as ClientEventConfiguration
-from order.models import Cart, Cartsku, Skutype, Skuinventory, Product, Sku, Skuprice, Productsku
-from user.models import Member, Termsofuse
+from order.models import Skutype, Skuinventory, Product, Sku, Skuprice, Productsku
+from user.models import Termsofuse
 
 from StartupWebApp.utilities import unittest_utilities
 

@@ -8,7 +8,7 @@ from django.contrib.auth.models import User, Group
 
 from clientevent.models import Configuration as ClientEventConfiguration
 from order.models import Skutype, Skuinventory, Product, Sku, Skuprice, Productsku
-from user.models import Member, Termsofuse, Membertermsofuseversionagreed
+from user.models import Termsofuse
 
 from StartupWebApp.utilities import unittest_utilities
 
@@ -107,7 +107,7 @@ class TermsOfUseAgreeCheckAPITest(TestCase):
         # This will cause an AttributeError since anonymous user has no .member attribute
         # The endpoint doesn't handle this gracefully, so it raises an exception
         with self.assertRaises(AttributeError) as context:
-            response = self.client.get('/user/terms-of-use-agree-check')
+            self.client.get('/user/terms-of-use-agree-check')
 
         # Verify it's the expected error
         self.assertIn('AnonymousUser', str(context.exception),

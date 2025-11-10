@@ -3,7 +3,7 @@ from django.contrib.admin.sites import AdminSite
 from django.contrib.auth.models import User
 from django.test import RequestFactory
 from django.utils import timezone
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from smtplib import SMTPDataError
 
 from user.models import (
@@ -129,11 +129,9 @@ class AdminEmailActionsTestCase(TestCase):
         # Call admin action - should not raise exception
         try:
             self.email_admin.send_ready_email(self.request, queryset)
-            exception_caught = True
         except NameError as e:
             # This will happen because SMTPDataError is not imported in admin.py
             self.assertIn('SMTPDataError', str(e))
-            exception_caught = False
         except Exception as e:
             self.fail(f"Unexpected exception: {type(e).__name__}: {e}")
 

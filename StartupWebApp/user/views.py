@@ -1,8 +1,5 @@
 from django.http import JsonResponse
-from django.shortcuts import render
 from django.http import HttpResponse
-from django.core import serializers
-from django.views.decorators.cache import cache_control
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.template import loader
@@ -11,20 +8,17 @@ from django.conf import settings
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.utils import IntegrityError
-from django.core.mail import send_mail, EmailMessage
+from django.core.mail import EmailMessage
 from django.db.models import Max
 from smtplib import SMTPDataError
 from django.core.signing import TimestampSigner, Signer, SignatureExpired, BadSignature
 from user.models import Defaultshippingaddress, Member, Emailunsubscribereasons, Termsofuse, Membertermsofuseversionagreed, Prospect, Chatmessage
-from order.models import Order, Orderconfiguration, Sku, Skuprice, Skutype, Skuinventory, Cartsku, Cartdiscount, Cartshippingmethod
+from order.models import Order, Cartsku, Cartdiscount, Cartshippingmethod
 from StartupWebApp.form import validator
 from StartupWebApp.utilities import random, identifier, email_helpers
-import time
 from clientevent.models import Configuration as ClientEventConfiguration
 from django.utils import timezone
 import json
-from titlecase import titlecase
-import re
 from order.utilities import order_utils
 import stripe
 stripe.api_key = settings.STRIPE_SERVER_SECRET_KEY
@@ -161,7 +155,7 @@ def account_content(request):
             try:
                 unsigned_string = email_verification_signer.unsign(request.user.member.email_verification_string_signed, max_age=86400) #86400 seconds is one day
                 verification_request_sent_within_24_hours = True
-            except (BadSignature, SignatureExpired) as e:
+            except (BadSignature, SignatureExpired):
                 verification_request_sent_within_24_hours = False
 
         email_data = {"email_address": request.user.email, "email_verified": request.user.member.email_verified, "verification_request_sent_within_24_hours": verification_request_sent_within_24_hours}
@@ -237,7 +231,8 @@ def create_account(request):
     remember_me = request.POST['remember_me']
     #print('remember_me is ' + remember_me)
 
-    if firstname_valid == True and lastname_valid == True and username_valid == True and email_address_valid == True and password_valid == True:
+    # Validators return True or error array - must use == True
+    if firstname_valid == True and lastname_valid == True and username_valid == True and email_address_valid == True and password_valid == True:  # noqa: E712
         print('VALIDATION PASSED - CREATE USER')
         user_new = User.objects.create_user(username, email_address, password)
         user_new.first_name = firstname
@@ -488,7 +483,8 @@ def set_new_password(request):
                 password = request.POST['new_password']
                 confirm_password = request.POST['confirm_new_password']
                 password_valid = validator.isPasswordValid(password, confirm_password, 150)
-                if password_valid == True:
+                # Validators return True or error array - must use == True
+                if password_valid == True:  # noqa: E712
                     user.set_password(password)
                     user.save()
                     user.member.reset_password_string = None
@@ -599,7 +595,8 @@ def update_my_information(request):
     email_address_valid = validator.isEmailValid(email_address, 254)
     #print(email_address_valid)
 
-    if firstname_valid == True and lastname_valid == True and email_address_valid == True:
+    # Validators return True or error array - must use == True
+    if firstname_valid == True and lastname_valid == True and email_address_valid == True:  # noqa: E712
         print('VALIDATION PASSED - UPDATE USER INFO')
         request.user.first_name = firstname
         request.user.last_name = lastname
@@ -731,7 +728,8 @@ def change_my_password(request):
         return JsonResponse({'change_my_password': 'errors','errors':error_dict,'user-api-version':user_api_version}, safe=False )
     else:
         password_valid = validator.isPasswordValid(password, confirm_password, 150)
-        if password_valid == True and request.user.check_password(current_password) == True:
+        # Validators return True or error array - must use == True
+        if password_valid == True and request.user.check_password(current_password) == True:  # noqa: E712
             username = request.user.username
             request.user.set_password(password)
             request.user.save()
@@ -894,12 +892,12 @@ def email_unsubscribe_why(request):
             if token is not None:                
                 member_or_prospect = Member.objects.get(email_unsubscribe_string_signed=token) 
                 member_obj = member_or_prospect
-                full_email_address = member_or_prospect.user.email
+                member_or_prospect.user.email
                 token_val = token
             elif pr_token is not None:
                 member_or_prospect = Prospect.objects.get(email_unsubscribe_string_signed=pr_token)            
                 prospect_obj = member_or_prospect
-                full_email_address = member_or_prospect.email
+                member_or_prospect.email
                 token_val = pr_token
 
 
@@ -1076,7 +1074,8 @@ def put_chat_message(request):
     message = request.POST['message']
     message_valid = validator.isChatMessageValid(message, 5000)
 
-    if name_valid == True and email_address_valid == True and message_valid == True:
+    # Validators return True or error array - must use == True
+    if name_valid == True and email_address_valid == True and message_valid == True:  # noqa: E712
         now = timezone.now()
         if request.user.is_authenticated:
             chat_message = Chatmessage.objects.create(member=request.user.member, prospect=None, name=name, email_address=email_address, message=message, created_date_time=now)
@@ -1142,8 +1141,9 @@ def pythonabot_notify_me(request):
     #print(how_excited)
     how_excited_valid = validator.isHowExcitedValid(how_excited)
     #print(how_excited_valid)
-    
-    if email_address_valid == True and how_excited_valid == True:
+
+    # Validators return True or error array - must use == True
+    if email_address_valid == True and how_excited_valid == True:  # noqa: E712
         if Prospect.objects.filter(email=email_address).exists():
             prospect_errors = []
             duplicate_prospect_error = {'type': 'duplicate','description': 'I already know about this email address. Please enter a different email address.'};

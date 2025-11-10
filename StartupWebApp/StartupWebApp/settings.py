@@ -16,7 +16,7 @@ import os
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
 
 # get secret settings
-from .settings_secret import *
+from .settings_secret import *  # noqa: F403,F401
 
 # apply settings after getting secrets
 
@@ -29,16 +29,16 @@ DEBUG = False #override in secrets for local ONLY
 CSRF_COOKIE_SECURE = True #override in secrets for local ONLY
 
 # get secret settings again for overrides
-from .settings_secret import *
+from .settings_secret import *  # noqa: F403,F401,F811
 
 # Django 4.0+ compatibility: Convert CSRF_TRUSTED_ORIGINS from old string format to new list format
 # In Django 4.0+, CSRF_TRUSTED_ORIGINS must be a list with schemes (http:// or https://)
 # Old format: CSRF_TRUSTED_ORIGINS = ".startupwebapp.com"
 # New format: CSRF_TRUSTED_ORIGINS = ['https://*.startupwebapp.com', 'http://localhost:8080', 'http://localhost:8000']
-if 'CSRF_TRUSTED_ORIGINS' in globals():
-    if isinstance(CSRF_TRUSTED_ORIGINS, str):
+if 'CSRF_TRUSTED_ORIGINS' in globals():  # noqa: F405
+    if isinstance(CSRF_TRUSTED_ORIGINS, str):  # noqa: F405
         # Convert old string format to new list format
-        old_origin = CSRF_TRUSTED_ORIGINS
+        old_origin = CSRF_TRUSTED_ORIGINS  # noqa: F405
         if DEBUG:
             # Development: use http for localhost
             CSRF_TRUSTED_ORIGINS = [

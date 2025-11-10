@@ -1,19 +1,13 @@
 # Unit tests from the perspective of the programmer
 
-import json
 
-from django.http.cookie import SimpleCookie
 
 from django.test import TestCase
-from django.http import HttpRequest
-from django.utils import timezone
-from django.http import JsonResponse
-from django.contrib.auth.models import User, Group
 
 from clientevent.models import Configuration as ClientEventConfiguration
-from clientevent.models import Pageview, AJAXError, Buttonclick, Linkevent
+from clientevent.models import Linkevent
 
-from user.models import Member, Termsofuse, Prospect, Ad, Adtype, Adstatus
+from user.models import Ad, Adtype, Adstatus
 
 from StartupWebApp.utilities import unittest_utilities
 

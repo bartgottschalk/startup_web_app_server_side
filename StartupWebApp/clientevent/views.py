@@ -1,15 +1,9 @@
 from django.http import JsonResponse
-from django.shortcuts import render
 from django.http import HttpResponse
-from django.core import serializers
-from django.views.decorators.cache import cache_control
 from django.views.decorators.cache import never_cache
-from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User
-import time
 from clientevent.models import Pageview, AJAXError, Buttonclick, Linkevent
-from datetime import datetime
 from django.utils import timezone
 from user.models import Member, Prospect, Email, Ad
 
@@ -105,7 +99,6 @@ def buttonclick(request):
 def linkevent(request):
     #raise ValueError('A very specific bad thing happened.')    
     #return HttpResponse(status=500)
-    user_id = None
     mb_cd = None
     pr_cd = None
     anonymous_id = None

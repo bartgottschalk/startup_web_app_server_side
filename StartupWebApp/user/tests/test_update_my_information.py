@@ -9,7 +9,7 @@ from django.core import mail
 
 from clientevent.models import Configuration as ClientEventConfiguration
 from order.models import Skutype, Skuinventory, Product, Sku, Skuprice, Productsku
-from user.models import Member, Termsofuse
+from user.models import Termsofuse
 
 from StartupWebApp.utilities import unittest_utilities
 

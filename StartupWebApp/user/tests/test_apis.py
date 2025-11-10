@@ -2,22 +2,18 @@
 
 import json
 
-from django.http.cookie import SimpleCookie
 from django.core import mail
 
 from django.test import TestCase
-from django.http import HttpRequest
 from django.utils import timezone
-from django.http import JsonResponse
 from django.contrib.auth.models import User, Group
 
 from clientevent.models import Configuration as ClientEventConfiguration
 
-from order.models import Cart, Cartsku, Skutype, Skuinventory, Product, Sku, Skuprice, Productsku, Order
+from order.models import Skutype, Skuinventory, Product, Sku, Skuprice, Productsku, Order
 from user.models import Member, Termsofuse, Prospect, Chatmessage
 
-from order.utilities import order_utils
-from StartupWebApp.utilities import random, unittest_utilities
+from StartupWebApp.utilities import unittest_utilities
 
 class UserAPITest(TestCase):
 
