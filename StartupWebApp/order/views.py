@@ -20,17 +20,20 @@ stripe.api_key = settings.STRIPE_SERVER_SECRET_KEY
 stripe.log = settings.STRIPE_LOG_LEVEL
 
 email_unsubscribe_signer = Signer(salt='email_unsubscribe')
- 
-#from user.models import 
+
+#from user.models import
 
 
 order_api_version = '0.0.1'
 
 #@cache_control(max_age=10) #set cache control to 10 seconds
+
+
 @never_cache
 
 def index(request):
     return HttpResponse("Hello, you're at the order API (version " + order_api_version + ") root. Nothing to see here...")
+
 
 def order_detail(request, order_identifier):
     #raise ValueError('A very specific bad thing happened.')
@@ -44,26 +47,27 @@ def order_detail(request, order_identifier):
             print('AnonymousUser found!')
             if order.member is None:
                 order_data = order_utils.get_order_data(order)
-                response = JsonResponse({'order_detail':'success','order_data':order_data, 'order-api-version':order_api_version}, safe=False)    
+                response = JsonResponse({'order_detail': 'success', 'order_data': order_data, 'order-api-version': order_api_version}, safe=False)
             else:
-                error_dict = {"error" : 'log-in-required-to-view-order'}
-                response = JsonResponse({'order_detail':'error','errors': error_dict,'order_identifier':order_identifier, 'order-api-version':order_api_version}, safe=False)
+                error_dict = {"error": 'log-in-required-to-view-order'}
+                response = JsonResponse({'order_detail': 'error', 'errors': error_dict, 'order_identifier': order_identifier, 'order-api-version': order_api_version}, safe=False)
         else:
             if order.member == request.user.member:
                 order_data = order_utils.get_order_data(order)
-                response = JsonResponse({'order_detail':'success','order_data':order_data, 'order-api-version':order_api_version}, safe=False)    
+                response = JsonResponse({'order_detail': 'success', 'order_data': order_data, 'order-api-version': order_api_version}, safe=False)
             else:
-                error_dict = {"error" : 'order-not-in-account'}
-                response = JsonResponse({'order_detail':'error','errors': error_dict,'order_identifier':order_identifier, 'order-api-version':order_api_version}, safe=False)
+                error_dict = {"error": 'order-not-in-account'}
+                response = JsonResponse({'order_detail': 'error', 'errors': error_dict, 'order_identifier': order_identifier, 'order-api-version': order_api_version}, safe=False)
     except (ObjectDoesNotExist, ValueError):
         order = None
         #print(e)
-        error_dict = {"error" : 'order-not-found'}
-        response = JsonResponse({'order_detail':'error','errors': error_dict,'order_identifier':order_identifier, 'order-api-version':order_api_version}, safe=False)
+        error_dict = {"error": 'order-not-found'}
+        response = JsonResponse({'order_detail': 'error', 'errors': error_dict, 'order_identifier': order_identifier, 'order-api-version': order_api_version}, safe=False)
     return response
 
+
 def products(request):
-    #raise ValueError('A very specific bad thing happened.')    
+    #raise ValueError('A very specific bad thing happened.')
     products_dict = {}
     for product in Product.objects.all():
         product_data = {}
@@ -91,8 +95,9 @@ def products(request):
         product_data['product_image_url'] = product_image_url
         products_dict[product.identifier] = product_data
 
-    response = JsonResponse({'products_data':products_dict,'order-api-version':order_api_version}, safe=False)
-    return response 
+    response = JsonResponse({'products_data': products_dict, 'order-api-version': order_api_version}, safe=False)
+    return response
+
 
 def product(request, product_identifier):
     #raise ValueError('A very specific bad thing happened.')
@@ -148,46 +153,50 @@ def product(request, product_identifier):
             product_skus[product_sku.sku.id] = product_sku_data
         product_data['skus'] = product_skus
 
-        response = JsonResponse({'product':'success','product_identifier':product_identifier,'product_data':product_data,'order-api-version':order_api_version}, safe=False)
+        response = JsonResponse({'product': 'success', 'product_identifier': product_identifier, 'product_data': product_data, 'order-api-version': order_api_version}, safe=False)
     except (ObjectDoesNotExist, ValueError) as e:
         print(e)
-        error_dict = {"error" : 'product-identifier-not-found'}
-        response = JsonResponse({'product':'error','errors': error_dict,'product_identifier':product_identifier,'order-api-version':order_api_version}, safe=False)
+        error_dict = {"error": 'product-identifier-not-found'}
+        response = JsonResponse({'product': 'error', 'errors': error_dict, 'product_identifier': product_identifier, 'order-api-version': order_api_version}, safe=False)
     return response
+
 
 def checkout_allowed(request):
-    #raise ValueError('A very specific bad thing happened.')    
+    #raise ValueError('A very specific bad thing happened.')
     checkout_allowed = order_utils.checkout_allowed(request)
-    response = JsonResponse({'checkout_allowed':checkout_allowed, 'order-api-version':order_api_version}, safe=False)
+    response = JsonResponse({'checkout_allowed': checkout_allowed, 'order-api-version': order_api_version}, safe=False)
     return response
 
+
 def cart_items(request):
-    #raise ValueError('A very specific bad thing happened.')    
+    #raise ValueError('A very specific bad thing happened.')
     #print(request.user.session)
     cart = order_utils.look_up_cart(request)
     cart_item_dict = order_utils.get_cart_items(request, cart)
-    response = JsonResponse({'cart_found':(True if cart is not None else False),'item_data':cart_item_dict,'order-api-version':order_api_version}, safe=False)
-    return response 
+    response = JsonResponse({'cart_found': (True if cart is not None else False), 'item_data': cart_item_dict, 'order-api-version': order_api_version}, safe=False)
+    return response
+
 
 def confirm_items(request):
-    #raise ValueError('A very specific bad thing happened.')    
+    #raise ValueError('A very specific bad thing happened.')
     checkout_allowed = order_utils.checkout_allowed(request)
     if checkout_allowed:
         cart = order_utils.look_up_cart(request)
         confirm_item_dict = order_utils.get_cart_items(request, cart)
-        response = JsonResponse({'checkout_allowed':checkout_allowed, 'cart_found':(True if cart is not None else False),'item_data':confirm_item_dict,'order-api-version':order_api_version}, safe=False)
+        response = JsonResponse({'checkout_allowed': checkout_allowed, 'cart_found': (True if cart is not None else False), 'item_data': confirm_item_dict, 'order-api-version': order_api_version}, safe=False)
     else:
-        response = JsonResponse({'checkout_allowed':checkout_allowed,'order-api-version':order_api_version}, safe=False)
-    return response 
+        response = JsonResponse({'checkout_allowed': checkout_allowed, 'order-api-version': order_api_version}, safe=False)
+    return response
+
 
 def cart_shipping_methods(request):
-    #raise ValueError('A very specific bad thing happened.')    
+    #raise ValueError('A very specific bad thing happened.')
     shipping_methods = {}
     shipping_method_selected = None
     cart = order_utils.look_up_cart(request)
     if cart is not None:
         if Cartshippingmethod.objects.filter(cart=cart).exists():
-            shipping_method_selected = Cartshippingmethod.objects.get(cart=cart).shippingmethod.identifier            
+            shipping_method_selected = Cartshippingmethod.objects.get(cart=cart).shippingmethod.identifier
         else:
             Cartshippingmethod.objects.create(cart=cart, shippingmethod=Shippingmethod.objects.get(identifier=Orderconfiguration.objects.get(key='default_shipping_method').string_value))
             shipping_method_selected = Orderconfiguration.objects.get(key='default_shipping_method').string_value
@@ -204,11 +213,12 @@ def cart_shipping_methods(request):
             shipping_methods[counter] = shipping_method_data
             counter += 1
 
-    response = JsonResponse({'cart_found':(True if cart is not None else False),'cart_shipping_methods':shipping_methods, 'shipping_method_selected':shipping_method_selected, 'order-api-version':order_api_version}, safe=False)
-    return response 
+    response = JsonResponse({'cart_found': (True if cart is not None else False), 'cart_shipping_methods': shipping_methods, 'shipping_method_selected': shipping_method_selected, 'order-api-version': order_api_version}, safe=False)
+    return response
+
 
 def confirm_shipping_method(request):
-    #raise ValueError('A very specific bad thing happened.')    
+    #raise ValueError('A very specific bad thing happened.')
     checkout_allowed = order_utils.checkout_allowed(request)
     if checkout_allowed:
         cart = order_utils.look_up_cart(request)
@@ -221,52 +231,57 @@ def confirm_shipping_method(request):
                 shipping_method['carrier'] = shipping_method_selected.carrier
                 shipping_method['shipping_cost'] = shipping_method_selected.shipping_cost
                 shipping_method['tracking_code_base_url'] = shipping_method_selected.tracking_code_base_url
-        response = JsonResponse({'checkout_allowed':checkout_allowed, 'cart_found':(True if cart is not None else False),'confirm_shipping_method':shipping_method, 'order-api-version':order_api_version}, safe=False)
+        response = JsonResponse({'checkout_allowed': checkout_allowed, 'cart_found': (True if cart is not None else False), 'confirm_shipping_method': shipping_method, 'order-api-version': order_api_version}, safe=False)
     else:
-        response = JsonResponse({'checkout_allowed':checkout_allowed,'order-api-version':order_api_version}, safe=False)
-    return response 
+        response = JsonResponse({'checkout_allowed': checkout_allowed, 'order-api-version': order_api_version}, safe=False)
+    return response
+
 
 def cart_discount_codes(request):
-    #raise ValueError('A very specific bad thing happened.')    
+    #raise ValueError('A very specific bad thing happened.')
     #print(request.user.session)
     cart = order_utils.look_up_cart(request)
     discount_code_dict = order_utils.get_cart_discount_codes(cart);
-    response = JsonResponse({'cart_found':(True if cart is not None else False),'discount_code_data':discount_code_dict,'order-api-version':order_api_version}, safe=False)
-    return response 
+    response = JsonResponse({'cart_found': (True if cart is not None else False), 'discount_code_data': discount_code_dict, 'order-api-version': order_api_version}, safe=False)
+    return response
+
 
 def confirm_discount_codes(request):
-    #raise ValueError('A very specific bad thing happened.')    
+    #raise ValueError('A very specific bad thing happened.')
     checkout_allowed = order_utils.checkout_allowed(request)
     if checkout_allowed:
         cart = order_utils.look_up_cart(request)
         discount_code_dict = order_utils.get_cart_discount_codes(cart);
-        response = JsonResponse({'checkout_allowed':checkout_allowed, 'cart_found':(True if cart is not None else False),'discount_code_data':discount_code_dict,'order-api-version':order_api_version}, safe=False)
+        response = JsonResponse({'checkout_allowed': checkout_allowed, 'cart_found': (True if cart is not None else False), 'discount_code_data': discount_code_dict, 'order-api-version': order_api_version}, safe=False)
     else:
-        response = JsonResponse({'checkout_allowed':checkout_allowed,'order-api-version':order_api_version}, safe=False)
-    return response 
+        response = JsonResponse({'checkout_allowed': checkout_allowed, 'order-api-version': order_api_version}, safe=False)
+    return response
+
 
 def cart_totals(request):
-    #raise ValueError('A very specific bad thing happened.')    
+    #raise ValueError('A very specific bad thing happened.')
     #print(request.user.session)
     cart = order_utils.look_up_cart(request)
     cart_totals_dict = order_utils.get_cart_totals(cart);
-    response = JsonResponse({'cart_found':(True if cart is not None else False),'cart_totals_data':cart_totals_dict,'order-api-version':order_api_version}, safe=False)
-    return response 
+    response = JsonResponse({'cart_found': (True if cart is not None else False), 'cart_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
+    return response
+
 
 def confirm_totals(request):
-    #raise ValueError('A very specific bad thing happened.')    
+    #raise ValueError('A very specific bad thing happened.')
 
     checkout_allowed = order_utils.checkout_allowed(request)
     if checkout_allowed:
         cart = order_utils.look_up_cart(request)
         cart_totals_dict = order_utils.get_cart_totals(cart);
-        response = JsonResponse({'checkout_allowed':checkout_allowed, 'cart_found':(True if cart is not None else False),'confirm_totals_data':cart_totals_dict, 'order-api-version':order_api_version}, safe=False)
+        response = JsonResponse({'checkout_allowed': checkout_allowed, 'cart_found': (True if cart is not None else False), 'confirm_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
     else:
-        response = JsonResponse({'checkout_allowed':checkout_allowed,'order-api-version':order_api_version}, safe=False)
-    return response 
+        response = JsonResponse({'checkout_allowed': checkout_allowed, 'order-api-version': order_api_version}, safe=False)
+    return response
+
 
 def confirm_payment_data(request):
-    #raise ValueError('A very specific bad thing happened.')    
+    #raise ValueError('A very specific bad thing happened.')
 
     checkout_allowed = order_utils.checkout_allowed(request)
     if checkout_allowed:
@@ -309,13 +324,14 @@ def confirm_payment_data(request):
                     #print('### END CUSTOMER ###')
                     if customer is not None:
                         customer_dict = order_utils.get_stripe_customer_payment_data(customer, shipping_address_dict, cart.payment.stripe_card_id)
-                    #print(customer_dict)                
+                    #print(customer_dict)
         else:
             email = None
-        response = JsonResponse({'checkout_allowed':checkout_allowed, 'stripe_publishable_key':stripe_publishable_key, 'email':email, 'customer_data':customer_dict, 'order-api-version':order_api_version}, safe=False)
+        response = JsonResponse({'checkout_allowed': checkout_allowed, 'stripe_publishable_key': stripe_publishable_key, 'email': email, 'customer_data': customer_dict, 'order-api-version': order_api_version}, safe=False)
     else:
-        response = JsonResponse({'checkout_allowed':checkout_allowed,'order-api-version':order_api_version}, safe=False)
-    return response 
+        response = JsonResponse({'checkout_allowed': checkout_allowed, 'order-api-version': order_api_version}, safe=False)
+    return response
+
 
 def cart_add_product_sku(request):
     #raise ValueError('A very specific bad thing happened.')
@@ -323,11 +339,11 @@ def cart_add_product_sku(request):
     if cart is None:
         cart = order_utils.create_cart(request)
     sku_id = None
-    if request.method == 'POST' and 'sku_id' in request.POST:    
+    if request.method == 'POST' and 'sku_id' in request.POST:
         sku_id = request.POST['sku_id']
     #print(sku_id)
     quantity = None
-    if request.method == 'POST' and 'quantity' in request.POST:    
+    if request.method == 'POST' and 'quantity' in request.POST:
         quantity = request.POST['quantity']
     #print(sku_id)
     if sku_id is not None:
@@ -345,30 +361,31 @@ def cart_add_product_sku(request):
                 else:
                     Cartsku.objects.create(cart=cart, sku=product_sku.sku, quantity=int(quantity))
                 cart_item_count = order_utils.count_cart_items(cart)
-                response = JsonResponse({'cart_add_product_sku':'success', 'sku_id':sku_id, 'cart_item_count': cart_item_count, 'order-api-version':order_api_version}, safe=False)
+                response = JsonResponse({'cart_add_product_sku': 'success', 'sku_id': sku_id, 'cart_item_count': cart_item_count, 'order-api-version': order_api_version}, safe=False)
                 order_utils.set_anonymous_cart_cookie(request, response, cart)
             else:
                 #print('VALIDATION ERRORS - RETURN ERRORS')
-                error_dict = {"quantity" : quantity_valid}
-                return JsonResponse({'cart_add_product_sku': 'error', 'errors':error_dict, 'sku_id':sku_id, 'order-api-version':order_api_version}, safe=False )
+                error_dict = {"quantity": quantity_valid}
+                return JsonResponse({'cart_add_product_sku': 'error', 'errors': error_dict, 'sku_id': sku_id, 'order-api-version': order_api_version}, safe=False )
         except (ObjectDoesNotExist, ValueError) as e:
             print(e)
-            error_dict = {"error" : 'sku-not-found'}
-            response = JsonResponse({'cart_add_product_sku':'error', 'errors': error_dict,'sku_id':sku_id, 'order-api-version':order_api_version}, safe=False)
+            error_dict = {"error": 'sku-not-found'}
+            response = JsonResponse({'cart_add_product_sku': 'error', 'errors': error_dict, 'sku_id': sku_id, 'order-api-version': order_api_version}, safe=False)
     else:
-        error_dict = {"error" : 'sku-id-required'}
-        response = JsonResponse({'cart_add_product_sku':'error', 'errors': error_dict,'sku_id':sku_id, 'order-api-version':order_api_version}, safe=False)
+        error_dict = {"error": 'sku-id-required'}
+        response = JsonResponse({'cart_add_product_sku': 'error', 'errors': error_dict, 'sku_id': sku_id, 'order-api-version': order_api_version}, safe=False)
     return response
+
 
 def cart_update_sku_quantity(request):
     #raise ValueError('A very specific bad thing happened.')
     cart = order_utils.look_up_cart(request)
     if cart is not None:
         sku_id = None
-        if request.method == 'POST' and 'sku_id' in request.POST:    
+        if request.method == 'POST' and 'sku_id' in request.POST:
             sku_id = request.POST['sku_id']
         quantity_new = None
-        if request.method == 'POST' and 'quantity' in request.POST:    
+        if request.method == 'POST' and 'quantity' in request.POST:
             quantity_new = request.POST['quantity']
         if sku_id is not None:
             try:
@@ -378,25 +395,26 @@ def cart_update_sku_quantity(request):
                 sku_subtotal = Skuprice.objects.filter(sku=cart_sku.sku).latest('created_date_time').price * Cartsku.objects.get(cart=cart, sku=cart_sku.sku).quantity
                 discount_code_dict = order_utils.get_cart_discount_codes(cart);
                 cart_totals_dict = order_utils.get_cart_totals(cart);
-                response = JsonResponse({'cart_update_sku_quantity':'success', 'cart_found':(True if cart is not None else False), 'sku_id':sku_id, 'sku_subtotal': sku_subtotal, 'discount_code_data': discount_code_dict, 'cart_totals_data':cart_totals_dict, 'order-api-version':order_api_version}, safe=False)
+                response = JsonResponse({'cart_update_sku_quantity': 'success', 'cart_found': (True if cart is not None else False), 'sku_id': sku_id, 'sku_subtotal': sku_subtotal, 'discount_code_data': discount_code_dict, 'cart_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
             except (ObjectDoesNotExist, ValueError) as e:
                 print(e)
-                error_dict = {"error" : 'cart-sku-not-found'}
-                response = JsonResponse({'cart_update_sku_quantity':'error','errors': error_dict,'sku_id':sku_id, 'order-api-version':order_api_version}, safe=False)
-        else:            
-            error_dict = {"error" : 'sku-id-required'}
-            response = JsonResponse({'cart_update_sku_quantity':'error','errors': error_dict,'order-api-version':order_api_version}, safe=False)
-    else:            
-        error_dict = {"error" : 'cart-not-found'}
-        response = JsonResponse({'cart_update_sku_quantity':'error','errors': error_dict,'order-api-version':order_api_version}, safe=False)
+                error_dict = {"error": 'cart-sku-not-found'}
+                response = JsonResponse({'cart_update_sku_quantity': 'error', 'errors': error_dict, 'sku_id': sku_id, 'order-api-version': order_api_version}, safe=False)
+        else:
+            error_dict = {"error": 'sku-id-required'}
+            response = JsonResponse({'cart_update_sku_quantity': 'error', 'errors': error_dict, 'order-api-version': order_api_version}, safe=False)
+    else:
+        error_dict = {"error": 'cart-not-found'}
+        response = JsonResponse({'cart_update_sku_quantity': 'error', 'errors': error_dict, 'order-api-version': order_api_version}, safe=False)
     return response
+
 
 def cart_remove_sku(request):
     #raise ValueError('A very specific bad thing happened.')
     cart = order_utils.look_up_cart(request)
     if cart is not None:
         sku_id = None
-        if request.method == 'POST' and 'sku_id' in request.POST:    
+        if request.method == 'POST' and 'sku_id' in request.POST:
             sku_id = request.POST['sku_id']
         if sku_id is not None:
             try:
@@ -424,59 +442,61 @@ def cart_remove_sku(request):
                 discount_code_dict = order_utils.get_cart_discount_codes(cart);
                 cart_totals_dict = order_utils.get_cart_totals(cart);
                 cart_item_count = order_utils.count_cart_items(cart)
-                response = JsonResponse({'cart_remove_sku':'success', 'cart_found':(True if cart is not None else False), 'sku_id':sku_id, 'cart_item_count': cart_item_count, 'cart_shipping_methods':shipping_methods, 'shipping_method_selected':shipping_method_selected, 'discount_code_data': discount_code_dict, 'cart_totals_data':cart_totals_dict, 'order-api-version':order_api_version}, safe=False)
+                response = JsonResponse({'cart_remove_sku': 'success', 'cart_found': (True if cart is not None else False), 'sku_id': sku_id, 'cart_item_count': cart_item_count, 'cart_shipping_methods': shipping_methods, 'shipping_method_selected': shipping_method_selected, 'discount_code_data': discount_code_dict, 'cart_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
             except (ObjectDoesNotExist, ValueError) as e:
                 print(e)
-                error_dict = {"error" : 'cart-sku-not-found'}
-                response = JsonResponse({'cart_remove_sku':'error','errors': error_dict,'sku_id':sku_id, 'order-api-version':order_api_version}, safe=False)
-        else:            
-            error_dict = {"error" : 'sku-id-required'}
-            response = JsonResponse({'cart_remove_sku':'error','errors': error_dict,'order-api-version':order_api_version}, safe=False)
-    else:            
-        error_dict = {"error" : 'cart-not-found'}
-        response = JsonResponse({'cart_remove_sku':'error','errors': error_dict,'order-api-version':order_api_version}, safe=False)
+                error_dict = {"error": 'cart-sku-not-found'}
+                response = JsonResponse({'cart_remove_sku': 'error', 'errors': error_dict, 'sku_id': sku_id, 'order-api-version': order_api_version}, safe=False)
+        else:
+            error_dict = {"error": 'sku-id-required'}
+            response = JsonResponse({'cart_remove_sku': 'error', 'errors': error_dict, 'order-api-version': order_api_version}, safe=False)
+    else:
+        error_dict = {"error": 'cart-not-found'}
+        response = JsonResponse({'cart_remove_sku': 'error', 'errors': error_dict, 'order-api-version': order_api_version}, safe=False)
     return response
+
 
 def cart_apply_discount_code(request):
     #raise ValueError('A very specific bad thing happened.')
     cart = order_utils.look_up_cart(request)
     if cart is not None:
         discount_code_id = None
-        if request.method == 'POST' and 'discount_code_id' in request.POST:    
+        if request.method == 'POST' and 'discount_code_id' in request.POST:
             discount_code_id = request.POST['discount_code_id']
         if discount_code_id is not None:
             try:
                 discountcode = Discountcode.objects.get(code=discount_code_id)
                 now = timezone.now()
                 if now < discountcode.start_date_time or now > discountcode.end_date_time:
-                    error_dict = {"error" : 'cart-discount-code-not-active'}
-                    response = JsonResponse({'cart_apply_discount_code':'error','errors': error_dict,'discount_code_id':discount_code_id, 'order-api-version':order_api_version}, safe=False)
+                    error_dict = {"error": 'cart-discount-code-not-active'}
+                    response = JsonResponse({'cart_apply_discount_code': 'error', 'errors': error_dict, 'discount_code_id': discount_code_id, 'order-api-version': order_api_version}, safe=False)
                 elif Cartdiscount.objects.filter(cart=cart, discountcode=discountcode).exists():
-                    error_dict = {"error" : 'cart-discount-code-already-applied'}
-                    response = JsonResponse({'cart_apply_discount_code':'error','errors': error_dict,'discount_code_id':discount_code_id, 'order-api-version':order_api_version}, safe=False)
+                    error_dict = {"error": 'cart-discount-code-already-applied'}
+                    response = JsonResponse({'cart_apply_discount_code': 'error', 'errors': error_dict, 'discount_code_id': discount_code_id, 'order-api-version': order_api_version}, safe=False)
                 else:
                     cartdiscount = Cartdiscount.objects.create(cart=cart, discountcode=discountcode)
                     discount_code_dict = order_utils.get_cart_discount_codes(cart);
                     cart_totals_dict = order_utils.get_cart_totals(cart);
-                    response = JsonResponse({'cart_apply_discount_code':'success', 'cart_found':(True if cart is not None else False), 'discount_code_id':discount_code_id, 'discount_code_data': discount_code_dict, 'cart_totals_data':cart_totals_dict, 'order-api-version':order_api_version}, safe=False)
+                    response = JsonResponse({'cart_apply_discount_code': 'success', 'cart_found': (True if cart is not None else False), 'discount_code_id': discount_code_id, 'discount_code_data': discount_code_dict, 'cart_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
             except (ObjectDoesNotExist, ValueError) as e:
                 print(e)
-                error_dict = {"error" : 'cart-discount-code-not-found'}
-                response = JsonResponse({'cart_apply_discount_code':'error','errors': error_dict,'discount_code_id':discount_code_id, 'order-api-version':order_api_version}, safe=False)
-        else:            
-            error_dict = {"error" : 'discount-code-required'}
-            response = JsonResponse({'cart_apply_discount_code':'error','errors': error_dict,'order-api-version':order_api_version}, safe=False)
-    else:            
-        error_dict = {"error" : 'cart-not-found'}
-        response = JsonResponse({'cart_apply_discount_code':'error','errors': error_dict,'order-api-version':order_api_version}, safe=False)
+                error_dict = {"error": 'cart-discount-code-not-found'}
+                response = JsonResponse({'cart_apply_discount_code': 'error', 'errors': error_dict, 'discount_code_id': discount_code_id, 'order-api-version': order_api_version}, safe=False)
+        else:
+            error_dict = {"error": 'discount-code-required'}
+            response = JsonResponse({'cart_apply_discount_code': 'error', 'errors': error_dict, 'order-api-version': order_api_version}, safe=False)
+    else:
+        error_dict = {"error": 'cart-not-found'}
+        response = JsonResponse({'cart_apply_discount_code': 'error', 'errors': error_dict, 'order-api-version': order_api_version}, safe=False)
     return response
+
 
 def cart_remove_discount_code(request):
     #raise ValueError('A very specific bad thing happened.')
     cart = order_utils.look_up_cart(request)
     if cart is not None:
         discount_code_id = None
-        if request.method == 'POST' and 'discount_code_id' in request.POST:    
+        if request.method == 'POST' and 'discount_code_id' in request.POST:
             discount_code_id = request.POST['discount_code_id']
         if discount_code_id is not None:
             try:
@@ -484,25 +504,26 @@ def cart_remove_discount_code(request):
                 Cartdiscount.objects.filter(cart=cart, discountcode=Discountcode.objects.get(id=discount_code_id)).delete()
                 discount_code_dict = order_utils.get_cart_discount_codes(cart);
                 cart_totals_dict = order_utils.get_cart_totals(cart);
-                response = JsonResponse({'cart_remove_discount_code':'success', 'cart_found':(True if cart is not None else False), 'discount_code_id':discount_code_id, 'discount_code_data': discount_code_dict, 'cart_totals_data':cart_totals_dict, 'order-api-version':order_api_version}, safe=False)
+                response = JsonResponse({'cart_remove_discount_code': 'success', 'cart_found': (True if cart is not None else False), 'discount_code_id': discount_code_id, 'discount_code_data': discount_code_dict, 'cart_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
             except (ObjectDoesNotExist, ValueError) as e:
                 print(e)
-                error_dict = {"error" : 'cart-discount-code-not-found'}
-                response = JsonResponse({'cart_remove_discount_code':'error','errors': error_dict,'discount_code_id':discount_code_id, 'order-api-version':order_api_version}, safe=False)
-        else:            
-            error_dict = {"error" : 'discount-code-required'}
-            response = JsonResponse({'cart_remove_discount_code':'error','errors': error_dict,'order-api-version':order_api_version}, safe=False)
-    else:            
-        error_dict = {"error" : 'cart-not-found'}
-        response = JsonResponse({'cart_remove_discount_code':'error','errors': error_dict,'order-api-version':order_api_version}, safe=False)
+                error_dict = {"error": 'cart-discount-code-not-found'}
+                response = JsonResponse({'cart_remove_discount_code': 'error', 'errors': error_dict, 'discount_code_id': discount_code_id, 'order-api-version': order_api_version}, safe=False)
+        else:
+            error_dict = {"error": 'discount-code-required'}
+            response = JsonResponse({'cart_remove_discount_code': 'error', 'errors': error_dict, 'order-api-version': order_api_version}, safe=False)
+    else:
+        error_dict = {"error": 'cart-not-found'}
+        response = JsonResponse({'cart_remove_discount_code': 'error', 'errors': error_dict, 'order-api-version': order_api_version}, safe=False)
     return response
+
 
 def cart_update_shipping_method(request):
     #raise ValueError('A very specific bad thing happened.')
     cart = order_utils.look_up_cart(request)
     if cart is not None:
         shipping_method_identifier = None
-        if request.method == 'POST' and 'shipping_method_identifier' in request.POST:    
+        if request.method == 'POST' and 'shipping_method_identifier' in request.POST:
             shipping_method_identifier = request.POST['shipping_method_identifier']
         if shipping_method_identifier is not None:
             try:
@@ -516,28 +537,29 @@ def cart_update_shipping_method(request):
                     Cartshippingmethod.objects.create(cart=cart, shippingmethod=Shippingmethod.objects.get(identifier=shipping_method_identifier))
                 discount_code_dict = order_utils.get_cart_discount_codes(cart);
                 cart_totals_dict = order_utils.get_cart_totals(cart);
-                response = JsonResponse({'cart_update_shipping_method':'success', 'cart_found':(True if cart is not None else False), 'shipping_method_identifier':shipping_method_identifier, 'discount_code_data': discount_code_dict, 'cart_totals_data':cart_totals_dict, 'order-api-version':order_api_version}, safe=False)
+                response = JsonResponse({'cart_update_shipping_method': 'success', 'cart_found': (True if cart is not None else False), 'shipping_method_identifier': shipping_method_identifier, 'discount_code_data': discount_code_dict, 'cart_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
             except (ObjectDoesNotExist, ValueError) as e:
                 print(e)
-                error_dict = {"error" : 'error-setting-cart-shipping-method'}
-                response = JsonResponse({'cart_update_shipping_method':'error','errors': error_dict,'shipping_method_identifier':shipping_method_identifier, 'order-api-version':order_api_version}, safe=False)
-        else:            
-            error_dict = {"error" : 'shipping-method-identifier-required'}
-            response = JsonResponse({'cart_update_shipping_method':'error','errors': error_dict,'order-api-version':order_api_version}, safe=False)
-    else:            
-        error_dict = {"error" : 'cart-not-found'}
-        response = JsonResponse({'cart_update_shipping_method':'error','errors': error_dict,'order-api-version':order_api_version}, safe=False)
+                error_dict = {"error": 'error-setting-cart-shipping-method'}
+                response = JsonResponse({'cart_update_shipping_method': 'error', 'errors': error_dict, 'shipping_method_identifier': shipping_method_identifier, 'order-api-version': order_api_version}, safe=False)
+        else:
+            error_dict = {"error": 'shipping-method-identifier-required'}
+            response = JsonResponse({'cart_update_shipping_method': 'error', 'errors': error_dict, 'order-api-version': order_api_version}, safe=False)
+    else:
+        error_dict = {"error": 'cart-not-found'}
+        response = JsonResponse({'cart_update_shipping_method': 'error', 'errors': error_dict, 'order-api-version': order_api_version}, safe=False)
     return response
+
 
 def cart_delete_cart(request):
     #raise ValueError('A very specific bad thing happened.')
     cart = order_utils.look_up_cart(request)
     if cart is not None:
         cart.delete()
-        response = JsonResponse({'cart_delete_cart':'success', 'order-api-version':order_api_version}, safe=False)
-    else:            
-        error_dict = {"error" : 'cart-not-found'}
-        response = JsonResponse({'cart_delete_cart':'error','errors': error_dict,'order-api-version':order_api_version}, safe=False)
+        response = JsonResponse({'cart_delete_cart': 'success', 'order-api-version': order_api_version}, safe=False)
+    else:
+        error_dict = {"error": 'cart-not-found'}
+        response = JsonResponse({'cart_delete_cart': 'error', 'errors': error_dict, 'order-api-version': order_api_version}, safe=False)
     return response
 
 
@@ -547,37 +569,37 @@ def confirm_place_order(request):
     if checkout_allowed:
 
         agree_to_terms_of_sale = None
-        if request.method == 'POST' and 'agree_to_terms_of_sale' in request.POST:    
+        if request.method == 'POST' and 'agree_to_terms_of_sale' in request.POST:
             agree_to_terms_of_sale = request.POST['agree_to_terms_of_sale']
 
         agree_to_terms_of_sale = None
-        if request.method == 'POST' and 'agree_to_terms_of_sale' in request.POST:    
+        if request.method == 'POST' and 'agree_to_terms_of_sale' in request.POST:
             agree_to_terms_of_sale = request.POST['agree_to_terms_of_sale']
 
         newsletter = None
-        if request.method == 'POST' and 'newsletter' in request.POST:    
+        if request.method == 'POST' and 'newsletter' in request.POST:
             newsletter = request.POST['newsletter']
 
         save_defaults = None
-        if request.method == 'POST' and 'save_defaults' in request.POST:    
+        if request.method == 'POST' and 'save_defaults' in request.POST:
             save_defaults = request.POST['save_defaults']
 
         #print(request.POST)
 
         stripe_payment_info = None
-        if request.method == 'POST' and 'stripe_payment_info' in request.POST:    
+        if request.method == 'POST' and 'stripe_payment_info' in request.POST:
             stripe_payment_info = request.POST['stripe_payment_info']
         #print(stripe_payment_info)
         stripe_payment_info = json.loads(stripe_payment_info)
 
         stripe_shipping_addr = None
-        if request.method == 'POST' and 'stripe_shipping_addr' in request.POST:    
+        if request.method == 'POST' and 'stripe_shipping_addr' in request.POST:
             stripe_shipping_addr = request.POST['stripe_shipping_addr']
         print(stripe_shipping_addr)
         stripe_shipping_addr = json.loads(stripe_shipping_addr)
 
         stripe_billing_addr = None
-        if request.method == 'POST' and 'stripe_billing_addr' in request.POST:    
+        if request.method == 'POST' and 'stripe_billing_addr' in request.POST:
             stripe_billing_addr = request.POST['stripe_billing_addr']
         #print(stripe_billing_addr)
         stripe_billing_addr = json.loads(stripe_billing_addr)
@@ -600,20 +622,20 @@ def confirm_place_order(request):
 
                         #create Billing Address object
                         billing_address = Orderbillingaddress.objects.create(name=stripe_billing_addr['name'], address_line1=stripe_billing_addr['address_line1'], city=stripe_billing_addr['address_city'], state=stripe_billing_addr['address_state'], zip=stripe_billing_addr['address_zip'], country=stripe_billing_addr['address_country'], country_code=stripe_billing_addr['address_country_code'], )
-    
+
                         # create Order object
-                        now = timezone.now()                        
+                        now = timezone.now()
                         cart_totals_dict = order_utils.get_cart_totals(cart);
                         if request.user.is_authenticated:
-                            order = Order.objects.create(identifier=order_identifier, member=request.user.member, payment=payment, shipping_address=shipping_address, billing_address=billing_address, sales_tax_amt=0, item_subtotal=cart_totals_dict['item_subtotal'], item_discount_amt=cart_totals_dict['item_discount'], shipping_amt=cart_totals_dict['shipping_subtotal'], shipping_discount_amt=cart_totals_dict['shipping_discount'], order_total=cart_totals_dict['cart_total'] ,agreed_with_terms_of_sale=True, order_date_time=now)
+                            order = Order.objects.create(identifier=order_identifier, member=request.user.member, payment=payment, shipping_address=shipping_address, billing_address=billing_address, sales_tax_amt=0, item_subtotal=cart_totals_dict['item_subtotal'], item_discount_amt=cart_totals_dict['item_discount'], shipping_amt=cart_totals_dict['shipping_subtotal'], shipping_discount_amt=cart_totals_dict['shipping_discount'], order_total=cart_totals_dict['cart_total'], agreed_with_terms_of_sale=True, order_date_time=now)
                             if save_defaults == 'true':
                                 request.user.member.use_default_shipping_and_payment_info = True
                                 request.user.member.stripe_customer_token = cart.payment.stripe_customer_token
-                                order_utils.stripe_customer_change_default_payemnt(cart.payment.stripe_customer_token, cart.payment.stripe_card_id)                    
+                                order_utils.stripe_customer_change_default_payemnt(cart.payment.stripe_customer_token, cart.payment.stripe_card_id)
                                 if request.user.member.default_shipping_address is None:
                                     #create Cart Shipping Address object
                                     default_shipping_address = Defaultshippingaddress.objects.create(name=shipping_address.name, address_line1=shipping_address.address_line1, city=shipping_address.city, state=shipping_address.state, zip=shipping_address.zip, country=shipping_address.country, country_code=shipping_address.country_code)
-                                    request.user.member.default_shipping_address = default_shipping_address         
+                                    request.user.member.default_shipping_address = default_shipping_address
                                 else:
                                     #update existing Cart shipping address
                                     request.user.member.default_shipping_address.name = shipping_address.name
@@ -627,7 +649,7 @@ def confirm_place_order(request):
                                 request.user.member.save()
                         else:
                             prospect = Prospect.objects.get(email=payment_email_addr)
-                            order = Order.objects.create(identifier=order_identifier, prospect=prospect, payment=payment, shipping_address=shipping_address, billing_address=billing_address, sales_tax_amt=0, item_subtotal=cart_totals_dict['item_subtotal'], item_discount_amt=cart_totals_dict['item_discount'], shipping_amt=cart_totals_dict['shipping_subtotal'], shipping_discount_amt=cart_totals_dict['shipping_discount'], order_total=cart_totals_dict['cart_total'] ,agreed_with_terms_of_sale=True, order_date_time=now)
+                            order = Order.objects.create(identifier=order_identifier, prospect=prospect, payment=payment, shipping_address=shipping_address, billing_address=billing_address, sales_tax_amt=0, item_subtotal=cart_totals_dict['item_subtotal'], item_discount_amt=cart_totals_dict['item_discount'], shipping_amt=cart_totals_dict['shipping_subtotal'], shipping_discount_amt=cart_totals_dict['shipping_discount'], order_total=cart_totals_dict['cart_total'], agreed_with_terms_of_sale=True, order_date_time=now)
                         #create Ordersku objects
                         cart_item_dict = order_utils.get_cart_items(request, cart)
                         for product_sku_id in cart_item_dict['product_sku_data']:
@@ -663,7 +685,7 @@ def confirm_place_order(request):
                             email = Email.objects.get(em_cd=order_confirmation_em_cd_member)
                             order_confirmation_email_body_text = email.body_text
                             #order_confirmation_email_body_html = Email.objects.get(em_cd=order_confirmation_em_cd_member).body_html
-                            order_confirmation_email_namespace = {'line_break':'\r\n\r\n', 'short_line_break':'\r\n' ,'recipient_first_name': name_str, 'order_information': order_info_text, 'product_information': product_text, 'shipping_information': shipping_text, 'discount_information': discount_code_text, 'order_total_information': order_totals_text, 'payment_information': payment_text, 'shipping_address_information': shipping_address_text, 'billing_address_information': billing_address_text, 'ENVIRONMENT_DOMAIN': settings.ENVIRONMENT_DOMAIN, 'identifier': order_identifier, 'em_cd': email.em_cd, 'mb_cd': request.user.member.mb_cd}
+                            order_confirmation_email_namespace = {'line_break': '\r\n\r\n', 'short_line_break': '\r\n', 'recipient_first_name': name_str, 'order_information': order_info_text, 'product_information': product_text, 'shipping_information': shipping_text, 'discount_information': discount_code_text, 'order_total_information': order_totals_text, 'payment_information': payment_text, 'shipping_address_information': shipping_address_text, 'billing_address_information': billing_address_text, 'ENVIRONMENT_DOMAIN': settings.ENVIRONMENT_DOMAIN, 'identifier': order_identifier, 'em_cd': email.em_cd, 'mb_cd': request.user.member.mb_cd}
                             formatted_order_confirmation_email_body_text = order_confirmation_email_body_text.format(**order_confirmation_email_namespace)
                             #formatted_order_confirmation_email_body_html = order_confirmation_email_body_html.format(**order_confirmation_email_namespace)
                         else:
@@ -687,10 +709,10 @@ def confirm_place_order(request):
 
                             order_confirmation_email_body_text = email.body_text
                             #order_confirmation_email_body_html = Email.objects.get(em_cd=order_confirmation_em_cd_member).body_html
-                            order_confirmation_email_namespace = {'line_break':'\r\n\r\n', 'short_line_break':'\r\n' ,'recipient_first_name': name_str, 'order_information': order_info_text, 'product_information': product_text, 'shipping_information': shipping_text, 'discount_information': discount_code_text, 'order_total_information': order_totals_text, 'payment_information': payment_text, 'shipping_address_information': shipping_address_text, 'billing_address_information': billing_address_text, 'ENVIRONMENT_DOMAIN': settings.ENVIRONMENT_DOMAIN, 'identifier': order_identifier, 'em_cd': email.em_cd, 'pr_cd': prospect.pr_cd, 'prosepct_email_unsubscribe_str': prosepct_email_unsubscribe_str}
+                            order_confirmation_email_namespace = {'line_break': '\r\n\r\n', 'short_line_break': '\r\n', 'recipient_first_name': name_str, 'order_information': order_info_text, 'product_information': product_text, 'shipping_information': shipping_text, 'discount_information': discount_code_text, 'order_total_information': order_totals_text, 'payment_information': payment_text, 'shipping_address_information': shipping_address_text, 'billing_address_information': billing_address_text, 'ENVIRONMENT_DOMAIN': settings.ENVIRONMENT_DOMAIN, 'identifier': order_identifier, 'em_cd': email.em_cd, 'pr_cd': prospect.pr_cd, 'prosepct_email_unsubscribe_str': prosepct_email_unsubscribe_str}
                             formatted_order_confirmation_email_body_text = order_confirmation_email_body_text.format(**order_confirmation_email_namespace)
                             #formatted_order_confirmation_email_body_html = order_confirmation_email_body_html.format(**order_confirmation_email_namespace)
-    
+
                         msg = EmailMultiAlternatives(
                             subject = email.subject,
                             body = formatted_order_confirmation_email_body_text,
@@ -719,23 +741,24 @@ def confirm_place_order(request):
                         # delete the cart
                         cart.delete()
 
-                        response = JsonResponse({'checkout_allowed':checkout_allowed, 'confirm_place_order':'success', 'order_identifier': order.identifier, 'order-api-version':order_api_version}, safe=False)
+                        response = JsonResponse({'checkout_allowed': checkout_allowed, 'confirm_place_order': 'success', 'order_identifier': order.identifier, 'order-api-version': order_api_version}, safe=False)
                     except (ObjectDoesNotExist, ValueError) as e:
                         print(e)
-                        error_dict = {"error" : 'error-saving-order', 'description': 'An error occurred while processing your order.'}
-                        response = JsonResponse({'checkout_allowed':checkout_allowed, 'confirm_place_order':'error', 'errors': error_dict, 'agree_to_terms_of_sale':agree_to_terms_of_sale, 'order-api-version':order_api_version}, safe=False)
+                        error_dict = {"error": 'error-saving-order', 'description': 'An error occurred while processing your order.'}
+                        response = JsonResponse({'checkout_allowed': checkout_allowed, 'confirm_place_order': 'error', 'errors': error_dict, 'agree_to_terms_of_sale': agree_to_terms_of_sale, 'order-api-version': order_api_version}, safe=False)
                 else:
-                    error_dict = {"error" : 'cart-not-found', 'description': 'No cart was found.'}
-                    response = JsonResponse({'checkout_allowed':checkout_allowed, 'confirm_place_order':'error', 'errors': error_dict, 'order-api-version':order_api_version}, safe=False)
+                    error_dict = {"error": 'cart-not-found', 'description': 'No cart was found.'}
+                    response = JsonResponse({'checkout_allowed': checkout_allowed, 'confirm_place_order': 'error', 'errors': error_dict, 'order-api-version': order_api_version}, safe=False)
             else:
-                error_dict = {"error" : 'agree-to-terms-of-sale-must-be-checked', 'description': 'You must agree to the Terms of Sale'}
-                response = JsonResponse({'checkout_allowed':checkout_allowed, 'confirm_place_order':'error', 'errors': error_dict, 'agree_to_terms_of_sale':agree_to_terms_of_sale, 'order-api-version':order_api_version}, safe=False)
+                error_dict = {"error": 'agree-to-terms-of-sale-must-be-checked', 'description': 'You must agree to the Terms of Sale'}
+                response = JsonResponse({'checkout_allowed': checkout_allowed, 'confirm_place_order': 'error', 'errors': error_dict, 'agree_to_terms_of_sale': agree_to_terms_of_sale, 'order-api-version': order_api_version}, safe=False)
         else:
-            error_dict = {"error" : 'agree-to-terms-of-sale-required', 'description': 'You must agree to the Terms of Sale'}
-            response = JsonResponse({'checkout_allowed':checkout_allowed, 'confirm_place_order':'error', 'errors': error_dict, 'order-api-version':order_api_version}, safe=False)
+            error_dict = {"error": 'agree-to-terms-of-sale-required', 'description': 'You must agree to the Terms of Sale'}
+            response = JsonResponse({'checkout_allowed': checkout_allowed, 'confirm_place_order': 'error', 'errors': error_dict, 'order-api-version': order_api_version}, safe=False)
     else:
-        response = JsonResponse({'checkout_allowed':checkout_allowed,'order-api-version':order_api_version}, safe=False)
-    return response 
+        response = JsonResponse({'checkout_allowed': checkout_allowed, 'order-api-version': order_api_version}, safe=False)
+    return response
+
 
 def process_stripe_payment_token(request):
     #raise ValueError('A very specific bad thing happened.')
@@ -743,19 +766,19 @@ def process_stripe_payment_token(request):
     if checkout_allowed:
 
         stripe_token = None
-        if request.method == 'POST' and 'stripe_token' in request.POST:    
+        if request.method == 'POST' and 'stripe_token' in request.POST:
             stripe_token = request.POST['stripe_token']
         #print(stripe_token)
 
         email = None
-        if request.method == 'POST' and 'email' in request.POST:    
+        if request.method == 'POST' and 'email' in request.POST:
             email = request.POST['email']
         #print('###########')
         #print(email)
         #print('###########')
 
         stripe_payment_args = None
-        if request.method == 'POST' and 'stripe_payment_args' in request.POST:    
+        if request.method == 'POST' and 'stripe_payment_args' in request.POST:
             stripe_payment_args = request.POST['stripe_payment_args']
         #print(stripe_payment_args)
         stripe_payment_args = json.loads(stripe_payment_args)
@@ -777,7 +800,7 @@ def process_stripe_payment_token(request):
                         cart_payment = Cartpayment.objects.create(stripe_customer_token=customer.id, stripe_card_id=customer.default_source, email=email)
                         cart.payment = cart_payment
                         cart.save()
-                    else: 
+                    else:
                         card = order_utils.stripe_customer_add_card(cart.payment.stripe_customer_token, stripe_token)
                         cart.payment.stripe_card_id = card.id
                         cart.payment.save()
@@ -789,7 +812,7 @@ def process_stripe_payment_token(request):
                     if cart.shipping_address is None:
                         #create Cart Shipping Address object
                         cart_shipping_address = Cartshippingaddress.objects.create(name=stripe_payment_args['shipping_name'], address_line1=stripe_payment_args['shipping_address_line1'], city=stripe_payment_args['shipping_address_city'], state=shipping_address_state, zip=stripe_payment_args['shipping_address_zip'], country=stripe_payment_args['shipping_address_country'], country_code=stripe_payment_args['shipping_address_country_code'])
-                        cart.shipping_address = cart_shipping_address         
+                        cart.shipping_address = cart_shipping_address
                         cart.save()
                     else:
                         #update existing Cart shipping address
@@ -803,7 +826,7 @@ def process_stripe_payment_token(request):
                         cart_shipping_address.country_code=stripe_payment_args['shipping_address_country_code']
                         cart_shipping_address.save()
 
-                response = JsonResponse({'checkout_allowed':checkout_allowed, 'process_stripe_payment_token':'success', 'order-api-version':order_api_version}, safe=False)
+                response = JsonResponse({'checkout_allowed': checkout_allowed, 'process_stripe_payment_token': 'success', 'order-api-version': order_api_version}, safe=False)
             except (stripe.error.CardError, stripe.error.RateLimitError, stripe.error.InvalidRequestError, stripe.error.AuthenticationError, stripe.error.APIConnectionError, stripe.error.StripeError) as e:
                 # Since it's a decline, stripe.error.CardError will be caught
                 body = e.json_body
@@ -816,49 +839,51 @@ def process_stripe_payment_token(request):
                 print("Param is: %s" % err.get('param'))
                 print("Message is: %s" % err.get('message'))
 
-                error_dict = {"error" : 'error-creating-stripe-customer', 'description': 'An error occurred while creating your Stripe customer record.'}
-                response = JsonResponse({'checkout_allowed':checkout_allowed, 'process_stripe_payment_token':'error', 'errors': error_dict, 'order-api-version':order_api_version}, safe=False)
+                error_dict = {"error": 'error-creating-stripe-customer', 'description': 'An error occurred while creating your Stripe customer record.'}
+                response = JsonResponse({'checkout_allowed': checkout_allowed, 'process_stripe_payment_token': 'error', 'errors': error_dict, 'order-api-version': order_api_version}, safe=False)
         else:
-            error_dict = {"error" : 'stripe-token-required', 'description': 'Stripe token is required'}
-            response = JsonResponse({'checkout_allowed':checkout_allowed, 'process_stripe_payment_token':'error', 'errors': error_dict, 'order-api-version':order_api_version}, safe=False)
+            error_dict = {"error": 'stripe-token-required', 'description': 'Stripe token is required'}
+            response = JsonResponse({'checkout_allowed': checkout_allowed, 'process_stripe_payment_token': 'error', 'errors': error_dict, 'order-api-version': order_api_version}, safe=False)
     else:
-        response = JsonResponse({'checkout_allowed':checkout_allowed,'order-api-version':order_api_version}, safe=False)
-    return response     
+        response = JsonResponse({'checkout_allowed': checkout_allowed, 'order-api-version': order_api_version}, safe=False)
+    return response
 
-def anonymous_email_address_payment_lookup(request):    
+
+def anonymous_email_address_payment_lookup(request):
     #raise ValueError('A very specific bad thing happened.')
     checkout_allowed = order_utils.checkout_allowed(request)
     if checkout_allowed:
 
         anonymous_email_address = None
-        if request.method == 'POST' and 'anonymous_email_address' in request.POST:    
+        if request.method == 'POST' and 'anonymous_email_address' in request.POST:
             anonymous_email_address = request.POST['anonymous_email_address']
         #print(anonymous_email_address)
 
         if anonymous_email_address is not None:
             if User.objects.filter(email=anonymous_email_address).exists():
-                error_dict = {"error" : 'email-address-is-associated-with-member', 'description': 'This email address is already associated with a member account. Please <span class="login-form-error-link"><a href=\"/login?next=checkout/confirm\">login</a></span> to continue.'}
-                response = JsonResponse({'checkout_allowed':checkout_allowed, 'anonymous_email_address_payment_lookup':'error', 'errors': error_dict, 'order-api-version':order_api_version}, safe=False)
+                error_dict = {"error": 'email-address-is-associated-with-member', 'description': 'This email address is already associated with a member account. Please <span class="login-form-error-link"><a href=\"/login?next=checkout/confirm\">login</a></span> to continue.'}
+                response = JsonResponse({'checkout_allowed': checkout_allowed, 'anonymous_email_address_payment_lookup': 'error', 'errors': error_dict, 'order-api-version': order_api_version}, safe=False)
             else:
                 stripe_publishable_key = settings.STRIPE_PUBLISHABLE_SECRET_KEY
                 if Prospect.objects.filter(email=anonymous_email_address).exists():
                     customer_dict = None
-                    response = JsonResponse({'checkout_allowed':checkout_allowed, 'anonymous_email_address_payment_lookup':'success', 'stripe_publishable_key':stripe_publishable_key, 'customer_data':customer_dict, 'order-api-version':order_api_version}, safe=False)
+                    response = JsonResponse({'checkout_allowed': checkout_allowed, 'anonymous_email_address_payment_lookup': 'success', 'stripe_publishable_key': stripe_publishable_key, 'customer_data': customer_dict, 'order-api-version': order_api_version}, safe=False)
                 else:
                     now = timezone.now()
                     email_unsubscribe_string = identifier.getNewProspectEmailUnsubscribeString()
-                    email_unsubscribe_string_signed = email_unsubscribe_signer.sign(email_unsubscribe_string) 
+                    email_unsubscribe_string_signed = email_unsubscribe_signer.sign(email_unsubscribe_string)
                     email_unsubscribe_string_signed = email_unsubscribe_string_signed.rsplit(':', 1)[1]
                     pr_cd = identifier.getNewProspectCode()
                     prospect = Prospect.objects.create(email=anonymous_email_address, email_unsubscribed=True, email_unsubscribe_string=email_unsubscribe_string, email_unsubscribe_string_signed=email_unsubscribe_string_signed, swa_comment='Captured from incomplete anonymous order', pr_cd=pr_cd, created_date_time=now)
                     customer_dict = None
-                    response = JsonResponse({'checkout_allowed':checkout_allowed, 'anonymous_email_address_payment_lookup':'success', 'stripe_publishable_key':stripe_publishable_key, 'customer_data':customer_dict, 'order-api-version':order_api_version}, safe=False)
+                    response = JsonResponse({'checkout_allowed': checkout_allowed, 'anonymous_email_address_payment_lookup': 'success', 'stripe_publishable_key': stripe_publishable_key, 'customer_data': customer_dict, 'order-api-version': order_api_version}, safe=False)
         else:
-            error_dict = {"error" : 'anonymous-email-address-required', 'description': 'Anonymous email address is required'}
-            response = JsonResponse({'checkout_allowed':checkout_allowed, 'anonymous_email_address_payment_lookup':'error', 'errors': error_dict, 'order-api-version':order_api_version}, safe=False)
+            error_dict = {"error": 'anonymous-email-address-required', 'description': 'Anonymous email address is required'}
+            response = JsonResponse({'checkout_allowed': checkout_allowed, 'anonymous_email_address_payment_lookup': 'error', 'errors': error_dict, 'order-api-version': order_api_version}, safe=False)
     else:
-        response = JsonResponse({'checkout_allowed':checkout_allowed,'order-api-version':order_api_version}, safe=False)
-    return response  
+        response = JsonResponse({'checkout_allowed': checkout_allowed, 'order-api-version': order_api_version}, safe=False)
+    return response
+
 
 def change_confirmation_email_address(request):
     checkout_allowed = order_utils.checkout_allowed(request)
@@ -867,10 +892,7 @@ def change_confirmation_email_address(request):
         cart.payment = None
         cart.shipping_address = None
         cart.save()
-        response = JsonResponse({'checkout_allowed':checkout_allowed, 'change_confirmation_email_address':'success', 'order-api-version':order_api_version}, safe=False)
+        response = JsonResponse({'checkout_allowed': checkout_allowed, 'change_confirmation_email_address': 'success', 'order-api-version': order_api_version}, safe=False)
     else:
-        response = JsonResponse({'checkout_allowed':checkout_allowed,'order-api-version':order_api_version}, safe=False)
-    return response  
-
-
-
+        response = JsonResponse({'checkout_allowed': checkout_allowed, 'order-api-version': order_api_version}, safe=False)
+    return response

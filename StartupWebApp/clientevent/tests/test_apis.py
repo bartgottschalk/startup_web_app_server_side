@@ -11,6 +11,7 @@ from user.models import Ad, Adtype, Adstatus
 
 from StartupWebApp.utilities import unittest_utilities
 
+
 class UserAPITest(TestCase):
 
     def setUp(self):
@@ -34,5 +35,3 @@ class UserAPITest(TestCase):
         self.assertEqual(Linkevent.objects.count(), 1)
         new_linkevent = Linkevent.objects.first()
         self.assertIn('/clientevent/linkevent?ad_cd=E0y04nClr68pywMIyUxn', new_linkevent.url)
-
-

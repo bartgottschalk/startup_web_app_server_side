@@ -1,6 +1,7 @@
 import re
 from django.contrib.auth.models import User
 
+
 def isEmail(email):
     # Email regex: local-part @ domain
     # Local part: must start and end with alphanumeric, can contain . _ + - in middle
@@ -10,10 +11,11 @@ def isEmail(email):
     else:
         return False
 
+
 def isIntegerInRange(integer_in, min_value, max_value):
     errors = []
     try:
-        if int(integer_in) >= min_value and int(integer_in) <= max_value: 
+        if int(integer_in) >= min_value and int(integer_in) <= max_value:
             return True
         else:
             errors.append(out_of_range)
@@ -23,29 +25,34 @@ def isIntegerInRange(integer_in, min_value, max_value):
         errors.append(not_an_int)
         return errors
 
+
 def isAlphaNumericSpace(string_val):
-    if re.match("^[A-Za-z0-9 ]*$", string_val):	
+    if re.match("^[A-Za-z0-9 ]*$", string_val):
         return True
     else:
         return False
+
 
 def isAlphaNumericSpaceAmpersand(string_val):
-    if re.match("^[&A-Za-z0-9 ]*$", string_val): 
+    if re.match("^[&A-Za-z0-9 ]*$", string_val):
         return True
     else:
         return False
+
 
 def isAlphaNumericUnderscoreHyphen(string_val):
-    if re.match("^[a-zA-Z0-9_-]*$", string_val):	
+    if re.match("^[a-zA-Z0-9_-]*$", string_val):
         return True
     else:
         return False
 
+
 def containsCapitalLetter(string_val):
-    if re.match(".*[A-Z].*", string_val):	
+    if re.match(".*[A-Z].*", string_val):
         return True
     else:
         return False
+
 
 def containsSpecialCharacter(string_val):
     if re.match(r".*[!@#$%^&*()~{}\[\]].*", string_val):
@@ -53,12 +60,14 @@ def containsSpecialCharacter(string_val):
     else:
         return False
 
+
 def isUserNameAvailable(username):
     try:
         user = User.objects.get(username=username)
         return False
     except User.DoesNotExist:
         return True
+
 
 def isNameValid(name, max_length):
     #print('isNameValid called')
@@ -69,10 +78,11 @@ def isNameValid(name, max_length):
         errors.append(not_valid_name)
     if len(name) > max_length:
         errors.append(too_many_chars)
-    if len(errors) > 0: 
+    if len(errors) > 0:
         return errors
     else:
     	return True
+
 
 def isUserNameValid(username, max_length):
     errors = [];
@@ -87,10 +97,11 @@ def isUserNameValid(username, max_length):
         errors.append(username_too_short)
     if isUserNameAvailable(username) == False:
         errors.append(username_unavailable)
-    if len(errors) > 0: 
+    if len(errors) > 0:
         return errors
     else:
     	return True
+
 
 def isEmailValid(email, max_length):
     errors = []
@@ -101,10 +112,11 @@ def isEmailValid(email, max_length):
         errors.append(not_valid_email);
     if len(email) > max_length:
         errors.append(too_many_chars)
-    if len(errors) > 0: 
+    if len(errors) > 0:
         return errors
     else:
     	return True
+
 
 def isPasswordValid(password, confirm_password, max_length):
     errors = []
@@ -121,10 +133,11 @@ def isPasswordValid(password, confirm_password, max_length):
         errors.append(password_must_contain_special_character)
     if password != confirm_password:
         errors.append(confirm_password_doesnt_match)
-    if len(errors) > 0: 
+    if len(errors) > 0:
         return errors
     else:
     	return True
+
 
 def validateSkuQuantity(quantity):
     errors = []
@@ -135,6 +148,7 @@ def validateSkuQuantity(quantity):
         return errors
     return True
 
+
 def isChatMessageValid(message, max_length):
     #print('isNameValid called')
     errors = [];
@@ -142,10 +156,11 @@ def isChatMessageValid(message, max_length):
         errors.append(required_error)
     if len(message) > max_length:
         errors.append(too_many_chars)
-    if len(errors) > 0: 
+    if len(errors) > 0:
         return errors
     else:
         return True
+
 
 def isHowExcitedValid(how_excited):
     errors = []
@@ -154,21 +169,22 @@ def isHowExcitedValid(how_excited):
         return errors
     if str(how_excited) not in ['1', '2', '3', '4', '5']:
         errors.append(out_of_range)
-    if len(errors) > 0: 
+    if len(errors) > 0:
         return errors
     else:
         return True
 
-required_error = {'type': 'required','description': 'This is a required field.'};
-not_valid_email = {'type': 'not_valid','description': 'Please enter a valid email address. For example johndoe@domain.com.'};
-not_valid_name = {'type': 'not_valid','description': 'Please enter a valid name. Characters, numbers, and spaces are allowed.'};
-too_many_chars = {'type': 'too_many_chars','description': 'The value you entered is too long for this field.'};
-not_valid_username = {'type': 'not_valid','description': 'Please enter a valid username. Characters, numbers, underscore ("_"), and hyphens ("-") are allowed.'};
-username_too_short = {'type': 'too_short','description': 'The username you entered is too short. Usernames must be between 6 and 150 characters in length.'};
-username_unavailable = {'type': 'unavailable','description': 'The username you entered is unavailable. Please enter a different username and try again.'};
-password_too_short = {'type': 'too_short','description': 'The password you entered is too short. Passwords must be between 8 and 150 characters in length.'};
-password_must_contain_capital_letter = {'type': 'no_capital_letter','description': 'Passwords must contain at least one capital letter.'};
-password_must_contain_special_character = {'type': 'no_special_character','description': 'Passwords must contain at least one special character.'};
-confirm_password_doesnt_match = {'type': 'confirm_password_doesnt_match','description': 'Please make sure your passwords match.'};
-out_of_range = {'type': 'out_of_range','description': 'The value provided is out of range.'};
-not_an_int = {'type': 'not_an_int','description': 'The value provided is not an integer.'};
+
+required_error = {'type': 'required', 'description': 'This is a required field.'};
+not_valid_email = {'type': 'not_valid', 'description': 'Please enter a valid email address. For example johndoe@domain.com.'};
+not_valid_name = {'type': 'not_valid', 'description': 'Please enter a valid name. Characters, numbers, and spaces are allowed.'};
+too_many_chars = {'type': 'too_many_chars', 'description': 'The value you entered is too long for this field.'};
+not_valid_username = {'type': 'not_valid', 'description': 'Please enter a valid username. Characters, numbers, underscore ("_"), and hyphens ("-") are allowed.'};
+username_too_short = {'type': 'too_short', 'description': 'The username you entered is too short. Usernames must be between 6 and 150 characters in length.'};
+username_unavailable = {'type': 'unavailable', 'description': 'The username you entered is unavailable. Please enter a different username and try again.'};
+password_too_short = {'type': 'too_short', 'description': 'The password you entered is too short. Passwords must be between 8 and 150 characters in length.'};
+password_must_contain_capital_letter = {'type': 'no_capital_letter', 'description': 'Passwords must contain at least one capital letter.'};
+password_must_contain_special_character = {'type': 'no_special_character', 'description': 'Passwords must contain at least one special character.'};
+confirm_password_doesnt_match = {'type': 'confirm_password_doesnt_match', 'description': 'Please make sure your passwords match.'};
+out_of_range = {'type': 'out_of_range', 'description': 'The value provided is out of range.'};
+not_an_int = {'type': 'not_an_int', 'description': 'The value provided is not an integer.'};

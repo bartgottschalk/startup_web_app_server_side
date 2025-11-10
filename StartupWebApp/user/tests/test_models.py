@@ -10,6 +10,7 @@ from django.core.signing import Signer
 from user.models import Member, Prospect
 from StartupWebApp.utilities import identifier
 
+
 class MemberModelTests(TestCase):
 
 	def setUp(self):
@@ -70,7 +71,3 @@ class MemberModelTests(TestCase):
 		except IntegrityError as e:
 			print('Expected Error! Code: {c}, Message, {m}'.format(c = type(e).__name__, m = str(e)))
 			self.assertEqual(type(e).__name__, 'IntegrityError')
-
-
-
-

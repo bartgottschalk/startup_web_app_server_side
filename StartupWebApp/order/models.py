@@ -2,14 +2,19 @@ from django.db import models
 from user.models import Member, Prospect
 
 # Create your models here.
+
+
 class Orderconfiguration(models.Model):
     key = models.CharField(max_length=100)
     float_value = models.FloatField(blank=True, null=True)
     string_value = models.CharField(max_length=500, blank=True, null=True)
+
     class Meta:
         db_table = 'order_configuration'
+
     def __str__(self):
         return 'key: ' + str(self.key) + 'float_value: ' + str(self.float_value) + 'string_value: ' + str(self.string_value)
+
 
 class Cartshippingaddress(models.Model):
     name = models.CharField(max_length=200, blank=True, null=True)
@@ -19,45 +24,60 @@ class Cartshippingaddress(models.Model):
     zip = models.CharField(max_length=10, blank=True, null=True)
     country = models.CharField(max_length=200, blank=True, null=True)
     country_code = models.CharField(max_length=10, blank=True, null=True)
+
     class Meta:
         db_table = 'order_cart_shipping_address'
+
     def __str__(self):
         return str(self.name) + ', ' + str(self.address_line1) + ', ' + str(self.city) + ', ' + str(self.state) + ' ' + str(self.zip) + ', ' + str(self.country_code)
+
 
 class Cartpayment(models.Model):
     stripe_customer_token = models.CharField(max_length=100, blank=True, null=True)
     stripe_card_id = models.CharField(max_length=100, blank=True, null=True)
     email = models.CharField(max_length=254, blank=True, null=True)
+
     class Meta:
         db_table = 'order_cart_payment'
+
     def __str__(self):
         return str(self.email) + ': ' + str(self.stripe_customer_token) + ': ' + str(self.stripe_card_id)
+
 
 class Cart(models.Model):
     member = models.ForeignKey(Member, on_delete=models.CASCADE, blank=True, null=True)
     anonymous_cart_id = models.CharField(max_length=100, blank=True, null=True)
     shipping_address = models.ForeignKey(Cartshippingaddress, on_delete=models.CASCADE, blank=True, null=True)
     payment = models.ForeignKey(Cartpayment, on_delete=models.CASCADE, blank=True, null=True)
+
     class Meta:
         db_table = 'order_cart'
+
     def __str__(self):
         return str(self.member.user.username if self.member is not None else None) + ": " + str(self.anonymous_cart_id)
 
+
 class Skutype(models.Model):
     title = models.CharField(max_length=100)
+
     class Meta:
         db_table = 'order_sku_type'
+
     def __str__(self):
         return self.title
+
 
 class Skuinventory(models.Model):
     title = models.CharField(max_length=100)
     identifier = models.CharField(unique=True, max_length=100)
     description = models.CharField(max_length=500, blank=True, null=True)
+
     class Meta:
         db_table = 'order_sku_inventory'
+
     def __str__(self):
         return self.title
+
 
 class Sku(models.Model):
     sku_type = models.ForeignKey(Skutype, on_delete=models.CASCADE)
@@ -65,39 +85,51 @@ class Sku(models.Model):
     color = models.CharField(max_length=500, blank=True, null=True)
     size = models.CharField(max_length=500, blank=True, null=True)
     description = models.CharField(max_length=1000, blank=True, null=True)
+
     class Meta:
         db_table = 'order_sku'
+
     def __str__(self):
         return str(self.id) + ', type: ' + str(self.sku_type) + ', color: ' + str(self.color) + ', size: ' + str(self.size)
+
 
 class Skuprice(models.Model):
     sku = models.ForeignKey(Sku, on_delete=models.CASCADE)
     price = models.FloatField(default=0)
     created_date_time = models.DateTimeField()
+
     class Meta:
         db_table = 'order_sku_price'
+
     def __str__(self):
         return str(self.sku.id) + ": $" + str(self.price) + ": " + str(self.created_date_time)
+
 
 class Skuimage(models.Model):
     sku = models.ForeignKey(Sku, on_delete=models.CASCADE)
     image_url = models.CharField(max_length=500)
     main_image = models.BooleanField(default=False)
     caption = models.CharField(max_length=500, blank=True, null=True)
+
     class Meta:
         db_table = 'order_sku_image'
+
     def __str__(self):
         return str(self.sku) + ": $" + str(self.image_url) + ": " + str(self.main_image)
+
 
 class Cartsku(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
     sku = models.ForeignKey(Sku, on_delete=models.CASCADE)
     quantity = models.IntegerField(default=1)
+
     class Meta:
         db_table = 'order_cart_sku'
         unique_together = (('cart', 'sku'),)
+
     def __str__(self):
         return str(self.cart) + ": " + str(self.sku) + ": " + str(self.quantity)
+
 
 class Product(models.Model):
     title = models.CharField(max_length=200)
@@ -106,49 +138,64 @@ class Product(models.Model):
     headline = models.CharField(max_length=5000, blank=True, null=True)
     description_part_1 = models.CharField(max_length=5000, blank=True, null=True)
     description_part_2 = models.CharField(max_length=5000, blank=True, null=True)
+
     class Meta:
         db_table = 'order_product'
+
     def __str__(self):
         return self.title_url
+
 
 class Productimage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     image_url = models.CharField(max_length=500)
     main_image = models.BooleanField(default=False)
     caption = models.CharField(max_length=500, blank=True, null=True)
+
     class Meta:
         db_table = 'order_product_image'
+
     def __str__(self):
         return str(self.product) + ": $" + str(self.image_url) + ": " + str(self.main_image)
+
 
 class Productvideo(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     video_url = models.CharField(max_length=500)
     video_thumbnail_url = models.CharField(max_length=500)
     caption = models.CharField(max_length=500, blank=True, null=True)
+
     class Meta:
         db_table = 'order_product_video'
+
     def __str__(self):
         return str(self.product) + ": $" + str(self.video_url)
+
 
 class Productsku(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     sku = models.ForeignKey(Sku, on_delete=models.CASCADE)
+
     class Meta:
         db_table = 'order_product_sku'
         unique_together = (('product', 'sku'),)
+
     def __str__(self):
         return str(self.product) + ": " + str(self.sku)
+
 
 class Discounttype(models.Model):
     title = models.CharField(max_length=100)
     description = models.CharField(max_length=500)
     applies_to = models.CharField(max_length=100)
     action = models.CharField(max_length=100)
+
     class Meta:
         db_table = 'order_discount_type'
+
     def __str__(self):
         return str(self.title) + ': ' + str(self.description) + ': ' + str(self.applies_to)
+
 
 class Discountcode(models.Model):
     code = models.CharField(max_length=100)
@@ -159,19 +206,25 @@ class Discountcode(models.Model):
     discounttype = models.ForeignKey(Discounttype, on_delete=models.CASCADE)
     discount_amount = models.FloatField(default=0)
     order_minimum = models.FloatField(default=0)
+
     class Meta:
         db_table = 'order_discount_code'
+
     def __str__(self):
         return str(self.code) + ", start: " + str(self.start_date_time) + ", end: " + str(self.end_date_time)
+
 
 class Cartdiscount(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
     discountcode = models.ForeignKey(Discountcode, on_delete=models.CASCADE)
+
     class Meta:
         db_table = 'order_cart_discount'
         unique_together = (('cart', 'discountcode'),)
+
     def __str__(self):
         return str(self.cart) + ": " + str(self.discountcode)
+
 
 class Shippingmethod(models.Model):
     identifier = models.CharField(max_length=100)
@@ -179,19 +232,25 @@ class Shippingmethod(models.Model):
     shipping_cost = models.FloatField(blank=True)
     tracking_code_base_url = models.CharField(max_length=200)
     active = models.BooleanField(default=True)
+
     class Meta:
         db_table = 'order_shipping_method'
+
     def __str__(self):
         return str(self.carrier) + ': ' + str(self.shipping_cost) + ': ' + str(self.tracking_code_base_url)
+
 
 class Cartshippingmethod(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
     shippingmethod = models.ForeignKey(Shippingmethod, on_delete=models.CASCADE)
+
     class Meta:
         db_table = 'order_cart_shipping_method'
         unique_together = (('cart', 'shippingmethod'),)
+
     def __str__(self):
         return str(self.cart) + ": " + str(self.shippingmethod)
+
 
 class Orderpayment(models.Model):
     email = models.CharField(max_length=254, blank=True, null=True)
@@ -202,16 +261,20 @@ class Orderpayment(models.Model):
     card_exp_month = models.CharField(max_length=2, blank=True, null=True)
     card_exp_year = models.CharField(max_length=4, blank=True, null=True)
     card_zip = models.CharField(max_length=10, blank=True, null=True)
+
     class Meta:
         db_table = 'order_order_payment'
+
     def __str__(self):
         return str(self.card_brand) + ': **** **** **** ' + str(self.card_last4) + ', Exp ' + str(self.card_exp_month) + '/' + str(self.card_exp_year)
+
     def order_identifier(self):
         if self.order_set.first() is not None:
             return self.order_set.first().identifier
         else:
             return 'Undefined'
     order_identifier.short_description = 'Order Identifier'
+
 
 class Ordershippingaddress(models.Model):
     name = models.CharField(max_length=200, blank=True, null=True)
@@ -221,10 +284,13 @@ class Ordershippingaddress(models.Model):
     zip = models.CharField(max_length=10, blank=True, null=True)
     country = models.CharField(max_length=200, blank=True, null=True)
     country_code = models.CharField(max_length=10, blank=True, null=True)
+
     class Meta:
         db_table = 'order_order_shipping_address'
+
     def __str__(self):
         return str(self.name) + ', ' + str(self.address_line1) + ', ' + str(self.city) + ', ' + str(self.state) + ' ' + str(self.zip) + ', ' + str(self.country_code)
+
     def order_identifier(self):
         if self.order_set.first() is not None:
             return self.order_set.first().identifier
@@ -241,10 +307,13 @@ class Orderbillingaddress(models.Model):
     zip = models.CharField(max_length=10, blank=True, null=True)
     country = models.CharField(max_length=200, blank=True, null=True)
     country_code = models.CharField(max_length=10, blank=True, null=True)
+
     class Meta:
         db_table = 'order_order_billing_address'
+
     def __str__(self):
         return str(self.name) + ', ' + str(self.address_line1) + ', ' + str(self.city) + ', ' + str(self.state) + ' ' + str(self.zip) + ', ' + str(self.country_code)
+
     def order_identifier(self):
         if self.order_set.first() is not None:
             return self.order_set.first().identifier
@@ -268,62 +337,79 @@ class Order(models.Model):
     order_total = models.FloatField(default=0)
     agreed_with_terms_of_sale = models.BooleanField(default=False)
     order_date_time = models.DateTimeField()
+
     class Meta:
         db_table = 'order_order'
+
     def __str__(self):
         return str(self.order_date_time) + ":" + str(self.sales_tax_amt) + ":" + str(self.member)
+
 
 class Ordersku(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     sku = models.ForeignKey(Sku, on_delete=models.CASCADE)
     quantity = models.IntegerField(default=1)
     price_each = models.FloatField(default=0)
+
     class Meta:
         db_table = 'order_order_sku'
         unique_together = (('order', 'sku'),)
+
     def __str__(self):
         return str(self.order) + ":" + str(self.sku) + ":" + str(self.quantity) + ":" + str(self.price_each)
+
     def order_identifier(self):
         if self.order is not None:
             return self.order.identifier
         else:
             return 'Undefined'
     order_identifier.short_description = 'Order Identifier'
+
 
 class Orderdiscount(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     discountcode = models.ForeignKey(Discountcode, on_delete=models.CASCADE)
     applied = models.BooleanField(default=False)
+
     class Meta:
         db_table = 'order_order_discount'
         unique_together = (('order', 'discountcode'),)
+
     def __str__(self):
         return str(self.order) + ":" + str(self.discountcode) + ":" + str(self.applied)
+
     def order_identifier(self):
         if self.order is not None:
             return self.order.identifier
         else:
             return 'Undefined'
     order_identifier.short_description = 'Order Identifier'
+
 
 class Status(models.Model):
     identifier = models.CharField(max_length=100)
     title = models.CharField(max_length=100)
     description = models.CharField(max_length=500)
+
     class Meta:
         db_table = 'order_status'
+
     def __str__(self):
         return str(self.identifier) + ': ' + str(self.title) + ': ' + str(self.description)
+
 
 class Orderstatus(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     status = models.ForeignKey(Status, on_delete=models.CASCADE)
     created_date_time = models.DateTimeField()
+
     class Meta:
         db_table = 'order_order_status'
         unique_together = (('order', 'status'),)
+
     def __str__(self):
         return str(self.order) + ":" + str(self.status) + ":" + str(self.created_date_time)
+
     def order_identifier(self):
         if self.order is not None:
             return self.order.identifier
@@ -331,15 +417,19 @@ class Orderstatus(models.Model):
             return 'Undefined'
     order_identifier.short_description = 'Order Identifier'
 
+
 class Ordershippingmethod(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     shippingmethod = models.ForeignKey(Shippingmethod, on_delete=models.CASCADE)
     tracking_number = models.CharField(max_length=100, blank=True, null=True)
+
     class Meta:
         db_table = 'order_order_shipping_method'
         unique_together = (('order', 'shippingmethod'),)
+
     def __str__(self):
         return str(self.order) + ": " + str(self.shippingmethod) + ": " + str(self.tracking_number)
+
     def order_identifier(self):
         if self.order is not None:
             return self.order.identifier
