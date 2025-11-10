@@ -241,7 +241,7 @@ def cart_discount_codes(request):
     #raise ValueError('A very specific bad thing happened.')
     #print(request.user.session)
     cart = order_utils.look_up_cart(request)
-    discount_code_dict = order_utils.get_cart_discount_codes(cart);
+    discount_code_dict = order_utils.get_cart_discount_codes(cart)
     response = JsonResponse({'cart_found': (True if cart is not None else False), 'discount_code_data': discount_code_dict, 'order-api-version': order_api_version}, safe=False)
     return response
 
@@ -251,7 +251,7 @@ def confirm_discount_codes(request):
     checkout_allowed = order_utils.checkout_allowed(request)
     if checkout_allowed:
         cart = order_utils.look_up_cart(request)
-        discount_code_dict = order_utils.get_cart_discount_codes(cart);
+        discount_code_dict = order_utils.get_cart_discount_codes(cart)
         response = JsonResponse({'checkout_allowed': checkout_allowed, 'cart_found': (True if cart is not None else False), 'discount_code_data': discount_code_dict, 'order-api-version': order_api_version}, safe=False)
     else:
         response = JsonResponse({'checkout_allowed': checkout_allowed, 'order-api-version': order_api_version}, safe=False)
@@ -262,7 +262,7 @@ def cart_totals(request):
     #raise ValueError('A very specific bad thing happened.')
     #print(request.user.session)
     cart = order_utils.look_up_cart(request)
-    cart_totals_dict = order_utils.get_cart_totals(cart);
+    cart_totals_dict = order_utils.get_cart_totals(cart)
     response = JsonResponse({'cart_found': (True if cart is not None else False), 'cart_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
     return response
 
@@ -273,7 +273,7 @@ def confirm_totals(request):
     checkout_allowed = order_utils.checkout_allowed(request)
     if checkout_allowed:
         cart = order_utils.look_up_cart(request)
-        cart_totals_dict = order_utils.get_cart_totals(cart);
+        cart_totals_dict = order_utils.get_cart_totals(cart)
         response = JsonResponse({'checkout_allowed': checkout_allowed, 'cart_found': (True if cart is not None else False), 'confirm_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
     else:
         response = JsonResponse({'checkout_allowed': checkout_allowed, 'order-api-version': order_api_version}, safe=False)
@@ -300,7 +300,7 @@ def confirm_payment_data(request):
                 shipping_address_dict = order_utils.load_address_dict(cart.shipping_address)
             else:
                 if request.user.is_authenticated:
-                    if request.user.member.use_default_shipping_and_payment_info == True:
+                    if request.user.member.use_default_shipping_and_payment_info:
                         if request.user.member.default_shipping_address is not None:
                             cart_shipping_address = Cartshippingaddress.objects.create(name=request.user.member.default_shipping_address.name, address_line1=request.user.member.default_shipping_address.address_line1, city=request.user.member.default_shipping_address.city, state=request.user.member.default_shipping_address.state, zip=request.user.member.default_shipping_address.zip, country=request.user.member.default_shipping_address.country, country_code=request.user.member.default_shipping_address.country_code)
                             cart.shipping_address = cart_shipping_address
@@ -308,7 +308,7 @@ def confirm_payment_data(request):
                             shipping_address_dict = order_utils.load_address_dict(cart.shipping_address)
             if cart.payment is None:
                 if request.user.is_authenticated:
-                    if request.user.member.use_default_shipping_and_payment_info == True:
+                    if request.user.member.use_default_shipping_and_payment_info:
                         if request.user.member.stripe_customer_token is not None:
                             cart_payment = Cartpayment.objects.create(stripe_customer_token=request.user.member.stripe_customer_token, email=request.user.email)
                             cart.payment = cart_payment
@@ -354,7 +354,7 @@ def cart_add_product_sku(request):
                 sku = Sku.objects.get(id=sku_id)
                 product_sku = Productsku.objects.get(sku=sku)
                 cart_sku_exists = Cartsku.objects.filter(cart=cart, sku=product_sku.sku).exists()
-                if cart_sku_exists == True:
+                if cart_sku_exists:
                     cart_sku = Cartsku.objects.get(cart=cart, sku=product_sku.sku)
                     cart_sku.quantity = cart_sku.quantity + int(quantity)
                     cart_sku.save()
@@ -393,8 +393,8 @@ def cart_update_sku_quantity(request):
                 cart_sku.quantity = quantity_new
                 cart_sku.save()
                 sku_subtotal = Skuprice.objects.filter(sku=cart_sku.sku).latest('created_date_time').price * Cartsku.objects.get(cart=cart, sku=cart_sku.sku).quantity
-                discount_code_dict = order_utils.get_cart_discount_codes(cart);
-                cart_totals_dict = order_utils.get_cart_totals(cart);
+                discount_code_dict = order_utils.get_cart_discount_codes(cart)
+                cart_totals_dict = order_utils.get_cart_totals(cart)
                 response = JsonResponse({'cart_update_sku_quantity': 'success', 'cart_found': (True if cart is not None else False), 'sku_id': sku_id, 'sku_subtotal': sku_subtotal, 'discount_code_data': discount_code_dict, 'cart_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
             except (ObjectDoesNotExist, ValueError) as e:
                 print(e)
@@ -439,8 +439,8 @@ def cart_remove_sku(request):
                     shipping_methods[counter] = shipping_method_data
                     counter += 1
 
-                discount_code_dict = order_utils.get_cart_discount_codes(cart);
-                cart_totals_dict = order_utils.get_cart_totals(cart);
+                discount_code_dict = order_utils.get_cart_discount_codes(cart)
+                cart_totals_dict = order_utils.get_cart_totals(cart)
                 cart_item_count = order_utils.count_cart_items(cart)
                 response = JsonResponse({'cart_remove_sku': 'success', 'cart_found': (True if cart is not None else False), 'sku_id': sku_id, 'cart_item_count': cart_item_count, 'cart_shipping_methods': shipping_methods, 'shipping_method_selected': shipping_method_selected, 'discount_code_data': discount_code_dict, 'cart_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
             except (ObjectDoesNotExist, ValueError) as e:
@@ -475,8 +475,8 @@ def cart_apply_discount_code(request):
                     response = JsonResponse({'cart_apply_discount_code': 'error', 'errors': error_dict, 'discount_code_id': discount_code_id, 'order-api-version': order_api_version}, safe=False)
                 else:
                     cartdiscount = Cartdiscount.objects.create(cart=cart, discountcode=discountcode)
-                    discount_code_dict = order_utils.get_cart_discount_codes(cart);
-                    cart_totals_dict = order_utils.get_cart_totals(cart);
+                    discount_code_dict = order_utils.get_cart_discount_codes(cart)
+                    cart_totals_dict = order_utils.get_cart_totals(cart)
                     response = JsonResponse({'cart_apply_discount_code': 'success', 'cart_found': (True if cart is not None else False), 'discount_code_id': discount_code_id, 'discount_code_data': discount_code_dict, 'cart_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
             except (ObjectDoesNotExist, ValueError) as e:
                 print(e)
@@ -502,8 +502,8 @@ def cart_remove_discount_code(request):
             try:
                 discounttype__applies_to = Discountcode.objects.get(id=discount_code_id).discounttype.applies_to
                 Cartdiscount.objects.filter(cart=cart, discountcode=Discountcode.objects.get(id=discount_code_id)).delete()
-                discount_code_dict = order_utils.get_cart_discount_codes(cart);
-                cart_totals_dict = order_utils.get_cart_totals(cart);
+                discount_code_dict = order_utils.get_cart_discount_codes(cart)
+                cart_totals_dict = order_utils.get_cart_totals(cart)
                 response = JsonResponse({'cart_remove_discount_code': 'success', 'cart_found': (True if cart is not None else False), 'discount_code_id': discount_code_id, 'discount_code_data': discount_code_dict, 'cart_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
             except (ObjectDoesNotExist, ValueError) as e:
                 print(e)
@@ -529,14 +529,14 @@ def cart_update_shipping_method(request):
             try:
                 #raise ValueError('A very specific bad thing happened.')
                 cart_shipping_method_exists = Cartshippingmethod.objects.filter(cart=cart).exists()
-                if cart_shipping_method_exists == True:
+                if cart_shipping_method_exists:
                     cart_shipping_method = Cartshippingmethod.objects.get(cart=cart)
                     cart_shipping_method.shippingmethod = Shippingmethod.objects.get(identifier=shipping_method_identifier)
                     cart_shipping_method.save()
                 else:
                     Cartshippingmethod.objects.create(cart=cart, shippingmethod=Shippingmethod.objects.get(identifier=shipping_method_identifier))
-                discount_code_dict = order_utils.get_cart_discount_codes(cart);
-                cart_totals_dict = order_utils.get_cart_totals(cart);
+                discount_code_dict = order_utils.get_cart_discount_codes(cart)
+                cart_totals_dict = order_utils.get_cart_totals(cart)
                 response = JsonResponse({'cart_update_shipping_method': 'success', 'cart_found': (True if cart is not None else False), 'shipping_method_identifier': shipping_method_identifier, 'discount_code_data': discount_code_dict, 'cart_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
             except (ObjectDoesNotExist, ValueError) as e:
                 print(e)
@@ -625,7 +625,7 @@ def confirm_place_order(request):
 
                         # create Order object
                         now = timezone.now()
-                        cart_totals_dict = order_utils.get_cart_totals(cart);
+                        cart_totals_dict = order_utils.get_cart_totals(cart)
                         if request.user.is_authenticated:
                             order = Order.objects.create(identifier=order_identifier, member=request.user.member, payment=payment, shipping_address=shipping_address, billing_address=billing_address, sales_tax_amt=0, item_subtotal=cart_totals_dict['item_subtotal'], item_discount_amt=cart_totals_dict['item_discount'], shipping_amt=cart_totals_dict['shipping_subtotal'], shipping_discount_amt=cart_totals_dict['shipping_discount'], order_total=cart_totals_dict['cart_total'], agreed_with_terms_of_sale=True, order_date_time=now)
                             if save_defaults == 'true':
@@ -656,7 +656,7 @@ def confirm_place_order(request):
                             Ordersku.objects.create(order=order, sku=Sku.objects.get(id=cart_item_dict['product_sku_data'][product_sku_id]['sku_id']), quantity=cart_item_dict['product_sku_data'][product_sku_id]['quantity'], price_each=cart_item_dict['product_sku_data'][product_sku_id]['price'])
 
                         #Create Orderdiscount records
-                        discount_code_dict = order_utils.get_cart_discount_codes(cart);
+                        discount_code_dict = order_utils.get_cart_discount_codes(cart)
                         for discount_code_id in discount_code_dict:
                             Orderdiscount.objects.create(order=order, discountcode=Discountcode.objects.get(id=discount_code_dict[discount_code_id]['discount_code_id']), applied=discount_code_dict[discount_code_id]['discount_applied'])
 
@@ -698,7 +698,7 @@ def confirm_place_order(request):
                                 email_unsubscribed = True
 
                             prospect = Prospect.objects.get(email=to_address)
-                            if email_unsubscribed == False:
+                            if not email_unsubscribed:
                                 prospect.email_unsubscribed = False
                                 prosepct_email_unsubscribe_str = 'You are included in our email marketing list. If you would like to unsubscribe from marketing email messages please follow this link to unsubscribe: ' + settings.ENVIRONMENT_DOMAIN + '/account/email-unsubscribe?em_cd=' + email.em_cd + '&pr_cd=' + prospect.pr_cd + '&pr_token=' + prospect.email_unsubscribe_string_signed
                             else:
