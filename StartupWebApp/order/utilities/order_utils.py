@@ -47,6 +47,7 @@ def checkout_allowed(request):
 
     return checkout_allowed
 
+
 def get_cart_items(request, cart):
     cart_item_dict = {}
 
@@ -80,12 +81,14 @@ def get_cart_items(request, cart):
         cart_item_dict['product_sku_data'] = product_sku_dict
     return cart_item_dict
 
+
 def create_cart(request):
     if request.user.is_authenticated:
         cart = Cart.objects.create(member=request.user.member)
     else:
         cart = Cart.objects.create()
     return cart
+
 
 def set_anonymous_cart_cookie(request, response, cart):
     if not request.user.is_authenticated:
@@ -97,6 +100,7 @@ def set_anonymous_cart_cookie(request, response, cart):
         domain = '.startupwebapp.com' if not settings.DEBUG else None
         response.set_signed_cookie(key='an_ct', value=cookie_value, salt='anonymouscartcookieisthis', max_age=31536000, expires=None, path='/', domain=domain, secure=None, httponly=False)
 
+
 def look_up_cart(request):
     cart = None
     print(request.user.is_authenticated)
@@ -104,7 +108,7 @@ def look_up_cart(request):
         member_cart_exists = Cart.objects.filter(member=request.user.member).exists()
         if member_cart_exists is True:
             cart = Cart.objects.get(member=request.user.member)
-    else: 
+    else:
         signed_cookie = request.get_signed_cookie(key='an_ct', default=False, salt='anonymouscartcookieisthis')
         #print('')
         #print(signed_cookie)
@@ -114,12 +118,14 @@ def look_up_cart(request):
             cart = Cart.objects.get(anonymous_cart_id=signed_cookie)
     return cart
 
+
 def look_up_member_cart(request):
     cart = None
     member_cart_exists = Cart.objects.filter(member=request.user.member).exists()
     if member_cart_exists is True:
         cart = Cart.objects.get(member=request.user.member)
     return cart
+
 
 def look_up_anonymous_cart(request):
     cart = None
@@ -131,6 +137,7 @@ def look_up_anonymous_cart(request):
     if anonymous_cart_exists is True:
         cart = Cart.objects.get(anonymous_cart_id=signed_cookie)
     return cart
+
 
 def get_cart_discount_codes(cart):
     noncombinable_found = False
@@ -155,7 +162,7 @@ def get_cart_discount_codes(cart):
                 if calculate_item_subtotal(cart) >= cartdiscount.discountcode.order_minimum:
                     discount_code_data['discount_applied'] = True
                 else:
-                    discount_code_data['discount_applied'] = False                        
+                    discount_code_data['discount_applied'] = False
             elif cartdiscount.discountcode.combinable == False:
                 if noncombinable_found:
                     discount_code_data['discount_applied'] = False
@@ -164,10 +171,11 @@ def get_cart_discount_codes(cart):
                     if calculate_item_subtotal(cart) >= cartdiscount.discountcode.order_minimum:
                         discount_code_data['discount_applied'] = True
                     else:
-                        discount_code_data['discount_applied'] = False                        
+                        discount_code_data['discount_applied'] = False
 
             discount_code_dict[cartdiscount.discountcode.id] = discount_code_data
     return discount_code_dict
+
 
 def get_cart_totals(cart):
     cart_totals_dict = {}
@@ -192,6 +200,7 @@ def get_cart_totals(cart):
     cart_totals_dict['cart_total'] = cart_total
 
     return cart_totals_dict
+
 
 def get_stripe_customer_payment_data(customer, shipping_address, card_id):
     #print(shipping_address)
@@ -245,6 +254,7 @@ def get_stripe_customer_payment_data(customer, shipping_address, card_id):
 
     return customer_payment_dict
 
+
 def load_address_dict(address):
     address_dict = {}
     address_dict['name'] = address.name
@@ -255,6 +265,7 @@ def load_address_dict(address):
     address_dict['country'] = address.country
     address_dict['country_code'] = address.country_code
     return address_dict
+
 
 def calculate_cart_item_discount(cart, item_subtotal):
     noncombinable_found = False
@@ -281,6 +292,7 @@ def calculate_cart_item_discount(cart, item_subtotal):
                 pass
     return item_discount
 
+
 def calculate_shipping_discount(cart, item_subtotal):
     shipping_discount = 0
     for cartdiscount in Cartdiscount.objects.filter(cart=cart):
@@ -301,17 +313,20 @@ def calculate_shipping_discount(cart, item_subtotal):
                 pass
     return shipping_discount
 
+
 def calculate_item_subtotal(cart):
     item_subtotal = 0
     for cartsku in Cartsku.objects.filter(cart=cart):
         item_subtotal += (Skuprice.objects.filter(sku=cartsku.sku).latest('created_date_time').price * Cartsku.objects.get(cart=cart, sku=cartsku.sku).quantity)
     return item_subtotal
 
+
 def count_cart_items(cart):
     item_count = 0
     for cartsku in Cartsku.objects.filter(cart=cart):
         item_count += 1
     return item_count
+
 
 def get_order_data(order):
     order_data = {}
@@ -326,12 +341,14 @@ def get_order_data(order):
     order_data['order_payment_info'] = get_order_payment_info(order);
     return order_data
 
+
 def get_order_attributes(order):
     order_attributes = {}
     order_attributes['identifier'] = order.identifier
     order_attributes['order_date_time'] = order.order_date_time
     order_attributes['sales_tax_amt'] = order.sales_tax_amt
     return order_attributes
+
 
 def get_order_items(order):
     order_item_dict = {}
@@ -364,6 +381,7 @@ def get_order_items(order):
     order_item_dict['product_sku_data'] = product_sku_dict
     return order_item_dict
 
+
 def get_order_shipping_method(order):
     shipping_method = {}
     if Ordershippingmethod.objects.filter(order=order).exists():
@@ -374,6 +392,7 @@ def get_order_shipping_method(order):
         shipping_method['shipping_cost'] = shipping_method_selected.shipping_cost
         shipping_method['tracking_code_base_url'] = shipping_method_selected.tracking_code_base_url
     return shipping_method
+
 
 def get_order_discount_codes(order):
     discount_code_dict = {}
@@ -395,6 +414,7 @@ def get_order_discount_codes(order):
         discount_code_dict[orderdiscount.discountcode.id] = discount_code_data
     return discount_code_dict
 
+
 def get_order_totals(order):
     order_totals_dict = {}
     order_totals_dict['item_subtotal'] = order.item_subtotal
@@ -403,6 +423,7 @@ def get_order_totals(order):
     order_totals_dict['shipping_discount'] = order.shipping_discount_amt
     order_totals_dict['order_total'] = order.order_total
     return order_totals_dict
+
 
 def get_order_statuses(order):
     statuses_dict = {}
@@ -417,6 +438,7 @@ def get_order_statuses(order):
         counter += 1
     return statuses_dict
 
+
 def get_order_shipping_address(order):
     shipping_address_dict = {}
     if order.shipping_address is not None:
@@ -429,6 +451,7 @@ def get_order_shipping_address(order):
         shipping_address_dict['country_code'] = order.shipping_address.country_code
     return shipping_address_dict
 
+
 def get_order_billing_address(order):
     billing_address_dict = {}
     if order.billing_address is not None:
@@ -440,6 +463,7 @@ def get_order_billing_address(order):
         billing_address_dict['country'] = order.billing_address.country
         billing_address_dict['country_code'] = order.billing_address.country_code
     return billing_address_dict
+
 
 def get_order_payment_info(order):
     payment_dict = {}
@@ -454,9 +478,11 @@ def get_order_payment_info(order):
         payment_dict['card_zip'] = order.payment.card_zip
     return payment_dict
 
+
 def get_confirmation_email_order_info_text_format(order_identifier):
     order_information = 'Order Identifier: ' + order_identifier
     return order_information
+
 
 def get_confirmation_email_product_information_text_format(order_item_dict):
     product_information_text = ''
@@ -471,15 +497,17 @@ def get_confirmation_email_product_information_text_format(order_item_dict):
         item_each_formatted = '${:,.2f}'.format(float(order_item_dict['product_sku_data'][product_sku_id]['price']))
         item_subtotal_formatted = '${:,.2f}'.format(float(order_item_dict['product_sku_data'][product_sku_id]['price']) * int(order_item_dict['product_sku_data'][product_sku_id]['quantity']))
         product_information_text += sku_title_str + ', ' + item_each_formatted + ' each, Quantity: ' + str(order_item_dict['product_sku_data'][product_sku_id]['quantity']) + ', Subtotal: ' + item_subtotal_formatted
-        product_information_text += '\r\n' 
+        product_information_text += '\r\n'
 
     product_information_text = product_information_text[:-2]
     return product_information_text
+
 
 def get_confirmation_email_shipping_information_text_format(shipping_method):
     shipping_cost_formatted = '${:,.2f}'.format(shipping_method.shipping_cost)
     shipping_information =  shipping_method.carrier + ' ' + shipping_cost_formatted
     return shipping_information
+
 
 def get_confirmation_email_discount_code_text_format(discount_code_dict):
     discount_code_text = ''
@@ -496,7 +524,7 @@ def get_confirmation_email_discount_code_text_format(discount_code_dict):
             wont_be_applied_str = ' [This code cannot be combined or does not qualify for your order.]'
 
         discount_code_text += 'Code: ' + discount_code_dict[discount_code_id]['code'] + wont_be_applied_str + ', ' + value_str + ', Combinable: ' + combinable_str
-        discount_code_text += '\r\n' 
+        discount_code_text += '\r\n'
 
     if discount_code_text == '':
         discount_code_text = 'None'
@@ -505,34 +533,38 @@ def get_confirmation_email_discount_code_text_format(discount_code_dict):
 
     return discount_code_text
 
+
 def get_confirmation_email_order_totals_text_format(cart_totals_dict):
     item_subtotal_formatted = '${:,.2f}'.format(cart_totals_dict['item_subtotal'])
     item_discount_formatted = '${:,.2f}'.format(cart_totals_dict['item_discount'])
     shipping_subtotal_formatted = '${:,.2f}'.format(cart_totals_dict['shipping_subtotal'])
     shipping_discount_formatted = '${:,.2f}'.format(cart_totals_dict['shipping_discount'])
     cart_total_formatted = '${:,.2f}'.format(cart_totals_dict['cart_total'])
-    order_total_information = 'Item Subtotal: ' + item_subtotal_formatted + '\r\n' 
+    order_total_information = 'Item Subtotal: ' + item_subtotal_formatted + '\r\n'
     if cart_totals_dict['item_discount'] > 0:
-        order_total_information += 'Item Discount: (' + item_discount_formatted + ')\r\n' 
-    order_total_information += 'Shipping: ' + shipping_subtotal_formatted + '\r\n' 
+        order_total_information += 'Item Discount: (' + item_discount_formatted + ')\r\n'
+    order_total_information += 'Shipping: ' + shipping_subtotal_formatted + '\r\n'
     if cart_totals_dict['shipping_discount'] > 0:
-        order_total_information += 'Shipping Discount: (' + shipping_discount_formatted + ')\r\n' 
+        order_total_information += 'Shipping Discount: (' + shipping_discount_formatted + ')\r\n'
     order_total_information += 'Order Total: ' + cart_total_formatted + '\r\n'
     return order_total_information
+
 
 def get_confirmation_email_order_payment_text_format(payment):
     order_payment_information = str(payment.card_brand) + ': **** **** **** ' + str(payment.card_last4) + ', Exp: ' + str(payment.card_exp_month) + '/' + str(payment.card_exp_year)
     return order_payment_information
 
+
 def get_confirmation_email_order_address_text_format(address):
     address_information = str(address.name)
-    address_information += '\r\n' 
+    address_information += '\r\n'
     address_information += str(address.address_line1)
-    address_information += '\r\n' 
+    address_information += '\r\n'
     address_information += str(address.city) + ', ' + str(address.state) + ' ' + str(address.zip)
-    address_information += '\r\n' 
+    address_information += '\r\n'
     address_information += str(address.country)
     return address_information
+
 
 def retrieve_stripe_customer(customer_token):
     """Wrapper for stripe.Customer.retrieve with error handling"""
@@ -543,6 +575,7 @@ def retrieve_stripe_customer(customer_token):
         # Log the error and return None to allow graceful handling by caller
         print(f"Stripe error in retrieve_stripe_customer: {type(e).__name__}: {str(e)}")
         return None
+
 
 def create_stripe_customer(stripe_token, email, metadata_key, metadata_value):
     try:
@@ -557,6 +590,7 @@ def create_stripe_customer(stripe_token, email, metadata_key, metadata_value):
         print(f"Stripe error in create_stripe_customer: {type(e).__name__}: {str(e)}")
         return None
 
+
 def stripe_customer_replace_default_payemnt(customer_token, stripe_token):
     try:
         stripe.Customer.modify(customer_token,
@@ -567,6 +601,7 @@ def stripe_customer_replace_default_payemnt(customer_token, stripe_token):
         # Log the error and return None to indicate failure
         print(f"Stripe error in stripe_customer_replace_default_payemnt: {type(e).__name__}: {str(e)}")
         return None
+
 
 def stripe_customer_add_card(customer_token, stripe_token):
     try:
@@ -580,6 +615,7 @@ def stripe_customer_add_card(customer_token, stripe_token):
         print(f"Stripe error in stripe_customer_add_card: {type(e).__name__}: {str(e)}")
         return None
 
+
 def stripe_customer_change_default_payemnt(customer_token, card_id):
     try:
         stripe.Customer.modify(customer_token,
@@ -590,4 +626,3 @@ def stripe_customer_change_default_payemnt(customer_token, card_id):
         # Log the error and return None to indicate failure
         print(f"Stripe error in stripe_customer_change_default_payemnt: {type(e).__name__}: {str(e)}")
         return None
-

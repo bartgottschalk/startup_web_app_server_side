@@ -8,6 +8,7 @@ from order.models import Skutype, Skuinventory, Product, Sku, Skuprice, Products
 
 from StartupWebApp.utilities import unittest_utilities
 
+
 class OrderAPITest(TestCase):
 
 	def setUp(self):
@@ -16,7 +17,7 @@ class OrderAPITest(TestCase):
 		Skuinventory.objects.create(id=1, title='In Stock', identifier='in-stock', description='In Stock items are available to purchase.')
 		Skuinventory.objects.create(id=2, title='Back Ordered', identifier='back-ordered', description='Back Ordered items are not available to purchase at this time.')
 		Skuinventory.objects.create(id=3, title='Out of Stock', identifier='out-of-stock', description='Out of Stock items are not available to purchase.')
-		
+
 		Product.objects.create(id=1, title='Paper Clips', title_url='PaperClips', identifier='bSusp6dBHm', headline='Paper clips can hold up to 20 pieces of paper together!', description_part_1='Made out of high quality metal and folded to exact specifications.', description_part_2='Use paperclips for all your paper binding needs!')
 		Sku.objects.create(id=1, color='Silver', size='Medium', sku_type_id=1, description='Left Sided Paperclip', sku_inventory_id=1)
 		Skuprice.objects.create(id=1, price=3.5, created_date_time=timezone.now(), sku_id=1)

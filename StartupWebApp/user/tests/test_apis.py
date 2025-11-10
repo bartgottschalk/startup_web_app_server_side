@@ -15,6 +15,7 @@ from user.models import Member, Termsofuse, Prospect, Chatmessage
 
 from StartupWebApp.utilities import unittest_utilities
 
+
 class UserAPITest(TestCase):
 
 	def setUp(self):
@@ -53,7 +54,7 @@ class UserAPITest(TestCase):
 
 		# create user and login
 		response = self.client.post('/user/create-account', data={'firstname': 'jest', 'lastname': 'lser', 'username': 'testuser_logged_in', 'email_address': 'jestlser@test.com', 'password': 'ThisIsValid1!', 'confirm_password': 'ThisIsValid1!', 'newsletter': 'true', 'remember_me': 'false'})
-		
+
 		##############
 		# Empty Cart #
 		##############

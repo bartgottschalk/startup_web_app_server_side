@@ -85,7 +85,7 @@ INSTALLED_APPS = [
     'order.apps.OrderConfig',
     'user.apps.UserConfig',
     'clientevent.apps.ClienteventConfig',
-    'corsheaders',    
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

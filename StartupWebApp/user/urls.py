@@ -25,5 +25,5 @@ urlpatterns = [
     path('put-chat-message', views.put_chat_message, name='put_chat_message'),
     path('process-stripe-payment-token', views.process_stripe_payment_token, name='process_stripe_payment_token'),
     path('pythonabot-notify-me', views.pythonabot_notify_me, name='pythonabot_notify_me'),
-    
+
 ]

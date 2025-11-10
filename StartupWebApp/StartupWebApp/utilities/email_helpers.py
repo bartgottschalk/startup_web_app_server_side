@@ -1,5 +1,5 @@
 
-def maskEmailAddress(email_addr): 
+def maskEmailAddress(email_addr):
     split_addr = email_addr.split('@')
     masked_name = split_addr[0][0:4]
     for i in range(4, len(split_addr[0])):

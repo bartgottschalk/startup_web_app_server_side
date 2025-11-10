@@ -20,20 +20,27 @@ email_unsubscribe_signer = Signer(salt='email_unsubscribe')
 
 # Define an inline admin descriptor for Member model
 # which acts a bit like a singleton
+
+
 class MemberInline(admin.StackedInline):
     model = Member
     can_delete = False
     verbose_name_plural = 'member'
 
 # Define a new User admin
+
+
 class UserAdmin(BaseUserAdmin):
     inlines = (MemberInline, )
-    
+
+
 class ProspectResource(resources.ModelResource):
     class Meta:
         model = Prospect
 
 # Define a new Prospect admin
+
+
 class ProspectAdmin(ImportExportModelAdmin):
     resource_class = ProspectResource
     actions = ['populate_prospect_codes']
@@ -59,7 +66,7 @@ class ProspectAdmin(ImportExportModelAdmin):
                 new_email_unsubscribe_string = identifier.getNewProspectEmailUnsubscribeString()
                 #print(new_email_unsubscribe_string)
                 prospect.email_unsubscribe_string = new_email_unsubscribe_string
-                signed_string = email_unsubscribe_signer.sign(new_email_unsubscribe_string) 
+                signed_string = email_unsubscribe_signer.sign(new_email_unsubscribe_string)
                 prospect.email_unsubscribe_string_signed = signed_string.rsplit(':', 1)[1]
             else:
                 print("email_unsubscribe_string already set, skipping...")
@@ -74,10 +81,14 @@ class ProspectAdmin(ImportExportModelAdmin):
     populate_prospect_codes.short_description = "Populate Prospect Codes"
 
 # Define a new Defaultshippingaddress admin
+
+
 class DefaultshippingaddressAdmin(admin.ModelAdmin):
     list_display = ('name', 'address_line1', 'city', 'state', 'zip', 'country_code')
 
 # Define a new Email admin
+
+
 class EmailAdmin(admin.ModelAdmin):
     actions = ['populate_email_codes', 'send_draft_email', 'send_ready_email']
     list_display = ('subject', 'email_type', 'email_status', 'em_cd')
@@ -104,7 +115,7 @@ class EmailAdmin(admin.ModelAdmin):
             message_bit = "%s emails." % email_counter
         self.message_user(request, "Codes were successfully generated for %s" % message_bit)
     populate_email_codes.short_description = "Populate Email Codes"
-        
+
     def send_draft_email(self, request, queryset):
         email_counter = 0
         for email in queryset:
@@ -203,10 +214,14 @@ class EmailAdmin(admin.ModelAdmin):
     send_ready_email.short_description = "Send Ready Email to Recipients"
 
 # Define a new Emailsent admin
+
+
 class EmailsentAdmin(admin.ModelAdmin):
     list_display = ('member', 'prospect', 'email', 'sent_date_time')
 
 # Define a new Ad admin
+
+
 class AdAdmin(admin.ModelAdmin):
     actions = ['populate_ad_codes']
     list_display = ('campaignid', 'adgroupid', 'adid', 'final_url', 'headline_1', 'headline_2', 'headline_3', 'description_1', 'description_2', 'final_url_suffix', 'ad_type', 'ad_status', 'ad_cd')
@@ -233,10 +248,13 @@ class AdAdmin(admin.ModelAdmin):
             message_bit = "%s ads." % ad_counter
         self.message_user(request, "Codes were successfully generated for %s" % message_bit)
     populate_ad_codes.short_description = "Populate Ad Codes"
-        
+
 # Define a new Chatmessage admin
+
+
 class ChatmessageAdmin(admin.ModelAdmin):
     list_display = ('email_address', 'member', 'prospect', 'name', 'message', 'created_date_time')
+
 
 # Re-register UserAdmin
 admin.site.unregister(User)
