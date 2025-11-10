@@ -7,11 +7,8 @@ from django.utils import timezone
 from django.contrib.auth.models import User, Group
 
 from order.models import (
-    Cart, Cartsku, Cartdiscount, Cartshippingmethod,
-    Product, Productsku, Productimage,
-    Sku, Skuprice, Skutype, Skuinventory,
-    Shippingmethod, Discountcode, Discounttype,
-    Orderconfiguration
+    Cart, Cartdiscount, Cartshippingmethod, Shippingmethod,
+    Discountcode, Discounttype, Orderconfiguration
 )
 from user.models import Member, Termsofuse
 

@@ -5,7 +5,6 @@ from django.test import TestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group
 from django.db import IntegrityError
-from django.core.exceptions import ValidationError
 
 from user.models import (
     Member, Prospect, Termsofuse, Membertermsofuseversionagreed,

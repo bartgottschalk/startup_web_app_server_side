@@ -743,7 +743,7 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
 
     def test_confirm_place_order_success_authenticated_user(self):
         """Test successful order placement for authenticated user"""
-        from order.models import Order, Orderpayment, Ordershippingaddress, Orderbillingaddress
+        from order.models import Order
         from unittest.mock import patch, MagicMock
 
         # Mock email sending to avoid needing Email templates
@@ -935,7 +935,6 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
 
     def test_confirm_place_order_with_save_defaults(self):
         """Test order placement with save defaults enabled"""
-        from user.models import Defaultshippingaddress
         from unittest.mock import patch, MagicMock
 
         # Mock email sending and Stripe API
@@ -1113,7 +1112,6 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
 
     def test_confirm_place_order_anonymous_with_newsletter_true(self):
         """Test anonymous order with newsletter subscription opted in"""
-        from order.models import Order
         from unittest.mock import patch, MagicMock
 
         with patch('user.models.Email.objects.get') as mock_email_get, \
@@ -1205,7 +1203,6 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
 
     def test_confirm_place_order_anonymous_without_newsletter(self):
         """Test anonymous order without newsletter subscription"""
-        from order.models import Order
         from unittest.mock import patch, MagicMock
 
         with patch('user.models.Email.objects.get') as mock_email_get, \

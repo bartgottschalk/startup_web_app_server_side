@@ -1,6 +1,5 @@
 # Unit tests for order utility functions
 
-import json
 
 from django.test import TestCase
 from django.utils import timezone
@@ -8,13 +7,9 @@ from datetime import timedelta
 from django.contrib.auth.models import User, Group
 
 from order.models import (
-    Cart, Cartsku, Cartdiscount, Cartshippingmethod,
-    Product, Productsku, Productimage,
-    Sku, Skuprice, Skutype, Skuinventory,
-    Shippingmethod, Discountcode, Discounttype,
-    Orderconfiguration, Order, Orderdiscount,
-    Orderpayment, Ordershippingaddress, Orderbillingaddress,
-    Ordershippingmethod
+    Cart, Cartdiscount, Cartshippingmethod, Shippingmethod,
+    Discountcode, Discounttype, Order,
+    Orderdiscount
 )
 from user.models import Member, Termsofuse
 

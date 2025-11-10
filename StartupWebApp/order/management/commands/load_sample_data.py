@@ -18,7 +18,7 @@ from datetime import datetime
 
 from clientevent.models import Configuration as ClientEventConfiguration
 from user.models import (
-    Termsofuse, Emailtype, Emailstatus, Adtype, Adstatus, Email
+    Termsofuse, Emailtype, Emailstatus, Adtype, Adstatus
 )
 from order.models import (
     Status, Skutype, Skuinventory, Orderconfiguration,

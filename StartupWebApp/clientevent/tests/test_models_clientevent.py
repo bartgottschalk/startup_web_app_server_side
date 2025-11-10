@@ -1,6 +1,5 @@
 # Unit tests for clientevent models
 
-import json
 
 from django.test import TestCase
 from django.utils import timezone
@@ -9,7 +8,6 @@ from django.contrib.auth.models import User, Group
 from clientevent.models import Configuration, Pageview, AJAXError, Buttonclick, Linkevent
 from user.models import Member, Prospect, Email, Emailtype, Emailstatus, Ad, Adtype, Adstatus, Termsofuse
 
-from StartupWebApp.utilities import unittest_utilities
 
 
 class ConfigurationModelTest(TestCase):

@@ -1,6 +1,5 @@
 # Unit tests for linkevent endpoint
 
-import json
 
 from django.test import TestCase
 from django.utils import timezone

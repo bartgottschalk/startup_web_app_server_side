@@ -1,12 +1,11 @@
 # Unit tests from the perspective of the programmer
 
-import json
 
 from django.test import TestCase
 from django.utils import timezone
 from django.db.utils import IntegrityError
-from django.contrib.auth.models import User, Group
-from django.core.signing import TimestampSigner, Signer, SignatureExpired, BadSignature
+from django.contrib.auth.models import User
+from django.core.signing import Signer
 
 from user.models import Member, Prospect
 from StartupWebApp.utilities import identifier

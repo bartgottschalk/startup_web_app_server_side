@@ -1,12 +1,10 @@
 # Unit tests from the perspective of the programmer
 
-import json
 
 from django.test import TestCase
-from django.http import HttpRequest
 from django.utils import timezone
 
-from order.models import Orderconfiguration, Cart, Cartsku, Skutype, Skuinventory, Product, Sku, Skuprice, Productsku, Orderstatus, Shippingmethod
+from order.models import Skutype, Skuinventory, Product, Sku, Skuprice, Productsku
 
 from StartupWebApp.utilities import unittest_utilities
 

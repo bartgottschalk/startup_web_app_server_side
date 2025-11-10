@@ -1,6 +1,6 @@
-from order.models import Order, Ordersku, Orderdiscount, Status, Orderstatus, Ordershippingmethod
-from order.models import Orderconfiguration, Sku, Skuprice, Skuimage, Skutype, Skuinventory, Cart, Cartsku, Cartdiscount, Discountcode, Discounttype, Productsku, Product, Productimage, Shippingmethod, Cartshippingmethod
-from StartupWebApp.utilities import random, identifier
+from order.models import Ordersku, Orderdiscount, Orderstatus, Ordershippingmethod
+from order.models import Orderconfiguration, Skuprice, Skuimage, Cart, Cartsku, Cartdiscount, Productsku, Productimage, Cartshippingmethod
+from StartupWebApp.utilities import random
 from django.conf import settings
 import stripe
 stripe.api_key = settings.STRIPE_SERVER_SECRET_KEY
@@ -151,13 +151,13 @@ def get_cart_discount_codes(cart):
             discount_code_data['discounttype__applies_to'] = cartdiscount.discountcode.discounttype.applies_to
             discount_code_data['discounttype__action'] = cartdiscount.discountcode.discounttype.action
 
-            if cartdiscount.discountcode.combinable == True:
+            if cartdiscount.discountcode.combinable:
                 if calculate_item_subtotal(cart) >= cartdiscount.discountcode.order_minimum:
                     discount_code_data['discount_applied'] = True
                 else:
                     discount_code_data['discount_applied'] = False                        
             elif cartdiscount.discountcode.combinable == False:
-                if noncombinable_found == True:
+                if noncombinable_found:
                     discount_code_data['discount_applied'] = False
                 else:
                     noncombinable_found = True
@@ -261,8 +261,8 @@ def calculate_cart_item_discount(cart, item_subtotal):
     item_discount = 0
     for cartdiscount in Cartdiscount.objects.filter(cart=cart):
         if cartdiscount.discountcode.discounttype.applies_to == 'item_total':
-            if cartdiscount.discountcode.combinable == False:
-                if noncombinable_found == True:
+            if not cartdiscount.discountcode.combinable:
+                if noncombinable_found:
                     #print('skipping as this is noncombinable and one was already applied')
                     pass
                 else:
@@ -276,7 +276,7 @@ def calculate_cart_item_discount(cart, item_subtotal):
                         #print('skipping as this item_subtotal failed to meet the order_minimum')
                         pass
                 noncombinable_found = True
-            elif cartdiscount.discountcode.combinable == True:
+            elif cartdiscount.discountcode.combinable:
                 #print('applying this discount B')
                 pass
     return item_discount
@@ -485,14 +485,14 @@ def get_confirmation_email_discount_code_text_format(discount_code_dict):
     discount_code_text = ''
     for discount_code_id in discount_code_dict:
         combinable_str = 'No'
-        if discount_code_dict[discount_code_id]['combinable'] == True:
+        if discount_code_dict[discount_code_id]['combinable']:
             combinable_str = 'Yes'
 
         value_str = discount_code_dict[discount_code_id]['description']
         value_str = value_str.replace('{}', str(discount_code_dict[discount_code_id]['discount_amount']))
 
         wont_be_applied_str = ''
-        if discount_code_dict[discount_code_id]['discount_applied'] == False:
+        if not discount_code_dict[discount_code_id]['discount_applied']:
             wont_be_applied_str = ' [This code cannot be combined or does not qualify for your order.]'
 
         discount_code_text += 'Code: ' + discount_code_dict[discount_code_id]['code'] + wont_be_applied_str + ', ' + value_str + ', Combinable: ' + combinable_str

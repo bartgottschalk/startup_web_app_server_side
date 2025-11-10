@@ -2,19 +2,16 @@
 
 from django.test import TestCase
 from django.utils import timezone
-from django.contrib.auth.models import User, Group
 from django.db import IntegrityError
 
 from order.models import (
-    Orderconfiguration, Cart, Cartshippingaddress, Cartpayment, Cartsku,
-    Skutype, Skuinventory, Sku, Skuprice, Skuimage,
-    Product, Productimage, Productvideo, Productsku,
-    Discounttype, Discountcode, Cartdiscount, Orderdiscount,
-    Shippingmethod, Cartshippingmethod, Ordershippingmethod,
-    Orderpayment, Ordershippingaddress, Orderbillingaddress,
-    Order, Ordersku, Status, Orderstatus
+    Orderconfiguration, Cart, Cartshippingaddress, Cartpayment, Skutype,
+    Skuinventory, Sku, Skuprice, Skuimage, Product,
+    Productimage, Productvideo, Discounttype, Discountcode,
+    Shippingmethod, Ordershippingmethod, Orderpayment, Ordershippingaddress,
+    Orderbillingaddress, Order, Ordersku,
+    Status, Orderstatus
 )
-from user.models import Member, Prospect, Termsofuse
 
 
 class OrderconfigurationConstraintsTest(TestCase):

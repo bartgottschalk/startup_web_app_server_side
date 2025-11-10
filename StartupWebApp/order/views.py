@@ -1,27 +1,18 @@
 from django.http import JsonResponse
-from django.shortcuts import render
 from django.http import HttpResponse
-from django.core import serializers
-from django.views.decorators.cache import cache_control
 from django.views.decorators.cache import never_cache
-from django.template import loader
-from django.contrib.auth import authenticate, login, logout
 from django.conf import settings
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.utils import IntegrityError
-from django.db.models import Max
-from django.core.mail import send_mail, EmailMessage, EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives
 from smtplib import SMTPDataError
-from django.core.signing import TimestampSigner, Signer, SignatureExpired, BadSignature
-from user.models import Member, Defaultshippingaddress, Prospect, Emailunsubscribereasons, EmailunsubscribereasonsAdmin, Termsofuse, Membertermsofuseversionagreed, Emailtype, Emailstatus, Email, Emailsent, Ad, Adtype, Adstatus
+from django.core.signing import Signer
+from user.models import Defaultshippingaddress, Prospect, Emailtype, Email, Emailsent
 from order.utilities import order_utils
 from order.models import Orderpayment, Ordershippingaddress, Orderbillingaddress, Order, Ordersku, Orderdiscount, Status, Orderstatus, Ordershippingmethod
-from order.models import Orderconfiguration, Sku, Skuprice, Skuimage, Skutype, Skuinventory, Cartshippingaddress, Cartpayment, Cart, Cartsku, Cartdiscount, Discountcode, Discounttype, Productsku, Product, Productimage, Productvideo, Shippingmethod, Cartshippingmethod
+from order.models import Orderconfiguration, Sku, Skuprice, Skuimage, Cartshippingaddress, Cartpayment, Cartsku, Cartdiscount, Discountcode, Productsku, Product, Productimage, Productvideo, Shippingmethod, Cartshippingmethod
 from StartupWebApp.form import validator
-from StartupWebApp.utilities import random, identifier
-import time
-from clientevent.models import Configuration as ClientEventConfiguration, AJAXError
+from StartupWebApp.utilities import identifier
 from django.utils import timezone
 import json
 import stripe
@@ -64,7 +55,7 @@ def order_detail(request, order_identifier):
             else:
                 error_dict = {"error" : 'order-not-in-account'}
                 response = JsonResponse({'order_detail':'error','errors': error_dict,'order_identifier':order_identifier, 'order-api-version':order_api_version}, safe=False)
-    except (ObjectDoesNotExist, ValueError) as e:
+    except (ObjectDoesNotExist, ValueError):
         order = None
         #print(e)
         error_dict = {"error" : 'order-not-found'}
@@ -342,7 +333,8 @@ def cart_add_product_sku(request):
     if sku_id is not None:
         try:
             quantity_valid = validator.validateSkuQuantity(quantity)
-            if quantity_valid == True:
+            # Validators return True or error array - must use == True
+            if quantity_valid == True:  # noqa: E712
                 sku = Sku.objects.get(id=sku_id)
                 product_sku = Productsku.objects.get(sku=sku)
                 cart_sku_exists = Cartsku.objects.filter(cart=cart, sku=product_sku.sku).exists()
@@ -638,7 +630,6 @@ def confirm_place_order(request):
                             order = Order.objects.create(identifier=order_identifier, prospect=prospect, payment=payment, shipping_address=shipping_address, billing_address=billing_address, sales_tax_amt=0, item_subtotal=cart_totals_dict['item_subtotal'], item_discount_amt=cart_totals_dict['item_discount'], shipping_amt=cart_totals_dict['shipping_subtotal'], shipping_discount_amt=cart_totals_dict['shipping_discount'], order_total=cart_totals_dict['cart_total'] ,agreed_with_terms_of_sale=True, order_date_time=now)
                         #create Ordersku objects
                         cart_item_dict = order_utils.get_cart_items(request, cart)
-                        confirmation_email_product_text = ''
                         for product_sku_id in cart_item_dict['product_sku_data']:
                             Ordersku.objects.create(order=order, sku=Sku.objects.get(id=cart_item_dict['product_sku_data'][product_sku_id]['sku_id']), quantity=cart_item_dict['product_sku_data'][product_sku_id]['quantity'], price_each=cart_item_dict['product_sku_data'][product_sku_id]['price'])
 
@@ -729,7 +720,6 @@ def confirm_place_order(request):
                         cart.delete()
 
                         response = JsonResponse({'checkout_allowed':checkout_allowed, 'confirm_place_order':'success', 'order_identifier': order.identifier, 'order-api-version':order_api_version}, safe=False)
-                        pass
                     except (ObjectDoesNotExist, ValueError) as e:
                         print(e)
                         error_dict = {"error" : 'error-saving-order', 'description': 'An error occurred while processing your order.'}

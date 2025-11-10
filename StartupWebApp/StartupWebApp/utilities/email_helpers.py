@@ -1,4 +1,3 @@
-import string
 
 def maskEmailAddress(email_addr): 
     split_addr = email_addr.split('@')

@@ -1,6 +1,5 @@
 # Unit tests for Order app models
 
-import json
 
 from django.test import TestCase
 from django.utils import timezone
@@ -8,17 +7,12 @@ from django.contrib.auth.models import User, Group
 from django.db import IntegrityError
 
 from order.models import (
-    Orderconfiguration, Cart, Cartshippingaddress, Cartpayment, Cartsku,
-    Skutype, Skuinventory, Sku, Skuprice, Skuimage,
-    Product, Productimage, Productvideo, Productsku,
-    Discounttype, Discountcode, Cartdiscount, Orderdiscount,
-    Shippingmethod, Cartshippingmethod, Ordershippingmethod,
-    Orderpayment, Ordershippingaddress, Orderbillingaddress,
-    Order, Ordersku, Status, Orderstatus
+    Orderconfiguration, Cart, Cartshippingaddress, Cartpayment, Skutype,
+    Skuinventory, Sku, Skuprice, Product, Shippingmethod,
+    Order, Status
 )
 from user.models import Member, Prospect, Termsofuse
 
-from StartupWebApp.utilities import unittest_utilities
 
 
 class OrderconfigurationModelTest(TestCase):

@@ -5,9 +5,8 @@ from django.test import TestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group
 from django.db import IntegrityError
-from django.core.exceptions import ValidationError
 
-from clientevent.models import Configuration, Pageview, AJAXError, Buttonclick, Linkevent
+from clientevent.models import Pageview, AJAXError, Buttonclick, Linkevent
 from user.models import Member, Prospect, Email, Emailtype, Emailstatus, Ad, Adtype, Adstatus, Termsofuse
 
 

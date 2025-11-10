@@ -1,5 +1,5 @@
 import string
-from random import *
+from random import choice, randint
 
 def getRandomString(min_char, max_char):
     #allchar = string.ascii_letters + string.punctuation + string.digits

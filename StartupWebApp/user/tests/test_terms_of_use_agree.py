@@ -8,7 +8,7 @@ from django.contrib.auth.models import User, Group
 
 from clientevent.models import Configuration as ClientEventConfiguration
 from order.models import Skutype, Skuinventory, Product, Sku, Skuprice, Productsku
-from user.models import Member, Termsofuse, Membertermsofuseversionagreed
+from user.models import Termsofuse, Membertermsofuseversionagreed
 
 from StartupWebApp.utilities import unittest_utilities
 

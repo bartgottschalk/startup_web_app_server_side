@@ -4,8 +4,8 @@ from django.contrib import admin
 
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from django.core.signing import TimestampSigner, Signer, SignatureExpired, BadSignature
-from django.core.mail import send_mail, EmailMessage, EmailMultiAlternatives
+from django.core.signing import Signer
+from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.utils import timezone
 from smtplib import SMTPDataError
@@ -45,7 +45,7 @@ class ProspectAdmin(ImportExportModelAdmin):
             print(prospect)
 
             # pr_cd
-            if prospect.pr_cd == None:
+            if prospect.pr_cd is None:
                 print("pr_cd empty, setting...")
                 new_pr_cd = identifier.getNewProspectCode()
                 #print(new_pr_cd)
@@ -54,7 +54,7 @@ class ProspectAdmin(ImportExportModelAdmin):
                 print("pr_cd already set, skipping...")
 
             # email_unsubscribe_string
-            if prospect.email_unsubscribe_string == None:
+            if prospect.email_unsubscribe_string is None:
                 print("email_unsubscribe_string empty, setting...")
                 new_email_unsubscribe_string = identifier.getNewProspectEmailUnsubscribeString()
                 #print(new_email_unsubscribe_string)
@@ -88,7 +88,7 @@ class EmailAdmin(admin.ModelAdmin):
             print(email)
 
             # em_cd
-            if email.em_cd == None:
+            if email.em_cd is None:
                 print("em_cd empty, setting...")
                 new_em_cd = identifier.getNewAdCode()
                 #print(new_pr_cd)
@@ -217,7 +217,7 @@ class AdAdmin(admin.ModelAdmin):
             print(ad)
 
             # ad_cd
-            if ad.ad_cd == None:
+            if ad.ad_cd is None:
                 print("ad_cd empty, setting...")
                 new_ad_cd = identifier.getNewAdCode()
                 #print(new_pr_cd)

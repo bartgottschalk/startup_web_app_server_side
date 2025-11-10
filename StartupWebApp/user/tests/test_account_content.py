@@ -7,8 +7,8 @@ from django.utils import timezone
 from django.contrib.auth.models import User, Group
 
 from clientevent.models import Configuration as ClientEventConfiguration
-from order.models import Cart, Order, Skutype, Skuinventory, Product, Sku, Skuprice, Productsku
-from user.models import Member, Termsofuse, Membertermsofuseversionagreed
+from order.models import Order, Skutype, Skuinventory, Product, Sku, Skuprice, Productsku
+from user.models import Termsofuse, Membertermsofuseversionagreed
 
 from StartupWebApp.utilities import unittest_utilities
 
