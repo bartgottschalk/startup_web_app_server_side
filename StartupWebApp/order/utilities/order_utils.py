@@ -28,10 +28,10 @@ def checkout_allowed(request):
             #print('username is ' + str(username))
             if username == "*":
                 checkout_allowed = True
-                break;
+                break
             elif str(username) == str(request.user.username):
                 checkout_allowed = True
-                break;
+                break
     else:
         #print('NOT authenticated')
         signed_cookie = request.get_signed_cookie(key='an_ct', default=False, salt='anonymouscartcookieisthis')
@@ -40,10 +40,10 @@ def checkout_allowed(request):
             #print('an_ct is ' + str(an_ct))
             if str(an_ct) == "*":
                 checkout_allowed = True
-                break;
+                break
             elif str(an_ct) == str(signed_cookie):
                 checkout_allowed = True
-                break;
+                break
 
     return checkout_allowed
 
@@ -163,7 +163,7 @@ def get_cart_discount_codes(cart):
                     discount_code_data['discount_applied'] = True
                 else:
                     discount_code_data['discount_applied'] = False
-            elif cartdiscount.discountcode.combinable == False:
+            else:  # non-combinable discount
                 if noncombinable_found:
                     discount_code_data['discount_applied'] = False
                 else:
@@ -333,12 +333,12 @@ def get_order_data(order):
     order_data['order_attributes'] = get_order_attributes(order)
     order_data['order_items'] = get_order_items(order)
     order_data['order_shipping_method'] = get_order_shipping_method(order)
-    order_data['order_discount_codes'] = get_order_discount_codes(order);
-    order_data['order_totals'] = get_order_totals(order);
-    order_data['order_statuses'] = get_order_statuses(order);
-    order_data['order_shipping_address'] = get_order_shipping_address(order);
-    order_data['order_billing_address'] = get_order_billing_address(order);
-    order_data['order_payment_info'] = get_order_payment_info(order);
+    order_data['order_discount_codes'] = get_order_discount_codes(order)
+    order_data['order_totals'] = get_order_totals(order)
+    order_data['order_statuses'] = get_order_statuses(order)
+    order_data['order_shipping_address'] = get_order_shipping_address(order)
+    order_data['order_billing_address'] = get_order_billing_address(order)
+    order_data['order_payment_info'] = get_order_payment_info(order)
     return order_data
 
 
@@ -489,11 +489,11 @@ def get_confirmation_email_product_information_text_format(order_item_dict):
     for product_sku_id in order_item_dict['product_sku_data']:
         sku_title_str = order_item_dict['product_sku_data'][product_sku_id]['parent_product__title']
         if order_item_dict['product_sku_data'][product_sku_id]['description'] is not None:
-            sku_title_str += ', ' + order_item_dict['product_sku_data'][product_sku_id]['description'];
+            sku_title_str += ', ' + order_item_dict['product_sku_data'][product_sku_id]['description']
         if order_item_dict['product_sku_data'][product_sku_id]['color'] is not None:
-            sku_title_str += ', ' + order_item_dict['product_sku_data'][product_sku_id]['color'];
+            sku_title_str += ', ' + order_item_dict['product_sku_data'][product_sku_id]['color']
         if order_item_dict['product_sku_data'][product_sku_id]['size'] is not None:
-            sku_title_str += ', ' + order_item_dict['product_sku_data'][product_sku_id]['size'];
+            sku_title_str += ', ' + order_item_dict['product_sku_data'][product_sku_id]['size']
         item_each_formatted = '${:,.2f}'.format(float(order_item_dict['product_sku_data'][product_sku_id]['price']))
         item_subtotal_formatted = '${:,.2f}'.format(float(order_item_dict['product_sku_data'][product_sku_id]['price']) * int(order_item_dict['product_sku_data'][product_sku_id]['quantity']))
         product_information_text += sku_title_str + ', ' + item_each_formatted + ' each, Quantity: ' + str(order_item_dict['product_sku_data'][product_sku_id]['quantity']) + ', Subtotal: ' + item_subtotal_formatted

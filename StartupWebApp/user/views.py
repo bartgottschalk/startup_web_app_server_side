@@ -69,7 +69,8 @@ def logged_in(request):
     else:
         #print ('not_authenticated')
         response = JsonResponse({'logged_in': False, 'log_client_events': ClientEventConfiguration.objects.get(id=1).log_client_events, 'client_event_id': 'null', 'cart_item_count': cart_item_count, 'user-api-version': user_api_version}, safe=False)
-        if request.get_signed_cookie(key='anonymousclientevent', default=False, salt='clienteventanonymousclienteventoccurrence') == False:
+        # Cookie returns False or string - must use == False to distinguish from empty string
+        if request.get_signed_cookie(key='anonymousclientevent', default=False, salt='clienteventanonymousclienteventoccurrence') == False:  # noqa: E712
             response.set_signed_cookie(key='anonymousclientevent', value=random.getRandomString(20, 20), salt='clienteventanonymousclienteventoccurrence', max_age=31536000, expires=None, path='/', domain='.startupwebapp.com', secure=None, httponly=False)
     return response
 
@@ -108,18 +109,18 @@ def client_login(request):
                 # skus. put any skus from the anonymous cart into the member cart if they're not already there
                 for anonymous_cart_sku in Cartsku.objects.filter(cart=anonymous_cart):
                     sku_exists_in_member_cart = Cartsku.objects.filter(cart=member_cart, sku=anonymous_cart_sku.sku).exists()
-                    if sku_exists_in_member_cart == False:
+                    if not sku_exists_in_member_cart:
                         Cartsku.objects.create(cart=member_cart, sku=anonymous_cart_sku.sku, quantity=anonymous_cart_sku.quantity)
                 # discount codes. put any discount codes from the anonymous cart into the member cart if they're not already there
                 for anonymous_cart_discount_code in Cartdiscount.objects.filter(cart=anonymous_cart):
                     discount_code_exists_in_member_cart = Cartdiscount.objects.filter(cart=member_cart, discountcode=anonymous_cart_discount_code.discountcode).exists()
-                    if discount_code_exists_in_member_cart == False:
+                    if not discount_code_exists_in_member_cart:
                         Cartdiscount.objects.create(cart=member_cart, discountcode=anonymous_cart_discount_code.discountcode)
                 # shipping method. If member cart doesn't have shipping method see if we can apply the anonymous cart shipping method
                 member_cart_shipping_method_exists = Cartshippingmethod.objects.filter(cart=member_cart).exists()
-                if member_cart_shipping_method_exists == False:
+                if not member_cart_shipping_method_exists:
                     anonymous_cart_shipping_method_exists = Cartshippingmethod.objects.filter(cart=anonymous_cart).exists()
-                    if anonymous_cart_shipping_method_exists == True:
+                    if anonymous_cart_shipping_method_exists:
                         Cartshippingmethod.objects.create(cart=member_cart, shippingmethod=Cartshippingmethod.objects.get(cart=anonymous_cart).shippingmethod)
                 # delete anonymous cart
                 anonymous_cart.delete()
@@ -158,7 +159,7 @@ def account_content(request):
         #print(request.user.member.email_verification_string_signed)
 
         verification_request_sent_within_24_hours = False
-        if request.user.member.email_verification_string_signed is not None and request.user.member.email_verified == False:
+        if request.user.member.email_verification_string_signed is not None and not request.user.member.email_verified:
             try:
                 unsigned_string = email_verification_signer.unsign(request.user.member.email_verification_string_signed, max_age=86400) #86400 seconds is one day
                 verification_request_sent_within_24_hours = True
@@ -166,7 +167,7 @@ def account_content(request):
                 verification_request_sent_within_24_hours = False
 
         email_data = {"email_address": request.user.email, "email_verified": request.user.member.email_verified, "verification_request_sent_within_24_hours": verification_request_sent_within_24_hours}
-        if Membertermsofuseversionagreed.objects.filter(member=request.user.member).exists() == True:
+        if Membertermsofuseversionagreed.objects.filter(member=request.user.member).exists():
             agreed_date_time = Membertermsofuseversionagreed.objects.filter(member=request.user.member).latest('agreed_date_time').agreed_date_time
         else:
             agreed_date_time = None
@@ -187,7 +188,7 @@ def account_content(request):
         stripe_publishable_key = settings.STRIPE_PUBLISHABLE_SECRET_KEY
 
         shipping_billing_addresses_and_payment_dict = {}
-        if request.user.member.use_default_shipping_and_payment_info == True:
+        if request.user.member.use_default_shipping_and_payment_info:
             if request.user.member.default_shipping_address is not None and request.user.member.stripe_customer_token is not None:
                 shipping_address_dict = order_utils.load_address_dict(request.user.member.default_shipping_address)
                 stripe_customer_token = request.user.member.stripe_customer_token
@@ -715,7 +716,7 @@ def update_communication_preferences(request):
             inappropriate_val = True if request.POST['inappropriate'] == 'true' else False
             spam_val = True if request.POST['spam'] == 'true' else False
             other_val = request.POST['other']
-            if no_longer_want_to_receive_val == True or never_signed_up_val == True or inappropriate_val == True or spam_val == True or other_val == True:
+            if no_longer_want_to_receive_val or never_signed_up_val or inappropriate_val or spam_val or other_val:
                 now = timezone.now()
                 Emailunsubscribereasons.objects.create(member=request.user.member, no_longer_want_to_receive=no_longer_want_to_receive_val, never_signed_up=never_signed_up_val, inappropriate=inappropriate_val, spam=spam_val, other=other_val, created_date_time=now)
 
@@ -736,10 +737,10 @@ def change_my_password(request):
     password = request.POST['new_password']
     confirm_password = request.POST['confirm_new_password']
 
-    if request.user.check_password(current_password) != True:
+    if not request.user.check_password(current_password):
         error_dict = {"current-password": [{'type': 'current_password_invalid', 'description': 'The current password you provided is incorrect.'}]}
         return JsonResponse({'change_my_password': 'errors', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False )
-    elif request.user.check_password(password) == True:
+    elif request.user.check_password(password):
         error_dict = {"password": [{'type': 'new_password_same_as_current_password', 'description': 'The new password cannot be the same as the old password.'}]}
         return JsonResponse({'change_my_password': 'errors', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False )
     else:
@@ -811,7 +812,7 @@ def email_unsubscribe_lookup(request):
                 member_or_prospect = Prospect.objects.get(email_unsubscribe_string_signed=pr_token)
                 full_email_address = member_or_prospect.email
                 token_val = pr_token
-            if member_or_prospect.email_unsubscribed != True:
+            if not member_or_prospect.email_unsubscribed:
                 unsigned_value = email_unsubscribe_signer.unsign(member_or_prospect.email_unsubscribe_string + ':' + token_val)
                 if unsigned_value == member_or_prospect.email_unsubscribe_string:
                     masked_email_address = email_helpers.maskEmailAddress(full_email_address)
@@ -857,7 +858,7 @@ def email_unsubscribe_confirm(request):
                 member_or_prospect = Prospect.objects.get(email_unsubscribe_string_signed=pr_token)
                 full_email_address = member_or_prospect.email
                 token_val = pr_token
-            if member_or_prospect.email_unsubscribed != True:
+            if not member_or_prospect.email_unsubscribed:
                 unsigned_value = email_unsubscribe_signer.unsign(member_or_prospect.email_unsubscribe_string + ':' + token_val)
                 if unsigned_value == member_or_prospect.email_unsubscribe_string:
                     member_or_prospect.email_unsubscribed = True
@@ -955,7 +956,7 @@ def terms_of_use_agree_check(request):
     #raise ValueError('A very specific bad thing happened.')
     most_recent_terms_of_use_version = Termsofuse.objects.all().aggregate(Max('version'))
     membertermsofuseversionagreed_exists = Membertermsofuseversionagreed.objects.filter(member=request.user.member, termsofuseversion=most_recent_terms_of_use_version['version__max']).exists()
-    if membertermsofuseversionagreed_exists == True:
+    if membertermsofuseversionagreed_exists:
         #print ('membertermsofuseversionagreed_exists')
         response = JsonResponse({'terms_of_use_agree_check': True, 'user-api-version': user_api_version}, safe=False)
     else:
@@ -1170,7 +1171,7 @@ def pythonabot_notify_me(request):
     if email_address_valid == True and how_excited_valid == True:  # noqa: E712
         if Prospect.objects.filter(email=email_address).exists():
             prospect_errors = []
-            duplicate_prospect_error = {'type': 'duplicate', 'description': 'I already know about this email address. Please enter a different email address.'};
+            duplicate_prospect_error = {'type': 'duplicate', 'description': 'I already know about this email address. Please enter a different email address.'}
             prospect_errors.append(duplicate_prospect_error)
             error_dict = {"email_address": prospect_errors, "how_excited": how_excited_valid}
             return JsonResponse({'pythonabot_notify_me': 'duplicate_prospect', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False )
