@@ -3,13 +3,15 @@ from order.models import Orderconfiguration, Skuprice, Skuimage, Cart, Cartsku, 
 from StartupWebApp.utilities import random
 from django.conf import settings
 import stripe
+import logging
 stripe.api_key = settings.STRIPE_SERVER_SECRET_KEY
 stripe.log = settings.STRIPE_LOG_LEVEL
+
+logger = logging.getLogger(__name__)
 
 
 def checkout_allowed(request):
     an_ct_values_allowed_to_checkout = Orderconfiguration.objects.get(key='an_ct_values_allowed_to_checkout').string_value
-    #print(an_ct_values_allowed_to_checkout)
     if an_ct_values_allowed_to_checkout is not None:
         an_ct_values_allowed_to_checkout_arr = an_ct_values_allowed_to_checkout.split(',')
     else:
@@ -22,10 +24,7 @@ def checkout_allowed(request):
 
     checkout_allowed = False
     if request.user.is_authenticated:
-        #print('IS authenticated')
-        #print('request.user.username is ' + str(request.user.username))
         for username in usernames_allowed_to_checkout_arr:
-            #print('username is ' + str(username))
             if username == "*":
                 checkout_allowed = True
                 break
@@ -33,11 +32,8 @@ def checkout_allowed(request):
                 checkout_allowed = True
                 break
     else:
-        #print('NOT authenticated')
         signed_cookie = request.get_signed_cookie(key='an_ct', default=False, salt='anonymouscartcookieisthis')
-        #print('signed_cookie is ' + str(signed_cookie))
         for an_ct in an_ct_values_allowed_to_checkout_arr:
-            #print('an_ct is ' + str(an_ct))
             if str(an_ct) == "*":
                 checkout_allowed = True
                 break
@@ -103,16 +99,13 @@ def set_anonymous_cart_cookie(request, response, cart):
 
 def look_up_cart(request):
     cart = None
-    print(request.user.is_authenticated)
+    logger.debug(f'User authenticated status: {request.user.is_authenticated}')
     if request.user.is_authenticated:
         member_cart_exists = Cart.objects.filter(member=request.user.member).exists()
         if member_cart_exists is True:
             cart = Cart.objects.get(member=request.user.member)
     else:
         signed_cookie = request.get_signed_cookie(key='an_ct', default=False, salt='anonymouscartcookieisthis')
-        #print('')
-        #print(signed_cookie)
-        #print('')
         anonymous_cart_exists = Cart.objects.filter(anonymous_cart_id=signed_cookie).exists()
         if anonymous_cart_exists is True:
             cart = Cart.objects.get(anonymous_cart_id=signed_cookie)
@@ -130,9 +123,6 @@ def look_up_member_cart(request):
 def look_up_anonymous_cart(request):
     cart = None
     signed_cookie = request.get_signed_cookie(key='an_ct', default=False, salt='anonymouscartcookieisthis')
-    #print('')
-    #print(signed_cookie)
-    #print('')
     anonymous_cart_exists = Cart.objects.filter(anonymous_cart_id=signed_cookie).exists()
     if anonymous_cart_exists is True:
         cart = Cart.objects.get(anonymous_cart_id=signed_cookie)
@@ -183,10 +173,8 @@ def get_cart_totals(cart):
     item_subtotal = calculate_item_subtotal(cart)
 
     if Cartshippingmethod.objects.filter(cart=cart).exists():
-        #print('^^^^^^^^^ cart exists!!!')
         shipping_subtotal = Cartshippingmethod.objects.get(cart=cart).shippingmethod.shipping_cost
     else:
-        #print('^^^^^^^^^ cart doesnt exist!!!')
         shipping_subtotal = 0
 
     item_discount = calculate_cart_item_discount(cart, item_subtotal)
@@ -203,14 +191,10 @@ def get_cart_totals(cart):
 
 
 def get_stripe_customer_payment_data(customer, shipping_address, card_id):
-    #print(shipping_address)
-    #print(shipping_address['name'])
     customer_payment_dict = {}
-    #print(card_id)
     if card_id is None:
         card_id = customer.default_source
     for source in customer.sources.data:
-        #print(source.id)
         if source.id == card_id:
             args = {}
             token = {}
@@ -274,21 +258,17 @@ def calculate_cart_item_discount(cart, item_subtotal):
         if cartdiscount.discountcode.discounttype.applies_to == 'item_total':
             if not cartdiscount.discountcode.combinable:
                 if noncombinable_found:
-                    #print('skipping as this is noncombinable and one was already applied')
                     pass
                 else:
-                    #print('applying this discount A')
                     if item_subtotal >= cartdiscount.discountcode.order_minimum:
                         if cartdiscount.discountcode.discounttype.action == 'percent-off':
                             item_discount += item_subtotal * (cartdiscount.discountcode.discount_amount/100)
                         if cartdiscount.discountcode.discounttype.action == 'dollar-amt-off':
                             item_discount += item_discount + cartdiscount.discountcode.discount_amount
                     else:
-                        #print('skipping as this item_subtotal failed to meet the order_minimum')
                         pass
                 noncombinable_found = True
             elif cartdiscount.discountcode.combinable:
-                #print('applying this discount B')
                 pass
     return item_discount
 
@@ -297,19 +277,15 @@ def calculate_shipping_discount(cart, item_subtotal):
     shipping_discount = 0
     for cartdiscount in Cartdiscount.objects.filter(cart=cart):
         if cartdiscount.discountcode.discounttype.applies_to == 'shipping':
-            #print('1')
             if item_subtotal >= cartdiscount.discountcode.order_minimum:
-                #print('2')
                 cart_shipping_method_exists = Cartshippingmethod.objects.filter(cart=cart).exists()
                 if cart_shipping_method_exists is True:
                     cart_shipping_method = Cartshippingmethod.objects.get(cart=cart)
                     if cart_shipping_method.shippingmethod.identifier == 'USPSRetailGround':
-                        #print('3')
                         shipping_discount = cart_shipping_method.shippingmethod.shipping_cost
                 else:
                     shipping_discount = 0
             else:
-                #print('skipping as this item_subtotal failed to meet the order_minimum')
                 pass
     return shipping_discount
 
@@ -386,7 +362,6 @@ def get_order_shipping_method(order):
     shipping_method = {}
     if Ordershippingmethod.objects.filter(order=order).exists():
         shipping_method_selected = Ordershippingmethod.objects.get(order=order).shippingmethod
-        #print(shipping_method_selected)
         shipping_method['identifier'] = shipping_method_selected.identifier
         shipping_method['carrier'] = shipping_method_selected.carrier
         shipping_method['shipping_cost'] = shipping_method_selected.shipping_cost
@@ -573,7 +548,7 @@ def retrieve_stripe_customer(customer_token):
         return customer
     except (stripe.error.CardError, stripe.error.RateLimitError, stripe.error.InvalidRequestError, stripe.error.AuthenticationError, stripe.error.APIConnectionError, stripe.error.StripeError) as e:
         # Log the error and return None to allow graceful handling by caller
-        print(f"Stripe error in retrieve_stripe_customer: {type(e).__name__}: {str(e)}")
+        logger.error(f"Stripe error in retrieve_stripe_customer: {type(e).__name__}: {str(e)}")
         return None
 
 
@@ -587,7 +562,7 @@ def create_stripe_customer(stripe_token, email, metadata_key, metadata_value):
         return customer
     except (stripe.error.CardError, stripe.error.RateLimitError, stripe.error.InvalidRequestError, stripe.error.AuthenticationError, stripe.error.APIConnectionError, stripe.error.StripeError) as e:
         # Log the error and return None to allow graceful handling by caller
-        print(f"Stripe error in create_stripe_customer: {type(e).__name__}: {str(e)}")
+        logger.error(f"Stripe error in create_stripe_customer: {type(e).__name__}: {str(e)}")
         return None
 
 
@@ -599,7 +574,7 @@ def stripe_customer_replace_default_payemnt(customer_token, stripe_token):
         return True
     except (stripe.error.CardError, stripe.error.RateLimitError, stripe.error.InvalidRequestError, stripe.error.AuthenticationError, stripe.error.APIConnectionError, stripe.error.StripeError) as e:
         # Log the error and return None to indicate failure
-        print(f"Stripe error in stripe_customer_replace_default_payemnt: {type(e).__name__}: {str(e)}")
+        logger.error(f"Stripe error in stripe_customer_replace_default_payment: {type(e).__name__}: {str(e)}")
         return None
 
 
@@ -612,7 +587,7 @@ def stripe_customer_add_card(customer_token, stripe_token):
         return card
     except (stripe.error.CardError, stripe.error.RateLimitError, stripe.error.InvalidRequestError, stripe.error.AuthenticationError, stripe.error.APIConnectionError, stripe.error.StripeError) as e:
         # Log the error and return None to allow graceful handling by caller
-        print(f"Stripe error in stripe_customer_add_card: {type(e).__name__}: {str(e)}")
+        logger.error(f"Stripe error in stripe_customer_add_card: {type(e).__name__}: {str(e)}")
         return None
 
 
@@ -624,5 +599,5 @@ def stripe_customer_change_default_payemnt(customer_token, card_id):
         return True
     except (stripe.error.CardError, stripe.error.RateLimitError, stripe.error.InvalidRequestError, stripe.error.AuthenticationError, stripe.error.APIConnectionError, stripe.error.StripeError) as e:
         # Log the error and return None to indicate failure
-        print(f"Stripe error in stripe_customer_change_default_payemnt: {type(e).__name__}: {str(e)}")
+        logger.error(f"Stripe error in stripe_customer_change_default_payment: {type(e).__name__}: {str(e)}")
         return None

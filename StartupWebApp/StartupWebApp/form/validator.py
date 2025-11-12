@@ -1,5 +1,8 @@
 import re
 from django.contrib.auth.models import User
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def isEmail(email):
@@ -21,7 +24,7 @@ def isIntegerInRange(integer_in, min_value, max_value):
             errors.append(out_of_range)
             return errors
     except ValueError as e:
-        print(e)
+        logger.warning(f'isIntegerInRange validation failed for value {integer_in}: {e}')
         errors.append(not_an_int)
         return errors
 

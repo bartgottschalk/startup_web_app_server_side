@@ -6,9 +6,11 @@ from django.contrib.auth.models import User
 from clientevent.models import Pageview, AJAXError, Buttonclick, Linkevent
 from django.utils import timezone
 from user.models import Member, Prospect, Email, Ad
+import logging
 
 #from user.models import
 
+logger = logging.getLogger(__name__)
 
 clientevent_api_version = '0.0.1'
 
@@ -44,7 +46,7 @@ def pageview(request):
                 user = User.objects.get(id=user_id)
         except (ObjectDoesNotExist, ValueError) as e:
             user = None
-            print('clientevent pageview user_id is None - Error: ' + str(e))
+            logger.warning(f'clientevent pageview user_id is None - Error: {e}')
         now = timezone.now()
         remote_addr = request.META.get('HTTP_X_FORWARDED_FOR') if request.META.get('HTTP_X_FORWARDED_FOR') is not None else request.META.get('REMOTE_ADDR')
         pageview = Pageview(user=user, anonymous_id=anonymous_id, url=url, page_width=pageWidth, remote_addr=remote_addr, http_user_agent=request.META.get('HTTP_USER_AGENT'), created_date_time=now)
@@ -70,7 +72,7 @@ def ajaxerror(request):
             user = User.objects.get(id=user_id)
         except (ObjectDoesNotExist, ValueError) as e:
             user = None
-            print(e)
+            logger.warning(f'ajaxerror user lookup failed for user_id {user_id}: {e}')
         now = timezone.now()
         ajaxerror = AJAXError(user=user, anonymous_id=anonymous_id, url=url, error_id=error_id, created_date_time=now)
         ajaxerror.save()
@@ -95,7 +97,7 @@ def buttonclick(request):
             user = User.objects.get(id=user_id)
         except (ObjectDoesNotExist, ValueError) as e:
             user = None
-            print(e)
+            logger.warning(f'buttonclick user lookup failed for user_id {user_id}: {e}')
         now = timezone.now()
         buttonclick = Buttonclick(user=user, anonymous_id=anonymous_id, url=url, button_id=button_id, created_date_time=now)
         buttonclick.save()
@@ -136,25 +138,25 @@ def linkevent(request):
                 user = member.user
         except (ObjectDoesNotExist, ValueError) as e:
             user = None
-            print(e)
+            logger.warning(f'linkevent member lookup failed for mb_cd {mb_cd}: {e}')
         try:
             if pr_cd is not None:
                 prospect = Prospect.objects.get(pr_cd=pr_cd)
         except (ObjectDoesNotExist, ValueError) as e:
             prospect = None
-            print(e)
+            logger.warning(f'linkevent prospect lookup failed for pr_cd {pr_cd}: {e}')
         try:
             if em_cd is not None:
                 email = Email.objects.get(em_cd=em_cd)
         except (ObjectDoesNotExist, ValueError) as e:
             email = None
-            print(e)
+            logger.warning(f'linkevent email lookup failed for em_cd {em_cd}: {e}')
         try:
             if ad_cd is not None:
                 ad = Ad.objects.get(ad_cd=ad_cd)
         except (ObjectDoesNotExist, ValueError) as e:
             ad = None
-            print(e)
+            logger.warning(f'linkevent ad lookup failed for ad_cd {ad_cd}: {e}')
         now = timezone.now()
         linkevent = Linkevent(user=user, prospect=prospect, anonymous_id=anonymous_id, email=email, ad=ad, url=url, created_date_time=now)
         linkevent.save()
