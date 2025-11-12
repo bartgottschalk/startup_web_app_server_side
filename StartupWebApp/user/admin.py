@@ -9,12 +9,15 @@ from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.utils import timezone
 from smtplib import SMTPDataError
+import logging
 
 from user.models import Defaultshippingaddress, Member, Prospect, Emailunsubscribereasons, EmailunsubscribereasonsAdmin, Termsofuse, Membertermsofuseversionagreed, Emailtype, Emailstatus, Email, Emailsent, Ad, Adtype, Adstatus, Chatmessage
 from StartupWebApp.utilities import identifier
 
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
+
+logger = logging.getLogger(__name__)
 
 email_unsubscribe_signer = Signer(salt='email_unsubscribe')
 
@@ -49,27 +52,25 @@ class ProspectAdmin(ImportExportModelAdmin):
     def populate_prospect_codes(self, request, queryset):
         prospect_counter = 0
         for prospect in queryset:
-            print(prospect)
+            logger.debug(f"Processing prospect: {prospect}")
 
             # pr_cd
             if prospect.pr_cd is None:
-                print("pr_cd empty, setting...")
+                logger.info(f"pr_cd empty for prospect {prospect.email}, setting new code")
                 new_pr_cd = identifier.getNewProspectCode()
-                #print(new_pr_cd)
                 prospect.pr_cd = new_pr_cd
             else:
-                print("pr_cd already set, skipping...")
+                logger.debug(f"pr_cd already set for prospect {prospect.email}, skipping")
 
             # email_unsubscribe_string
             if prospect.email_unsubscribe_string is None:
-                print("email_unsubscribe_string empty, setting...")
+                logger.info(f"email_unsubscribe_string empty for prospect {prospect.email}, setting new string")
                 new_email_unsubscribe_string = identifier.getNewProspectEmailUnsubscribeString()
-                #print(new_email_unsubscribe_string)
                 prospect.email_unsubscribe_string = new_email_unsubscribe_string
                 signed_string = email_unsubscribe_signer.sign(new_email_unsubscribe_string)
                 prospect.email_unsubscribe_string_signed = signed_string.rsplit(':', 1)[1]
             else:
-                print("email_unsubscribe_string already set, skipping...")
+                logger.debug(f"email_unsubscribe_string already set for prospect {prospect.email}, skipping")
 
             prospect.save()
             prospect_counter += 1
@@ -78,6 +79,7 @@ class ProspectAdmin(ImportExportModelAdmin):
         else:
             message_bit = "%s prospects." % prospect_counter
         self.message_user(request, "Codes were successfully generated for %s" % message_bit)
+        logger.info(f"Populated codes for {prospect_counter} prospect(s)")
     populate_prospect_codes.short_description = "Populate Prospect Codes"
 
 # Define a new Defaultshippingaddress admin
@@ -96,16 +98,15 @@ class EmailAdmin(admin.ModelAdmin):
     def populate_email_codes(self, request, queryset):
         email_counter = 0
         for email in queryset:
-            print(email)
+            logger.debug(f"Processing email: {email}")
 
             # em_cd
             if email.em_cd is None:
-                print("em_cd empty, setting...")
+                logger.info(f"em_cd empty for email '{email.subject}', setting new code")
                 new_em_cd = identifier.getNewAdCode()
-                #print(new_pr_cd)
                 email.em_cd = new_em_cd
             else:
-                print("em_cd already set, skipping...")
+                logger.debug(f"em_cd already set for email '{email.subject}', skipping")
 
             email.save()
             email_counter += 1
@@ -114,16 +115,17 @@ class EmailAdmin(admin.ModelAdmin):
         else:
             message_bit = "%s emails." % email_counter
         self.message_user(request, "Codes were successfully generated for %s" % message_bit)
+        logger.info(f"Populated codes for {email_counter} email(s)")
     populate_email_codes.short_description = "Populate Email Codes"
 
     def send_draft_email(self, request, queryset):
         email_counter = 0
         for email in queryset:
-            print(email)
+            logger.debug(f"Processing email: {email}")
 
-            print("email.email_status is " + str(email.email_status))
+            logger.debug(f"email.email_status is {email.email_status}")
             if email.email_status == Emailstatus.objects.get(title='Draft'):
-                print("email is Draft, proceed")
+                logger.info(f"Email '{email.subject}' is Draft, proceeding with send")
                 if email.email_type == Emailtype.objects.get(title='Prospect'):
                     recipients = Prospect.objects.filter(email_unsubscribed=False)
                     recipient_list = '<br/><br/>Notes:<br/>Prospects who would receive this email:<br/>'
@@ -152,9 +154,9 @@ class EmailAdmin(admin.ModelAdmin):
                     try:
                         msg.send(fail_silently=False)
                     except SMTPDataError as e:
-                        print(e)
+                        logger.exception(f"SMTPDataError while sending draft email '{email.subject}'")
             else:
-                print("email is NOT Draft, skip")
+                logger.warning(f"Email '{email.subject}' is NOT Draft, skipping")
             email_counter += 1
         if email_counter == 1:
             message_bit = "1 email."
@@ -166,10 +168,10 @@ class EmailAdmin(admin.ModelAdmin):
     def send_ready_email(self, request, queryset):
         email_counter = 0
         for email in queryset:
-            print(email)
-            print("email.email_status is " + str(email.email_status))
+            logger.debug(f"Processing email: {email}")
+            logger.debug(f"email.email_status is {email.email_status}")
             if email.email_status == Emailstatus.objects.get(title='Ready'):
-                print("email is Ready, proceed")
+                logger.info(f"Email '{email.subject}' is Ready, proceeding with send to recipients")
                 if email.email_type == Emailtype.objects.get(title='Prospect'):
                     recipients = Prospect.objects.filter(email_unsubscribed=False)
                 elif email.email_type == Emailtype.objects.get(title='Member'):
@@ -198,13 +200,13 @@ class EmailAdmin(admin.ModelAdmin):
                             emailsent = Emailsent.objects.create(member=None, prospect=recipient, email=email, sent_date_time=now)
                         elif email.email_type == Emailtype.objects.get(title='Member'):
                             emailsent = Emailsent.objects.create(member=recipient.member, prospect=None, email=email, sent_date_time=now)
-                        print(emailsent)
+                        logger.info(f"Email sent successfully: {emailsent}")
                     except SMTPDataError as e:
-                        print(e)
+                        logger.exception(f"SMTPDataError while sending email '{email.subject}' to recipient {recipient.email}")
                 email.email_status = Emailstatus.objects.get(title='Sent')
                 email.save()
             else:
-                print("email is NOT Ready, skip")
+                logger.warning(f"Email '{email.subject}' is NOT Ready, skipping")
             email_counter += 1
         if email_counter == 1:
             message_bit = "1 email."
@@ -229,16 +231,15 @@ class AdAdmin(admin.ModelAdmin):
     def populate_ad_codes(self, request, queryset):
         ad_counter = 0
         for ad in queryset:
-            print(ad)
+            logger.debug(f"Processing ad: {ad}")
 
             # ad_cd
             if ad.ad_cd is None:
-                print("ad_cd empty, setting...")
+                logger.info(f"ad_cd empty for ad {ad.adid}, setting new code")
                 new_ad_cd = identifier.getNewAdCode()
-                #print(new_pr_cd)
                 ad.ad_cd = new_ad_cd
             else:
-                print("ad_cd already set, skipping...")
+                logger.debug(f"ad_cd already set for ad {ad.adid}, skipping")
 
             ad.save()
             ad_counter += 1
@@ -247,6 +248,7 @@ class AdAdmin(admin.ModelAdmin):
         else:
             message_bit = "%s ads." % ad_counter
         self.message_user(request, "Codes were successfully generated for %s" % message_bit)
+        logger.info(f"Populated codes for {ad_counter} ad(s)")
     populate_ad_codes.short_description = "Populate Ad Codes"
 
 # Define a new Chatmessage admin

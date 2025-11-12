@@ -21,12 +21,14 @@ from django.utils import timezone
 import json
 from order.utilities import order_utils
 import stripe
+import logging
 stripe.api_key = settings.STRIPE_SERVER_SECRET_KEY
 stripe.log = settings.STRIPE_LOG_LEVEL
 
 
 #from user.models import
 
+logger = logging.getLogger(__name__)
 
 user_api_version = '0.0.1'
 email_verification_signer = TimestampSigner(salt='email_verification')
@@ -55,7 +57,6 @@ def token(request):
 @ensure_csrf_cookie
 def logged_in(request):
     #raise ValueError('A very specific bad thing happened.')
-    #print(request.user.session)
     cart = order_utils.look_up_cart(request)
     cart_item_count = 0
     if cart is not None:
@@ -78,17 +79,14 @@ def logged_in(request):
 def client_login(request):
     #raise ValueError('A very specific bad thing happened.')
     username = request.POST['username']
-    #print(username)
     password = request.POST['password']
     remember_me = request.POST['remember_me']
-    #print('remember_me is ' + remember_me)
     if remember_me != 'true':
         request.session.set_expiry(0)
 
     user = authenticate(request, username=username, password=password)
     if user is not None:
         login(request, user)
-        #print(user.is_authenticated)
         #print ('successful login')
 
         member_cart = order_utils.look_up_member_cart(request)
@@ -96,7 +94,7 @@ def client_login(request):
             #print ('member_cart is None')
             anonymous_cart = order_utils.look_up_anonymous_cart(request)
             if anonymous_cart is not None:
-                #print ('anonymous_cart is NOT None')
+                #logger.debug('Anonymous cart found during registration')
                 anonymous_cart.member = request.user.member
                 anonymous_cart.anonymous_cart_id = None
                 anonymous_cart.save()
@@ -104,7 +102,7 @@ def client_login(request):
             #print ('member_cart is NOT None')
             anonymous_cart = order_utils.look_up_anonymous_cart(request)
             if anonymous_cart is not None:
-                #print ('anonymous_cart is NOT None')
+                #logger.debug('Anonymous cart found during registration')
                 # merge anonymous cart into member cart
                 # skus. put any skus from the anonymous cart into the member cart if they're not already there
                 for anonymous_cart_sku in Cartsku.objects.filter(cart=anonymous_cart):
@@ -130,14 +128,14 @@ def client_login(request):
         return response
     else:
         # Return an 'invalid login' error message.
-        print ('failed login')
+        logger.warning('Login failed - invalid credentials')
         return JsonResponse({'login': 'false', 'user-api-version': user_api_version}, safe=False )
 
 
 def client_logout(request):
     #raise ValueError('A very specific bad thing happened.')
     if request.user.is_anonymous:
-        print('AnonymousUser found!')
+        logger.warning('AnonymousUser found when authenticated user expected')
         return JsonResponse({'logout': 'user_not_authenticated', 'user-api-version': user_api_version}, safe=False )
 
     logout(request)
@@ -150,13 +148,11 @@ def client_logout(request):
 
 def account_content(request):
     #raise ValueError('A very specific bad thing happened.')
-    #print(request.user.session)
     #response_html = {}
     if request.user.is_authenticated:
         #print ('is_authenticated')
         #response_data = "user IS logged in"
 
-        #print(request.user.member.email_verification_string_signed)
 
         verification_request_sent_within_24_hours = False
         if request.user.member.email_verification_string_signed is not None and not request.user.member.email_verified:
@@ -176,7 +172,6 @@ def account_content(request):
         members_orders = Order.objects.filter(member=request.user.member).order_by('-order_date_time')
         order_order_counter = 1
         for order in members_orders:
-            #print(order.id)
             orders_data[order_order_counter] = {}
             orders_data[order_order_counter]['order_id'] = order.id
             orders_data[order_order_counter]['identifier'] = order.identifier
@@ -184,7 +179,6 @@ def account_content(request):
             orders_data[order_order_counter]['sales_tax_amt'] = order.sales_tax_amt
             orders_data[order_order_counter]['order_total'] = order.order_total
             order_order_counter += 1
-        #print(orders_data)
         stripe_publishable_key = settings.STRIPE_PUBLISHABLE_SECRET_KEY
 
         shipping_billing_addresses_and_payment_dict = {}
@@ -193,14 +187,8 @@ def account_content(request):
                 shipping_address_dict = order_utils.load_address_dict(request.user.member.default_shipping_address)
                 stripe_customer_token = request.user.member.stripe_customer_token
                 customer = order_utils.retrieve_stripe_customer(stripe_customer_token)
-                #print('### CUSTOMER ###')
-                #print(customer)
-                #print(customer.sources)
-                #print(customer.sources.data)
-                #print('### END CUSTOMER ###')
                 if customer is not None:
                     shipping_billing_addresses_and_payment_dict = order_utils.get_stripe_customer_payment_data(customer, shipping_address_dict, None)
-                #print(customer_dict)
 
         response_data = {"authenticated": "true", "personal_data": personal_data, "email_data": email_data, "orders_data": orders_data, "shipping_billing_addresses_and_payment_data": shipping_billing_addresses_and_payment_dict, 'stripe_publishable_key': stripe_publishable_key}
     else:
@@ -212,37 +200,27 @@ def account_content(request):
 def create_account(request):
     #raise ValueError('A very specific bad thing happened.')
     firstname = request.POST['firstname']
-    #print(firstname)
     firstname_valid = validator.isNameValid(firstname, 30)
-    #print(firstname_valid)
 
     lastname = request.POST['lastname']
-    #print(lastname)
     lastname_valid = validator.isNameValid(lastname, 150)
-    #print(lastname_valid)
 
     username = request.POST['username']
-    #print(username)
     username_valid = validator.isUserNameValid(username, 150)
-    #print(username_valid)
 
     email_address = request.POST['email_address']
-    #print(email_address)
     email_address_valid = validator.isEmailValid(email_address, 254)
-    #print(email_address_valid)
 
     password = request.POST['password']
     confirm_password = request.POST['confirm_password']
     password_valid = validator.isPasswordValid(password, confirm_password, 150)
 
     newsletter = request.POST['newsletter']
-    #print(newsletter)
     remember_me = request.POST['remember_me']
-    #print('remember_me is ' + remember_me)
 
     # Validators return True or error array - must use == True
     if firstname_valid == True and lastname_valid == True and username_valid == True and email_address_valid == True and password_valid == True:  # noqa: E712
-        print('VALIDATION PASSED - CREATE USER')
+        logger.info('VALIDATION PASSED - CREATE USER')
         user_new = User.objects.create_user(username, email_address, password)
         user_new.first_name = firstname
         user_new.last_name = lastname
@@ -268,11 +246,10 @@ def create_account(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            #print(user.is_authenticated)
 
             anonymous_cart = order_utils.look_up_anonymous_cart(request)
             if anonymous_cart is not None:
-                print ('anonymous_cart is NOT None')
+                logger.debug('Anonymous cart found during registration')
                 anonymous_cart.member = user.member
                 anonymous_cart.anonymous_cart_id = None
                 anonymous_cart.save()
@@ -303,7 +280,7 @@ def create_account(request):
                         chat_message.member = user.member
                         chat_message.save()
 
-            print ('successful registration')
+            logger.info('User registration successful')
 
             random_str = random.getRandomString(20, 20)
             request.user.member.email_verification_string = random_str
@@ -342,16 +319,14 @@ def create_account(request):
             try:
                 email.send(fail_silently=False)
             except SMTPDataError as e:
-                print('failed to send welcome email')
-                print(e)
+                logger.exception('Failed to send welcome email')
 
             return JsonResponse({'create_account': 'true', 'user-api-version': user_api_version}, safe=False )
         else:
             #Return an 'invalid login' error message.
-            print ('failed registration')
+            logger.error('Registration failed - user created but login failed')
             return JsonResponse({'create_account': 'created_but_login_failed', 'user-api-version': user_api_version}, safe=False )
     else:
-        #print('VALIDATION ERRORS - RETURN ERRORS')
         error_dict = {"firstname": firstname_valid, "lastname": lastname_valid, "username": username_valid, "email-address": email_address_valid, "password": password_valid}
         return JsonResponse({'create_account': 'false', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False )
 
@@ -359,7 +334,7 @@ def create_account(request):
 def verify_email_address(request):
     #raise ValueError('A very specific bad thing happened.')
     if request.user.is_anonymous:
-        print('AnonymousUser found!')
+        logger.warning('AnonymousUser found when authenticated user expected')
         return JsonResponse({'verify_email_address': 'user_not_authenticated', 'user-api-version': user_api_version}, safe=False )
 
     if request.user.is_authenticated:
@@ -407,11 +382,10 @@ def verify_email_address(request):
 def verify_email_address_response(request):
     #raise ValueError('A very specific bad thing happened.')
     if request.user.is_anonymous:
-        print('AnonymousUser found!')
+        logger.warning('AnonymousUser found when authenticated user expected')
         return JsonResponse({'verify_email_address_response': 'user_not_authenticated', 'user-api-version': user_api_version}, safe=False )
 
     email_verification_code = request.POST['email_verification_code']
-    #print(email_verification_code)
     try:
         unsigned_string = email_verification_signer.unsign(email_verification_code, max_age=86400) #86400 seconds is one day
         if request.user.member.email_verification_string == unsigned_string:
@@ -433,13 +407,9 @@ def reset_password(request):
     # see if we can find a user who matches the requested values
     username = request.POST['username']
     email_address = request.POST['email_address']
-    #print(username)
-    #print(email_address)
     try:
         user = User.objects.get(username=username)
-        #print(user)
         if user.email.lower() == email_address.lower():
-            #print('found a match!!!!')
             random_str = random.getRandomString(20, 20)
             user.member.reset_password_string = random_str
             signed_string = reset_password_signer.sign(random_str)
@@ -473,25 +443,22 @@ def reset_password(request):
             try:
                 email.send(fail_silently=False)
             except SMTPDataError as e:
-                print(e)
+                logger.exception(f'SMTPDataError sending forgot username email to {email_address}')
         else:
-            print(user.email + " != " + email_address)
+            logger.warning(f'Email signature mismatch: {user.email} != {email_address}')
     except ObjectDoesNotExist as e:
-        print(e)
+        logger.warning(f'User not found in forgot_username for email {email_address}: {e}')
     return JsonResponse({'reset_password': 'success', 'user-api-version': user_api_version}, safe=False )
 
 
 def set_new_password(request):
     #raise ValueError('A very specific bad thing happened.')
     username = request.POST['username']
-    #print(username)
     try:
         user = User.objects.get(username=username)
 
         try:
             unsigned_string = reset_password_signer.unsign(request.POST['password_reset_code'], max_age=86400) #86400 seconds is one day
-            #print(user.member.reset_password_string)
-            #print(unsigned_string)
             if user.member.reset_password_string == unsigned_string:
                 password = request.POST['new_password']
                 confirm_password = request.POST['confirm_new_password']
@@ -527,11 +494,11 @@ def set_new_password(request):
                     try:
                         email.send(fail_silently=False)
                     except SMTPDataError as e:
-                        print(e)
+                        logger.exception('SMTPDataError sending password reset confirmation email')
 
                     return JsonResponse({'set_new_password': 'success', 'user-api-version': user_api_version}, safe=False )
                 else:
-                    print('VALIDATION ERRORS - RETURN ERRORS')
+                    logger.warning('VALIDATION ERRORS - RETURN ERRORS in set_new_password')
                     error_dict = {"new-password": password_valid}
                     return JsonResponse({'set_new_password': 'password-error', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False )
             else:
@@ -541,7 +508,7 @@ def set_new_password(request):
         except SignatureExpired:
             return JsonResponse({'set_new_password': 'signature-expired', 'user-api-version': user_api_version}, safe=False )
     except ObjectDoesNotExist as e:
-        print(e)
+        logger.warning(f'User not found in set_new_password for username {username}: {e}')
         return JsonResponse({'set_new_password': 'username-not-found', 'error': 'No account with that username could be found.', 'user-api-version': user_api_version}, safe=False )
 
 
@@ -549,12 +516,9 @@ def forgot_username(request):
     #raise ValueError('A very specific bad thing happened.')
     # see if we can find a user who matches the requested emailaddress
     email_address = request.POST['email_address']
-    #print(email_address)
     try:
         users = User.objects.filter(email=email_address)
-        #print(users)
         for user in users:
-            #print(user.email)
 
             forgot_username_content = user.first_name + ' ' + user.last_name + ','
             forgot_username_content += '\r\n\r\n'
@@ -583,36 +547,30 @@ def forgot_username(request):
             try:
                 email.send(fail_silently=False)
             except SMTPDataError as e:
-                print(e)
+                logger.exception('SMTPDataError sending forgot username email')
     except ObjectDoesNotExist as e:
-        print(e)
+        logger.warning(f'User not found in forgot_username for email {email_address}: {e}')
     return JsonResponse({'forgot_username': 'success', 'user-api-version': user_api_version}, safe=False )
 
 
 def update_my_information(request):
     #raise ValueError('A very specific bad thing happened.')
     if request.user.is_anonymous:
-        print('AnonymousUser found!')
+        logger.warning('AnonymousUser found when authenticated user expected')
         return JsonResponse({'update_my_information': 'user_not_authenticated', 'user-api-version': user_api_version}, safe=False )
     #raise ValueError('A very specific bad thing happened.')
     firstname = request.POST['firstname']
-    #print(firstname)
     firstname_valid = validator.isNameValid(firstname, 30)
-    #print(firstname_valid)
 
     lastname = request.POST['lastname']
-    #print(lastname)
     lastname_valid = validator.isNameValid(lastname, 150)
-    #print(lastname_valid)
 
     email_address = request.POST['email_address']
-    #print(email_address)
     email_address_valid = validator.isEmailValid(email_address, 254)
-    #print(email_address_valid)
 
     # Validators return True or error array - must use == True
     if firstname_valid == True and lastname_valid == True and email_address_valid == True:  # noqa: E712
-        print('VALIDATION PASSED - UPDATE USER INFO')
+        logger.info('VALIDATION PASSED - UPDATE USER INFO')
         request.user.first_name = firstname
         request.user.last_name = lastname
         old_email_address = request.user.email
@@ -661,29 +619,26 @@ def update_my_information(request):
             try:
                 email.send(fail_silently=False)
             except SMTPDataError as e:
-                print(e)
+                logger.exception('SMTPDataError sending email verification during info update')
 
             return JsonResponse({'update_my_information': 'success', 'user-api-version': user_api_version}, safe=False )
         else:
-            print ('email didn\'t change')
+            logger.debug('Email address did not change, skipping verification email')
             return JsonResponse({'update_my_information': 'success', 'user-api-version': user_api_version}, safe=False )
     else:
-        print('VALIDATION ERRORS - RETURN ERRORS')
+        logger.warning('VALIDATION ERRORS - RETURN ERRORS')
         error_dict = {"firstname": firstname_valid, "lastname": lastname_valid, "email-address": email_address_valid}
         return JsonResponse({'update_my_information': 'errors', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False )
 
 
 def update_communication_preferences(request):
     #raise ValueError('A very specific bad thing happened.')
-    #print(request.user)
     if request.user.is_anonymous:
-        print('AnonymousUser found!')
+        logger.warning('AnonymousUser found when authenticated user expected')
         return JsonResponse({'update_communication_preferences': 'user_not_authenticated', 'user-api-version': user_api_version}, safe=False )
     if request.method == 'POST' and 'newsletter' in request.POST and 'email_unsubscribe' in request.POST:
         newsletter = request.POST['newsletter']
         email_unsubscribe = request.POST['email_unsubscribe']
-        #print(newsletter)
-        #print(email_unsubscribe)
         if newsletter == 'true' and email_unsubscribe == 'true':
             error_dict = {"invalid_data": "The request included an invalid data combination."}
             return JsonResponse({'update_communication_preferences': 'errors', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False )
@@ -699,8 +654,7 @@ def update_communication_preferences(request):
                 email_unsubscribe_val = False
 
             # reset email unsubscribe string if the value of email_unsubscribe is changing from what it was
-            #print(email_unsubscribe_val)
-            print(request.user.member.email_unsubscribed)
+            logger.debug(f'User email_unsubscribed status: {request.user.member.email_unsubscribed}')
             if email_unsubscribe_val != request.user.member.email_unsubscribed:
                 random_str = identifier.getNewMemberEmailUnsubscribeString()
                 request.user.member.email_unsubscribe_string = random_str
@@ -730,7 +684,7 @@ def update_communication_preferences(request):
 def change_my_password(request):
     #raise ValueError('A very specific bad thing happened.')
     if request.user.is_anonymous:
-        print('AnonymousUser found!')
+        logger.warning('AnonymousUser found when authenticated user expected')
         return JsonResponse({'change_my_password': 'user_not_authenticated', 'user-api-version': user_api_version}, safe=False )
 
     current_password = request.POST['current_password']
@@ -779,15 +733,15 @@ def change_my_password(request):
                     email.send(fail_silently=False)
                     return JsonResponse({'change_my_password': 'success', 'user-api-version': user_api_version}, safe=False )
                 except SMTPDataError as e:
-                    print(e)
+                    logger.exception('SMTPDataError sending password change confirmation email')
                 return JsonResponse({'change_my_password': 'success', 'user-api-version': user_api_version}, safe=False )
 
             else:
                 #Return an 'invalid login' error message.
-                print ('failed registration')
+                logger.error('Registration failed - user created but login failed')
                 return JsonResponse({'change_my_password': 'changed_password_but_login_failed', 'user-api-version': user_api_version}, safe=False )
         else:
-            print('VALIDATION ERRORS - RETURN ERRORS')
+            logger.warning('VALIDATION ERRORS - RETURN ERRORS')
             error_dict = {"password": password_valid}
             return JsonResponse({'change_my_password': 'errors', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False )
 
@@ -803,12 +757,12 @@ def email_unsubscribe_lookup(request):
             pr_token = request.GET['pr_token']
         try:
             if token is not None:
-                print('looking up member')
+                logger.debug('Looking up member for email unsubscribe')
                 member_or_prospect = Member.objects.get(email_unsubscribe_string_signed=token)
                 full_email_address = member_or_prospect.user.email
                 token_val = token
             elif pr_token is not None:
-                print('looking up prospect')
+                logger.debug('Looking up prospect for email unsubscribe')
                 member_or_prospect = Prospect.objects.get(email_unsubscribe_string_signed=pr_token)
                 full_email_address = member_or_prospect.email
                 token_val = pr_token
@@ -818,20 +772,19 @@ def email_unsubscribe_lookup(request):
                     masked_email_address = email_helpers.maskEmailAddress(full_email_address)
                     response = JsonResponse({'email_unsubscribe_lookup': 'success', 'email_address': masked_email_address, 'user-api-version': user_api_version}, safe=False)
                 else:
-                    print("email_unsubscribe_lookup:token-invalid")
+                    logger.warning("Email unsubscribe lookup: token-invalid")
                     error_dict = {"error": 'token-invalid'}
                     response = JsonResponse({'email_unsubscribe_lookup': 'error', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False)
             else:
-                print("email_unsubscribe_lookup:email-address-already-unsubscribed")
+                logger.info("Email address already unsubscribed")
                 error_dict = {"error": 'email-address-already-unsubscribed'}
                 response = JsonResponse({'email_unsubscribe_lookup': 'error', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False)
         except (BadSignature) as e:
-            print(e)
-            print("email_unsubscribe_lookup:token-altered")
+            logger.warning(f"Email unsubscribe lookup: token-altered - {e}")
             error_dict = {"error": 'token-altered'}
             response = JsonResponse({'email_unsubscribe_lookup': 'error', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False)
         except (ObjectDoesNotExist, ValueError) as e:
-            print(e)
+            logger.warning(f"Email unsubscribe lookup: member not found - {e}")
             error_dict = {"error": 'member-not-found'}
             response = JsonResponse({'email_unsubscribe_lookup': 'error', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False)
     else:
@@ -843,7 +796,7 @@ def email_unsubscribe_lookup(request):
 def email_unsubscribe_confirm(request):
     token = None
     pr_token = None
-    print(request.POST)
+    logger.debug(f'POST data received: {request.POST}')
     if request.method == 'POST' and ('token' in request.POST or 'pr_token' in request.POST):
         if 'token' in request.POST:
             token = request.POST['token']
@@ -874,20 +827,19 @@ def email_unsubscribe_confirm(request):
                     masked_email_address = email_helpers.maskEmailAddress(full_email_address)
                     response = JsonResponse({'email_unsubscribe_confirm': 'success', 'email_address': masked_email_address, 'token': signed_string.rsplit(':', 1)[1], 'user-api-version': user_api_version}, safe=False)
                 else:
-                    print("email_unsubscribe_lookup:token-invalid")
+                    logger.warning("Email unsubscribe lookup: token-invalid")
                     error_dict = {"error": 'token-invalid'}
                     response = JsonResponse({'email_unsubscribe_confirm': 'error', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False)
             else:
-                print("email_unsubscribe_lookup:email-address-already-unsubscribed")
+                logger.info("Email address already unsubscribed")
                 error_dict = {"error": 'email-address-already-unsubscribed'}
                 response = JsonResponse({'email_unsubscribe_confirm': 'error', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False)
         except (BadSignature) as e:
-            print(e)
-            print("email_unsubscribe_lookup:token-altered")
+            logger.warning(f"Email unsubscribe confirm: token-altered - {e}")
             error_dict = {"error": 'token-altered'}
             response = JsonResponse({'email_unsubscribe_confirm': 'error', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False)
         except (ObjectDoesNotExist, ValueError) as e:
-            print(e)
+            logger.warning(f"Email unsubscribe confirm: member not found - {e}")
             error_dict = {"error": 'member-not-found'}
             response = JsonResponse({'email_unsubscribe_confirm': 'error', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False)
     else:
@@ -902,7 +854,7 @@ def email_unsubscribe_why(request):
     pr_token = None
     member_obj = None
     prospect_obj = None
-    print(request.POST)
+    logger.debug(f'POST data received: {request.POST}')
     if request.method == 'POST' and ('token' in request.POST or 'pr_token' in request.POST):
         if 'token' in request.POST:
             token = request.POST['token']
@@ -923,7 +875,7 @@ def email_unsubscribe_why(request):
 
             unsigned_value = email_unsubscribe_signer.unsign(member_or_prospect.email_unsubscribe_string + ':' + token_val)
             if unsigned_value == member_or_prospect.email_unsubscribe_string:
-                print('made it')
+                logger.debug('Reached email unsubscribe confirmation')
 
                 no_longer_want_to_receive_val = True if request.POST['no_longer_want_to_receive'] == 'true' else False
                 never_signed_up_val = True if request.POST['never_signed_up'] == 'true' else False
@@ -934,16 +886,15 @@ def email_unsubscribe_why(request):
                 Emailunsubscribereasons.objects.create(member=member_obj, prospect=prospect_obj, no_longer_want_to_receive=no_longer_want_to_receive_val, never_signed_up=never_signed_up_val, inappropriate=inappropriate_val, spam=spam_val, other=other_val, created_date_time=now)
                 response = JsonResponse({'email_unsubscribe_why': 'success', 'user-api-version': user_api_version}, safe=False)
             else:
-                print("email_unsubscribe_lookup:token-invalid")
+                logger.warning("Email unsubscribe lookup: token-invalid")
                 error_dict = {"error": 'token-invalid'}
                 response = JsonResponse({'email_unsubscribe_why': 'error', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False)
         except (BadSignature) as e:
-            print(e)
-            print("email_unsubscribe_lookup:token-altered")
+            logger.warning(f"Email unsubscribe why: token-altered - {e}")
             error_dict = {"error": 'token-altered'}
             response = JsonResponse({'email_unsubscribe_why': 'error', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False)
         except (ObjectDoesNotExist, ValueError) as e:
-            print(e)
+            logger.warning(f"Email unsubscribe why: member not found - {e}")
             error_dict = {"error": 'member-not-found'}
             response = JsonResponse({'email_unsubscribe_why': 'error', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False)
     else:
@@ -969,33 +920,30 @@ def terms_of_use_agree_check(request):
 def terms_of_use_agree(request):
     #raise ValueError('A very specific bad thing happened.')
     if request.user.is_anonymous:
-        print('AnonymousUser found!')
+        logger.warning('AnonymousUser found when authenticated user expected')
         return JsonResponse({'terms_of_use_agree': 'user_not_authenticated', 'user-api-version': user_api_version}, safe=False )
     version = None
     if request.method == 'POST' and 'version' in request.POST:
         version = request.POST['version']
-    #print(version)
     if version is not None:
         try:
             request_version_obj = Termsofuse.objects.get(version=version)
             most_recent_terms_of_use_version = Termsofuse.objects.all().aggregate(Max('version'))
             most_recent_terms_of_use_version_obj = Termsofuse.objects.get(version=most_recent_terms_of_use_version['version__max'])
-            #print(request_version_obj)
-            #print(most_recent_terms_of_use_version)
             if request_version_obj.id == most_recent_terms_of_use_version_obj.id:
                 now = timezone.now()
                 try:
                     membertermsofuseversionagreed = Membertermsofuseversionagreed.objects.create(member=request.user.member, termsofuseversion=request_version_obj, agreed_date_time=now)
                     response = JsonResponse({'terms_of_use_agree': 'success', 'version': version, 'user-api-version': user_api_version}, safe=False)
                 except (IntegrityError) as e:
-                    print(e)
+                    logger.warning(f'Terms of use already agreed for version {version}: {e}')
                     error_dict = {"error": 'version-already-agreed'}
                     response = JsonResponse({'terms_of_use_agree': 'error', 'errors': error_dict, 'version': version, 'user-api-version': user_api_version}, safe=False)
             else:
                 error_dict = {"error": "version-provided-not-most-recent"}
                 response = JsonResponse({'terms_of_use_agree': 'error', 'errors': error_dict, 'version': version, 'user-api-version': user_api_version}, safe=False)
         except (ObjectDoesNotExist, ValueError) as e:
-            print(e)
+            logger.warning(f'Terms of use version not found: {version} - {e}')
             error_dict = {"error": 'version-not-found'}
             response = JsonResponse({'terms_of_use_agree': 'error', 'errors': error_dict, 'version': version, 'user-api-version': user_api_version}, safe=False)
     else:
@@ -1009,29 +957,20 @@ def process_stripe_payment_token(request):
     stripe_token = None
     if request.method == 'POST' and 'stripe_token' in request.POST:
         stripe_token = request.POST['stripe_token']
-    #print(stripe_token)
 
     email = None
     if request.method == 'POST' and 'email' in request.POST:
         email = request.POST['email']
-    #print('###########')
-    #print(email)
-    #print('###########')
 
     stripe_payment_args = None
     if request.method == 'POST' and 'stripe_payment_args' in request.POST:
         stripe_payment_args = request.POST['stripe_payment_args']
-    #print(stripe_payment_args)
     stripe_payment_args = json.loads(stripe_payment_args)
-    #print(stripe_payment_args)
 
     if stripe_token is not None:
         try:
             if request.user.member.stripe_customer_token is None:
                 customer = order_utils.create_stripe_customer(stripe_token, email, 'member_username', request.user.username)
-                #print('***********')
-                #print(customer)
-                #print('***********')
                 request.user.member.stripe_customer_token = customer.id
                 request.user.member.use_default_shipping_and_payment_info = True
                 request.user.member.save()
@@ -1068,12 +1007,7 @@ def process_stripe_payment_token(request):
             body = e.json_body
             err  = body.get('error', {})
 
-            print("Status is: %s" % e.http_status)
-            print("Type is: %s" % err.get('type'))
-            print("Code is: %s" % err.get('code'))
-            # param is '' in this case
-            print("Param is: %s" % err.get('param'))
-            print("Message is: %s" % err.get('message'))
+            logger.error(f"Stripe CardError - Status: {e.http_status}, Type: {err.get('type')}, Code: {err.get('code')}, Param: {err.get('param')}, Message: {err.get('message')}")
 
             error_dict = {"error": 'error-creating-stripe-customer', 'description': 'An error occurred while processing your request.'}
             response = JsonResponse({'process_stripe_payment_token': 'error', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False)
@@ -1086,14 +1020,10 @@ def process_stripe_payment_token(request):
 def put_chat_message(request):
     #raise ValueError('A very specific bad thing happened.')
     name = request.POST['name']
-    #print(firstname)
     name_valid = validator.isNameValid(name, 30)
-    #print(firstname_valid)
 
     email_address = request.POST['email_address']
-    #print(email_address)
     email_address_valid = validator.isEmailValid(email_address, 254)
-    #print(email_address_valid)
 
     message = request.POST['message']
     message_valid = validator.isChatMessageValid(message, 5000)
@@ -1138,8 +1068,7 @@ def put_chat_message(request):
             email.send(fail_silently=False)
             return JsonResponse({'put_chat_message': 'true', 'user-api-version': user_api_version}, safe=False )
         except (SMTPDataError, ConnectionRefusedError, OSError, ValueError) as e:
-            print('failed to send chat message email')
-            print(e)
+            logger.exception('Failed to send chat message email')
             # In development (DEBUG=True), SMTP server may not be running - this is OK
             # Chat message was saved successfully, so return success
             # In production (DEBUG=False), email failure is a real error that should be reported
@@ -1158,14 +1087,10 @@ def put_chat_message(request):
 def pythonabot_notify_me(request):
     #raise ValueError('A very specific bad thing happened.')
     email_address = request.POST['email_address']
-    #print(email_address)
     email_address_valid = validator.isEmailValid(email_address, 254)
-    #print(email_address_valid)
 
     how_excited = request.POST['how_excited']
-    #print(how_excited)
     how_excited_valid = validator.isHowExcitedValid(how_excited)
-    #print(how_excited_valid)
 
     # Validators return True or error array - must use == True
     if email_address_valid == True and how_excited_valid == True:  # noqa: E712

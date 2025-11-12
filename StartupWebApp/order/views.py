@@ -16,6 +16,7 @@ from StartupWebApp.utilities import identifier
 from django.utils import timezone
 import json
 import stripe
+import logging
 stripe.api_key = settings.STRIPE_SERVER_SECRET_KEY
 stripe.log = settings.STRIPE_LOG_LEVEL
 
@@ -23,6 +24,7 @@ email_unsubscribe_signer = Signer(salt='email_unsubscribe')
 
 #from user.models import
 
+logger = logging.getLogger(__name__)
 
 order_api_version = '0.0.1'
 
@@ -37,14 +39,10 @@ def index(request):
 
 def order_detail(request, order_identifier):
     #raise ValueError('A very specific bad thing happened.')
-    #print(order_identifier)
     try:
         order = Order.objects.get(identifier=order_identifier)
-        #print(order)
-        #print(order.member)
-        #print(request.user.member)
         if request.user.is_anonymous:
-            print('AnonymousUser found!')
+            logger.warning('AnonymousUser found when authenticated user expected')
             if order.member is None:
                 order_data = order_utils.get_order_data(order)
                 response = JsonResponse({'order_detail': 'success', 'order_data': order_data, 'order-api-version': order_api_version}, safe=False)
@@ -60,7 +58,6 @@ def order_detail(request, order_identifier):
                 response = JsonResponse({'order_detail': 'error', 'errors': error_dict, 'order_identifier': order_identifier, 'order-api-version': order_api_version}, safe=False)
     except (ObjectDoesNotExist, ValueError):
         order = None
-        #print(e)
         error_dict = {"error": 'order-not-found'}
         response = JsonResponse({'order_detail': 'error', 'errors': error_dict, 'order_identifier': order_identifier, 'order-api-version': order_api_version}, safe=False)
     return response
@@ -155,7 +152,7 @@ def product(request, product_identifier):
 
         response = JsonResponse({'product': 'success', 'product_identifier': product_identifier, 'product_data': product_data, 'order-api-version': order_api_version}, safe=False)
     except (ObjectDoesNotExist, ValueError) as e:
-        print(e)
+        logger.warning(f'Product not found for identifier {product_identifier}: {e}')
         error_dict = {"error": 'product-identifier-not-found'}
         response = JsonResponse({'product': 'error', 'errors': error_dict, 'product_identifier': product_identifier, 'order-api-version': order_api_version}, safe=False)
     return response
@@ -170,7 +167,6 @@ def checkout_allowed(request):
 
 def cart_items(request):
     #raise ValueError('A very specific bad thing happened.')
-    #print(request.user.session)
     cart = order_utils.look_up_cart(request)
     cart_item_dict = order_utils.get_cart_items(request, cart)
     response = JsonResponse({'cart_found': (True if cart is not None else False), 'item_data': cart_item_dict, 'order-api-version': order_api_version}, safe=False)
@@ -226,7 +222,6 @@ def confirm_shipping_method(request):
         if cart is not None:
             if Cartshippingmethod.objects.filter(cart=cart).exists():
                 shipping_method_selected = Cartshippingmethod.objects.get(cart=cart).shippingmethod
-                #print(shipping_method_selected)
                 shipping_method['identifier'] = shipping_method_selected.identifier
                 shipping_method['carrier'] = shipping_method_selected.carrier
                 shipping_method['shipping_cost'] = shipping_method_selected.shipping_cost
@@ -239,7 +234,6 @@ def confirm_shipping_method(request):
 
 def cart_discount_codes(request):
     #raise ValueError('A very specific bad thing happened.')
-    #print(request.user.session)
     cart = order_utils.look_up_cart(request)
     discount_code_dict = order_utils.get_cart_discount_codes(cart)
     response = JsonResponse({'cart_found': (True if cart is not None else False), 'discount_code_data': discount_code_dict, 'order-api-version': order_api_version}, safe=False)
@@ -260,7 +254,6 @@ def confirm_discount_codes(request):
 
 def cart_totals(request):
     #raise ValueError('A very specific bad thing happened.')
-    #print(request.user.session)
     cart = order_utils.look_up_cart(request)
     cart_totals_dict = order_utils.get_cart_totals(cart)
     response = JsonResponse({'cart_found': (True if cart is not None else False), 'cart_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
@@ -295,7 +288,6 @@ def confirm_payment_data(request):
             else:
                 email = None
 
-            #print(cart.shipping_address)
             if cart.shipping_address is not None:
                 shipping_address_dict = order_utils.load_address_dict(cart.shipping_address)
             else:
@@ -317,14 +309,8 @@ def confirm_payment_data(request):
                 if cart.payment.stripe_customer_token is not None:
                     stripe_customer_token = cart.payment.stripe_customer_token
                     customer = order_utils.retrieve_stripe_customer(stripe_customer_token)
-                    #print('### CUSTOMER ###')
-                    #print(customer)
-                    #print(customer.sources)
-                    #print(customer.sources.data)
-                    #print('### END CUSTOMER ###')
                     if customer is not None:
                         customer_dict = order_utils.get_stripe_customer_payment_data(customer, shipping_address_dict, cart.payment.stripe_card_id)
-                    #print(customer_dict)
         else:
             email = None
         response = JsonResponse({'checkout_allowed': checkout_allowed, 'stripe_publishable_key': stripe_publishable_key, 'email': email, 'customer_data': customer_dict, 'order-api-version': order_api_version}, safe=False)
@@ -341,11 +327,9 @@ def cart_add_product_sku(request):
     sku_id = None
     if request.method == 'POST' and 'sku_id' in request.POST:
         sku_id = request.POST['sku_id']
-    #print(sku_id)
     quantity = None
     if request.method == 'POST' and 'quantity' in request.POST:
         quantity = request.POST['quantity']
-    #print(sku_id)
     if sku_id is not None:
         try:
             quantity_valid = validator.validateSkuQuantity(quantity)
@@ -364,11 +348,10 @@ def cart_add_product_sku(request):
                 response = JsonResponse({'cart_add_product_sku': 'success', 'sku_id': sku_id, 'cart_item_count': cart_item_count, 'order-api-version': order_api_version}, safe=False)
                 order_utils.set_anonymous_cart_cookie(request, response, cart)
             else:
-                #print('VALIDATION ERRORS - RETURN ERRORS')
                 error_dict = {"quantity": quantity_valid}
                 return JsonResponse({'cart_add_product_sku': 'error', 'errors': error_dict, 'sku_id': sku_id, 'order-api-version': order_api_version}, safe=False )
         except (ObjectDoesNotExist, ValueError) as e:
-            print(e)
+            logger.warning(f'Database lookup failed: {e}')
             error_dict = {"error": 'sku-not-found'}
             response = JsonResponse({'cart_add_product_sku': 'error', 'errors': error_dict, 'sku_id': sku_id, 'order-api-version': order_api_version}, safe=False)
     else:
@@ -397,7 +380,7 @@ def cart_update_sku_quantity(request):
                 cart_totals_dict = order_utils.get_cart_totals(cart)
                 response = JsonResponse({'cart_update_sku_quantity': 'success', 'cart_found': (True if cart is not None else False), 'sku_id': sku_id, 'sku_subtotal': sku_subtotal, 'discount_code_data': discount_code_dict, 'cart_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
             except (ObjectDoesNotExist, ValueError) as e:
-                print(e)
+                logger.warning(f'Database lookup failed: {e}')
                 error_dict = {"error": 'cart-sku-not-found'}
                 response = JsonResponse({'cart_update_sku_quantity': 'error', 'errors': error_dict, 'sku_id': sku_id, 'order-api-version': order_api_version}, safe=False)
         else:
@@ -444,7 +427,7 @@ def cart_remove_sku(request):
                 cart_item_count = order_utils.count_cart_items(cart)
                 response = JsonResponse({'cart_remove_sku': 'success', 'cart_found': (True if cart is not None else False), 'sku_id': sku_id, 'cart_item_count': cart_item_count, 'cart_shipping_methods': shipping_methods, 'shipping_method_selected': shipping_method_selected, 'discount_code_data': discount_code_dict, 'cart_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
             except (ObjectDoesNotExist, ValueError) as e:
-                print(e)
+                logger.warning(f'Database lookup failed: {e}')
                 error_dict = {"error": 'cart-sku-not-found'}
                 response = JsonResponse({'cart_remove_sku': 'error', 'errors': error_dict, 'sku_id': sku_id, 'order-api-version': order_api_version}, safe=False)
         else:
@@ -479,7 +462,7 @@ def cart_apply_discount_code(request):
                     cart_totals_dict = order_utils.get_cart_totals(cart)
                     response = JsonResponse({'cart_apply_discount_code': 'success', 'cart_found': (True if cart is not None else False), 'discount_code_id': discount_code_id, 'discount_code_data': discount_code_dict, 'cart_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
             except (ObjectDoesNotExist, ValueError) as e:
-                print(e)
+                logger.warning(f'Database lookup failed: {e}')
                 error_dict = {"error": 'cart-discount-code-not-found'}
                 response = JsonResponse({'cart_apply_discount_code': 'error', 'errors': error_dict, 'discount_code_id': discount_code_id, 'order-api-version': order_api_version}, safe=False)
         else:
@@ -506,7 +489,7 @@ def cart_remove_discount_code(request):
                 cart_totals_dict = order_utils.get_cart_totals(cart)
                 response = JsonResponse({'cart_remove_discount_code': 'success', 'cart_found': (True if cart is not None else False), 'discount_code_id': discount_code_id, 'discount_code_data': discount_code_dict, 'cart_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
             except (ObjectDoesNotExist, ValueError) as e:
-                print(e)
+                logger.warning(f'Database lookup failed: {e}')
                 error_dict = {"error": 'cart-discount-code-not-found'}
                 response = JsonResponse({'cart_remove_discount_code': 'error', 'errors': error_dict, 'discount_code_id': discount_code_id, 'order-api-version': order_api_version}, safe=False)
         else:
@@ -539,7 +522,7 @@ def cart_update_shipping_method(request):
                 cart_totals_dict = order_utils.get_cart_totals(cart)
                 response = JsonResponse({'cart_update_shipping_method': 'success', 'cart_found': (True if cart is not None else False), 'shipping_method_identifier': shipping_method_identifier, 'discount_code_data': discount_code_dict, 'cart_totals_data': cart_totals_dict, 'order-api-version': order_api_version}, safe=False)
             except (ObjectDoesNotExist, ValueError) as e:
-                print(e)
+                logger.warning(f'Database lookup failed: {e}')
                 error_dict = {"error": 'error-setting-cart-shipping-method'}
                 response = JsonResponse({'cart_update_shipping_method': 'error', 'errors': error_dict, 'shipping_method_identifier': shipping_method_identifier, 'order-api-version': order_api_version}, safe=False)
         else:
@@ -584,24 +567,21 @@ def confirm_place_order(request):
         if request.method == 'POST' and 'save_defaults' in request.POST:
             save_defaults = request.POST['save_defaults']
 
-        #print(request.POST)
 
         stripe_payment_info = None
         if request.method == 'POST' and 'stripe_payment_info' in request.POST:
             stripe_payment_info = request.POST['stripe_payment_info']
-        #print(stripe_payment_info)
         stripe_payment_info = json.loads(stripe_payment_info)
 
         stripe_shipping_addr = None
         if request.method == 'POST' and 'stripe_shipping_addr' in request.POST:
             stripe_shipping_addr = request.POST['stripe_shipping_addr']
-        print(stripe_shipping_addr)
+        logger.debug(f'Stripe shipping address: {stripe_shipping_addr}')
         stripe_shipping_addr = json.loads(stripe_shipping_addr)
 
         stripe_billing_addr = None
         if request.method == 'POST' and 'stripe_billing_addr' in request.POST:
             stripe_billing_addr = request.POST['stripe_billing_addr']
-        #print(stripe_billing_addr)
         stripe_billing_addr = json.loads(stripe_billing_addr)
 
         if agree_to_terms_of_sale is not None:
@@ -691,7 +671,6 @@ def confirm_place_order(request):
                         else:
                             order_confirmation_em_cd_prospect = Orderconfiguration.objects.get(key='order_confirmation_em_cd_prospect').string_value
                             email = Email.objects.get(em_cd=order_confirmation_em_cd_prospect)
-                            #print('newsletter is ' + str(newsletter))
                             if newsletter == 'true':
                                 email_unsubscribed = False
                             else:
@@ -729,9 +708,8 @@ def confirm_place_order(request):
                                 emailsent = Emailsent.objects.create(member=None, prospect=prospect, email=email, sent_date_time=now)
                             elif email.email_type == Emailtype.objects.get(title='Member'):
                                 emailsent = Emailsent.objects.create(member=request.user.member, prospect=None, email=email, sent_date_time=now)
-                            #print(emailsent)
                         except SMTPDataError as e:
-                            print(e)
+                            logger.exception('SMTPDataError sending order confirmation email')
 
                         #####################################
                         # END Send Order Confirmation Email #
@@ -743,7 +721,7 @@ def confirm_place_order(request):
 
                         response = JsonResponse({'checkout_allowed': checkout_allowed, 'confirm_place_order': 'success', 'order_identifier': order.identifier, 'order-api-version': order_api_version}, safe=False)
                     except (ObjectDoesNotExist, ValueError) as e:
-                        print(e)
+                        logger.exception('Error saving order during checkout')
                         error_dict = {"error": 'error-saving-order', 'description': 'An error occurred while processing your order.'}
                         response = JsonResponse({'checkout_allowed': checkout_allowed, 'confirm_place_order': 'error', 'errors': error_dict, 'agree_to_terms_of_sale': agree_to_terms_of_sale, 'order-api-version': order_api_version}, safe=False)
                 else:
@@ -768,21 +746,15 @@ def process_stripe_payment_token(request):
         stripe_token = None
         if request.method == 'POST' and 'stripe_token' in request.POST:
             stripe_token = request.POST['stripe_token']
-        #print(stripe_token)
 
         email = None
         if request.method == 'POST' and 'email' in request.POST:
             email = request.POST['email']
-        #print('###########')
-        #print(email)
-        #print('###########')
 
         stripe_payment_args = None
         if request.method == 'POST' and 'stripe_payment_args' in request.POST:
             stripe_payment_args = request.POST['stripe_payment_args']
-        #print(stripe_payment_args)
         stripe_payment_args = json.loads(stripe_payment_args)
-        #print(stripe_payment_args)
 
         if stripe_token is not None:
             try:
@@ -794,9 +766,6 @@ def process_stripe_payment_token(request):
                             customer = order_utils.create_stripe_customer(stripe_token, email, 'member_username', request.user.username)
                         else:
                             customer = order_utils.create_stripe_customer(stripe_token, email, 'prospect_email_addr', email)
-                        #print('***********')
-                        #print(customer)
-                        #print('***********')
                         cart_payment = Cartpayment.objects.create(stripe_customer_token=customer.id, stripe_card_id=customer.default_source, email=email)
                         cart.payment = cart_payment
                         cart.save()
@@ -832,12 +801,7 @@ def process_stripe_payment_token(request):
                 body = e.json_body
                 err  = body.get('error', {})
 
-                print("Status is: %s" % e.http_status)
-                print("Type is: %s" % err.get('type'))
-                print("Code is: %s" % err.get('code'))
-                # param is '' in this case
-                print("Param is: %s" % err.get('param'))
-                print("Message is: %s" % err.get('message'))
+                logger.error(f"Stripe Error - Status: {e.http_status}, Type: {err.get('type')}, Code: {err.get('code')}, Param: {err.get('param')}, Message: {err.get('message')}")
 
                 error_dict = {"error": 'error-creating-stripe-customer', 'description': 'An error occurred while creating your Stripe customer record.'}
                 response = JsonResponse({'checkout_allowed': checkout_allowed, 'process_stripe_payment_token': 'error', 'errors': error_dict, 'order-api-version': order_api_version}, safe=False)
@@ -857,7 +821,6 @@ def anonymous_email_address_payment_lookup(request):
         anonymous_email_address = None
         if request.method == 'POST' and 'anonymous_email_address' in request.POST:
             anonymous_email_address = request.POST['anonymous_email_address']
-        #print(anonymous_email_address)
 
         if anonymous_email_address is not None:
             if User.objects.filter(email=anonymous_email_address).exists():

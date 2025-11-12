@@ -1,10 +1,14 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def maskEmailAddress(email_addr):
     split_addr = email_addr.split('@')
     masked_name = split_addr[0][0:4]
     for i in range(4, len(split_addr[0])):
         masked_name += '*'
-    print(masked_name)
+    logger.debug(f'Masked email name: {masked_name}')
     split_domain = split_addr[1].rsplit('.', 1)
     #domain_name = split_domain[0][0:3]
     domain_name = split_domain[0]
