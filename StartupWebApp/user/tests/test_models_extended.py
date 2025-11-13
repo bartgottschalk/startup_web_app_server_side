@@ -34,10 +34,12 @@ class MemberModelTest(TestCase):
         user = User.objects.create_user(username='testuser', email='test@test.com')
         member = Member.objects.create(user=user)
 
-        self.assertFalse(member.newsletter_subscriber, 'newsletter_subscriber should default to False')
+        self.assertFalse(member.newsletter_subscriber,
+                         'newsletter_subscriber should default to False')
         self.assertFalse(member.email_verified, 'email_verified should default to False')
         self.assertFalse(member.email_unsubscribed, 'email_unsubscribed should default to False')
-        self.assertFalse(member.use_default_shipping_and_payment_info, 'use_default_shipping_and_payment_info should default to False')
+        self.assertFalse(member.use_default_shipping_and_payment_info,
+                         'use_default_shipping_and_payment_info should default to False')
 
     def test_member_str_representation(self):
         """Test that Member __str__ returns expected format"""
@@ -50,11 +52,11 @@ class MemberModelTest(TestCase):
     def test_member_one_to_one_relationship_with_user(self):
         """Test that Member has OneToOne relationship with User (can't create duplicate)"""
         user = User.objects.create_user(username='testuser', email='test@test.com')
-        member1 = Member.objects.create(user=user)
+        Member.objects.create(user=user)
 
         # Try to create another Member with same User
         with self.assertRaises(IntegrityError):
-            member2 = Member.objects.create(user=user)
+            Member.objects.create(user=user)
 
     def test_member_cascade_delete_with_user(self):
         """Test that Member is deleted when User is deleted (CASCADE)"""

@@ -21,13 +21,33 @@ class VerifyEmailAddressResponseAPITest(TestCase):
         ClientEventConfiguration.objects.create(id=1, log_client_events=True)
 
         Skutype.objects.create(id=1, title='product')
-        Skuinventory.objects.create(id=1, title='In Stock', identifier='in-stack', description='In Stock items are available to purchase.')
-        Product.objects.create(id=1, title='Paper Clips', title_url='PaperClips', identifier='bSusp6dBHm', headline='Paper clips can hold up to 20 pieces of paper together!', description_part_1='Made out of high quality metal and folded to exact specifications.', description_part_2='Use paperclips for all your paper binding needs!')
-        Sku.objects.create(id=1, color='Silver', size='Medium', sku_type_id=1, description='Left Sided Paperclip', sku_inventory_id=1)
+        Skuinventory.objects.create(
+            id=1,
+            title='In Stock',
+            identifier='in-stack',
+            description='In Stock items are available to purchase.')
+        Product.objects.create(
+            id=1,
+            title='Paper Clips',
+            title_url='PaperClips',
+            identifier='bSusp6dBHm',
+            headline='Paper clips can hold up to 20 pieces of paper together!',
+            description_part_1='Made out of high quality metal and folded to exact specifications.',
+            description_part_2='Use paperclips for all your paper binding needs!')
+        Sku.objects.create(
+            id=1,
+            color='Silver',
+            size='Medium',
+            sku_type_id=1,
+            description='Left Sided Paperclip',
+            sku_inventory_id=1)
         Skuprice.objects.create(id=1, price=3.5, created_date_time=timezone.now(), sku_id=1)
         Productsku.objects.create(id=1, product_id=1, sku_id=1)
         Group.objects.create(name='Members')
-        Termsofuse.objects.create(version='1', version_note='Test Terms', publication_date_time=timezone.now())
+        Termsofuse.objects.create(
+            version='1',
+            version_note='Test Terms',
+            publication_date_time=timezone.now())
 
         # Create a test user and log them in
         self.client.post('/user/create-account', data={
@@ -59,17 +79,22 @@ class VerifyEmailAddressResponseAPITest(TestCase):
             'email_verification_code': self.verification_code
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-        self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"verify_email_address_response": "success", "user-api-version": "0.0.1"}',
-                            'Valid verification should succeed')
+        self.assertJSONEqual(
+            response.content.decode('utf8'),
+            '{"verify_email_address_response": "success", "user-api-version": "0.0.1"}',
+            'Valid verification should succeed')
 
         # Verify email_verified is now True
         self.member.refresh_from_db()
-        self.assertTrue(self.member.email_verified, 'Email should be verified after successful verification')
+        self.assertTrue(self.member.email_verified,
+                        'Email should be verified after successful verification')
 
         # Verify tokens were cleared
-        self.assertIsNone(self.member.email_verification_string, 'Verification string should be cleared')
-        self.assertIsNone(self.member.email_verification_string_signed, 'Verification string signed should be cleared')
+        self.assertIsNone(
+            self.member.email_verification_string,
+            'Verification string should be cleared')
+        self.assertIsNone(self.member.email_verification_string_signed,
+                          'Verification string signed should be cleared')
 
     def test_invalid_token(self):
         """Test that tampered/invalid token is rejected"""
@@ -79,14 +104,17 @@ class VerifyEmailAddressResponseAPITest(TestCase):
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         response_data = json.loads(response.content.decode('utf8'))
         self.assertEqual(response_data['verify_email_address_response'], 'signature-invalid',
-                        'Invalid token should fail with signature-invalid')
+                         'Invalid token should fail with signature-invalid')
 
         # Verify email is still not verified
         self.member.refresh_from_db()
-        self.assertFalse(self.member.email_verified, 'Email should not be verified after invalid token')
+        self.assertFalse(self.member.email_verified,
+                         'Email should not be verified after invalid token')
 
         # Verify tokens were NOT cleared
-        self.assertIsNotNone(self.member.email_verification_string, 'Verification string should still exist')
+        self.assertIsNotNone(
+            self.member.email_verification_string,
+            'Verification string should still exist')
 
     def test_expired_token(self):
         """Test that expired token (simulated) is rejected"""
@@ -98,11 +126,12 @@ class VerifyEmailAddressResponseAPITest(TestCase):
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         response_data = json.loads(response.content.decode('utf8'))
         self.assertEqual(response_data['verify_email_address_response'], 'signature-invalid',
-                        'Expired/invalid token should fail')
+                         'Expired/invalid token should fail')
 
         # Verify email is still not verified
         self.member.refresh_from_db()
-        self.assertFalse(self.member.email_verified, 'Email should not be verified after expired token')
+        self.assertFalse(self.member.email_verified,
+                         'Email should not be verified after expired token')
 
     def test_token_mismatch(self):
         """Test that token with wrong value is rejected"""
@@ -116,11 +145,12 @@ class VerifyEmailAddressResponseAPITest(TestCase):
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         response_data = json.loads(response.content.decode('utf8'))
         self.assertEqual(response_data['verify_email_address_response'], 'code-doesnt-match',
-                        'Token with wrong value should fail with code-doesnt-match')
+                         'Token with wrong value should fail with code-doesnt-match')
 
         # Verify email is still not verified
         self.member.refresh_from_db()
-        self.assertFalse(self.member.email_verified, 'Email should not be verified after token mismatch')
+        self.assertFalse(self.member.email_verified,
+                         'Email should not be verified after token mismatch')
 
     def test_unauthenticated_user(self):
         """Test that unauthenticated user cannot verify email"""
@@ -131,9 +161,10 @@ class VerifyEmailAddressResponseAPITest(TestCase):
             'email_verification_code': self.verification_code
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-        self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"verify_email_address_response": "user_not_authenticated", "user-api-version": "0.0.1"}',
-                            'Unauthenticated user should not be able to verify email')
+        self.assertJSONEqual(
+            response.content.decode('utf8'),
+            '{"verify_email_address_response": "user_not_authenticated", "user-api-version": "0.0.1"}',
+            'Unauthenticated user should not be able to verify email')
 
     def test_already_verified_email(self):
         """Test idempotent behavior - verifying already verified email"""
@@ -145,7 +176,8 @@ class VerifyEmailAddressResponseAPITest(TestCase):
 
         # Verify email is verified
         self.member.refresh_from_db()
-        self.assertTrue(self.member.email_verified, 'Email should be verified after first verification')
+        self.assertTrue(self.member.email_verified,
+                        'Email should be verified after first verification')
 
         # Request new verification token (since old one was cleared)
         self.client.post('/user/verify-email-address')
@@ -157,9 +189,10 @@ class VerifyEmailAddressResponseAPITest(TestCase):
             'email_verification_code': new_verification_code
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response2)
-        self.assertJSONEqual(response2.content.decode('utf8'),
-                            '{"verify_email_address_response": "success", "user-api-version": "0.0.1"}',
-                            'Re-verification should succeed')
+        self.assertJSONEqual(
+            response2.content.decode('utf8'),
+            '{"verify_email_address_response": "success", "user-api-version": "0.0.1"}',
+            'Re-verification should succeed')
 
         # Email should still be verified
         self.member.refresh_from_db()
@@ -189,4 +222,5 @@ class VerifyEmailAddressResponseAPITest(TestCase):
 
         # Verify email_verified status persisted
         self.member.refresh_from_db()
-        self.assertTrue(self.member.email_verified, 'Email verified status should persist after logout/login')
+        self.assertTrue(self.member.email_verified,
+                        'Email verified status should persist after logout/login')

@@ -9,7 +9,9 @@ def isEmail(email):
     # Email regex: local-part @ domain
     # Local part: must start and end with alphanumeric, can contain . _ + - in middle
     # Domain: standard domain format with TLD
-    if re.match(r"^[a-zA-Z0-9]([a-zA-Z0-9_.+-]*[a-zA-Z0-9])?\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$", email):
+    if re.match(
+        r"^[a-zA-Z0-9]([a-zA-Z0-9_.+-]*[a-zA-Z0-9])?\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$",
+            email):
         return True
     else:
         return False
@@ -84,7 +86,7 @@ def isNameValid(name, max_length):
     if len(errors) > 0:
         return errors
     else:
-    	return True
+        return True
 
 
 def isUserNameValid(username, max_length):
@@ -105,7 +107,7 @@ def isUserNameValid(username, max_length):
     if len(errors) > 0:
         return errors
     else:
-    	return True
+        return True
 
 
 def isEmailValid(email, max_length):
@@ -121,7 +123,7 @@ def isEmailValid(email, max_length):
     if len(errors) > 0:
         return errors
     else:
-    	return True
+        return True
 
 
 def isPasswordValid(password, confirm_password, max_length):
@@ -143,7 +145,7 @@ def isPasswordValid(password, confirm_password, max_length):
     if len(errors) > 0:
         return errors
     else:
-    	return True
+        return True
 
 
 def validateSkuQuantity(quantity):
@@ -157,7 +159,7 @@ def validateSkuQuantity(quantity):
 
 
 def isChatMessageValid(message, max_length):
-    #print('isNameValid called')
+    # print('isNameValid called')
     errors = []
     if message == '':
         errors.append(required_error)
@@ -183,15 +185,37 @@ def isHowExcitedValid(how_excited):
 
 
 required_error = {'type': 'required', 'description': 'This is a required field.'}
-not_valid_email = {'type': 'not_valid', 'description': 'Please enter a valid email address. For example johndoe@domain.com.'}
-not_valid_name = {'type': 'not_valid', 'description': 'Please enter a valid name. Characters, numbers, and spaces are allowed.'}
-too_many_chars = {'type': 'too_many_chars', 'description': 'The value you entered is too long for this field.'}
-not_valid_username = {'type': 'not_valid', 'description': 'Please enter a valid username. Characters, numbers, underscore ("_"), and hyphens ("-") are allowed.'}
-username_too_short = {'type': 'too_short', 'description': 'The username you entered is too short. Usernames must be between 6 and 150 characters in length.'}
-username_unavailable = {'type': 'unavailable', 'description': 'The username you entered is unavailable. Please enter a different username and try again.'}
-password_too_short = {'type': 'too_short', 'description': 'The password you entered is too short. Passwords must be between 8 and 150 characters in length.'}
-password_must_contain_capital_letter = {'type': 'no_capital_letter', 'description': 'Passwords must contain at least one capital letter.'}
-password_must_contain_special_character = {'type': 'no_special_character', 'description': 'Passwords must contain at least one special character.'}
-confirm_password_doesnt_match = {'type': 'confirm_password_doesnt_match', 'description': 'Please make sure your passwords match.'}
+not_valid_email = {
+    'type': 'not_valid',
+    'description': 'Please enter a valid email address. For example johndoe@domain.com.'}
+not_valid_name = {
+    'type': 'not_valid',
+    'description': 'Please enter a valid name. Characters, numbers, and spaces are allowed.'}
+too_many_chars = {
+    'type': 'too_many_chars',
+    'description': 'The value you entered is too long for this field.'}
+not_valid_username = {
+    'type': 'not_valid',
+    'description': ('Please enter a valid username. Characters, numbers, '
+                    'underscore ("_"), and hyphens ("-") are allowed.')
+}
+username_too_short = {
+    'type': 'too_short',
+    'description': 'The username you entered is too short. Usernames must be between 6 and 150 characters in length.'}
+username_unavailable = {
+    'type': 'unavailable',
+    'description': 'The username you entered is unavailable. Please enter a different username and try again.'}
+password_too_short = {
+    'type': 'too_short',
+    'description': 'The password you entered is too short. Passwords must be between 8 and 150 characters in length.'}
+password_must_contain_capital_letter = {
+    'type': 'no_capital_letter',
+    'description': 'Passwords must contain at least one capital letter.'}
+password_must_contain_special_character = {
+    'type': 'no_special_character',
+    'description': 'Passwords must contain at least one special character.'}
+confirm_password_doesnt_match = {
+    'type': 'confirm_password_doesnt_match',
+    'description': 'Please make sure your passwords match.'}
 out_of_range = {'type': 'out_of_range', 'description': 'The value provided is out of range.'}
 not_an_int = {'type': 'not_an_int', 'description': 'The value provided is not an integer.'}

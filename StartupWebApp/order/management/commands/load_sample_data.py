@@ -81,10 +81,20 @@ class Command(BaseCommand):
             id=1,
             defaults={
                 'version': '1',
-                'version_note': 'Specifically, we\'ve modified our <a class="raw-link" href="/privacy-policy">Privacy Policy</a> and <a class="raw-link" href="/terms-of-sale">Terms of Sale</a>. Modifications include...',
-                'publication_date_time': datetime(2019, 4, 20, 0, 0, 0, tzinfo=timezone.utc)
-            }
-        )
+                'version_note': (
+                    'Specifically, we\'ve modified our '
+                    '<a class="raw-link" href="/privacy-policy">Privacy Policy</a> '
+                    'and <a class="raw-link" href="/terms-of-sale">Terms of Sale</a>. '
+                    'Modifications include...'
+                ),
+                'publication_date_time': datetime(
+                    2019,
+                    4,
+                    20,
+                    0,
+                    0,
+                    0,
+                    tzinfo=timezone.utc)})
 
         # Email types (line 6)
         Emailtype.objects.get_or_create(id=1, defaults={'title': 'Member'})
@@ -233,11 +243,36 @@ class Command(BaseCommand):
 
         # Shipping methods (lines 42-46)
         shipping_methods = [
-            (1, 'USPS Priority Mail 2-Day', '13.65', 'https://tools.usps.com/go/TrackConfirmAction.action?tRef=fullpage&tLc=1&text28777=&tLabels=', True, 'USPSPriorityMail2Day'),
-            (2, 'USPS Retail Ground', '9.56', 'https://tools.usps.com/go/TrackConfirmAction.action?tRef=fullpage&tLc=1&text28777=&tLabels=', True, 'USPSRetailGround'),
-            (3, 'FedEx Ground', '10.85', 'https://www.fedex.com/apps/fedextrack/?action=track&cntry_code=us&trackingnumber=', True, 'FedExGround'),
-            (4, 'UPS Ground', '11.34', 'https://wwwapps.ups.com/WebTracking/track?&track.x=Track&trackNums=', True, 'UPSGround'),
-            (5, 'None', '0.00', 'none', False, 'None'),
+            (1,
+             'USPS Priority Mail 2-Day',
+             '13.65',
+             'https://tools.usps.com/go/TrackConfirmAction.action?tRef=fullpage&tLc=1&text28777=&tLabels=',
+             True,
+             'USPSPriorityMail2Day'),
+            (2,
+             'USPS Retail Ground',
+             '9.56',
+             'https://tools.usps.com/go/TrackConfirmAction.action?tRef=fullpage&tLc=1&text28777=&tLabels=',
+             True,
+             'USPSRetailGround'),
+            (3,
+             'FedEx Ground',
+             '10.85',
+             'https://www.fedex.com/apps/fedextrack/?action=track&cntry_code=us&trackingnumber=',
+             True,
+             'FedExGround'),
+            (4,
+             'UPS Ground',
+             '11.34',
+             'https://wwwapps.ups.com/WebTracking/track?&track.x=Track&trackNums=',
+             True,
+             'UPSGround'),
+            (5,
+             'None',
+             '0.00',
+             'none',
+             False,
+             'None'),
         ]
         for ship_id, carrier, cost, url, active, identifier in shipping_methods:
             Shippingmethod.objects.get_or_create(
@@ -355,7 +390,10 @@ class Command(BaseCommand):
                 'title_url': 'BinderClips',
                 'identifier': 'ITHJW3mytn',
                 'headline': 'Binder clips can hold up to 100 pieces of paper together!',
-                'description_part_1': 'These strong binder clips will hold your papers together and won\'t ever give up!',
+                'description_part_1': (
+                    'These strong binder clips will hold your papers together '
+                    'and won\'t ever give up!'
+                ),
                 'description_part_2': 'Just be careful not to pinch your finger!<br><br>Come in packs of 10.'
             }
         )
@@ -391,13 +429,25 @@ class Command(BaseCommand):
         )
         Skuprice.objects.get_or_create(
             id=4,
-            defaults={'price': 5.99, 'created_date_time': datetime(2019, 4, 22, 0, 0, 0, tzinfo=timezone.utc), 'sku': sku4}
-        )
+            defaults={
+                'price': 5.99,
+                'created_date_time': datetime(
+                    2019,
+                    4,
+                    22,
+                    0,
+                    0,
+                    0,
+                    tzinfo=timezone.utc),
+                'sku': sku4})
         Productsku.objects.get_or_create(id=4, defaults={'product': product2, 'sku': sku4})
         Skuimage.objects.get_or_create(
             id=4,
-            defaults={'image_url': '/img/product/binder_clip_large_2.jpg', 'main_image': True, 'sku': sku4, 'caption': 'Large Binder Clip'}
-        )
+            defaults={
+                'image_url': '/img/product/binder_clip_large_2.jpg',
+                'main_image': True,
+                'sku': sku4,
+                'caption': 'Large Binder Clip'})
 
         sku5, _ = Sku.objects.get_or_create(
             id=5,
@@ -411,13 +461,25 @@ class Command(BaseCommand):
         )
         Skuprice.objects.get_or_create(
             id=5,
-            defaults={'price': 4.99, 'created_date_time': datetime(2019, 4, 22, 0, 0, 0, tzinfo=timezone.utc), 'sku': sku5}
-        )
+            defaults={
+                'price': 4.99,
+                'created_date_time': datetime(
+                    2019,
+                    4,
+                    22,
+                    0,
+                    0,
+                    0,
+                    tzinfo=timezone.utc),
+                'sku': sku5})
         Productsku.objects.get_or_create(id=5, defaults={'product': product2, 'sku': sku5})
         Skuimage.objects.get_or_create(
             id=5,
-            defaults={'image_url': '/img/product/binder_clip_medium_2.jpg', 'main_image': True, 'sku': sku5, 'caption': 'Medium Binder Clip'}
-        )
+            defaults={
+                'image_url': '/img/product/binder_clip_medium_2.jpg',
+                'main_image': True,
+                'sku': sku5,
+                'caption': 'Medium Binder Clip'})
 
         sku6, _ = Sku.objects.get_or_create(
             id=6,
@@ -431,13 +493,25 @@ class Command(BaseCommand):
         )
         Skuprice.objects.get_or_create(
             id=6,
-            defaults={'price': 3.99, 'created_date_time': datetime(2019, 4, 22, 0, 0, 0, tzinfo=timezone.utc), 'sku': sku6}
-        )
+            defaults={
+                'price': 3.99,
+                'created_date_time': datetime(
+                    2019,
+                    4,
+                    22,
+                    0,
+                    0,
+                    0,
+                    tzinfo=timezone.utc),
+                'sku': sku6})
         Productsku.objects.get_or_create(id=6, defaults={'product': product2, 'sku': sku6})
         Skuimage.objects.get_or_create(
             id=6,
-            defaults={'image_url': '/img/product/binder_clip_small_2.jpg', 'main_image': True, 'sku': sku6, 'caption': 'Small Binder Clip'}
-        )
+            defaults={
+                'image_url': '/img/product/binder_clip_small_2.jpg',
+                'main_image': True,
+                'sku': sku6,
+                'caption': 'Small Binder Clip'})
 
         # Product 3: Rubber Bands (lines 81-87)
         product3, _ = Product.objects.get_or_create(
@@ -474,12 +548,30 @@ class Command(BaseCommand):
         # Two prices for this SKU (showing price history)
         Skuprice.objects.get_or_create(
             id=7,
-            defaults={'price': 10.99, 'created_date_time': datetime(2019, 4, 20, 0, 0, 0, tzinfo=timezone.utc), 'sku': sku7}
-        )
+            defaults={
+                'price': 10.99,
+                'created_date_time': datetime(
+                    2019,
+                    4,
+                    20,
+                    0,
+                    0,
+                    0,
+                    tzinfo=timezone.utc),
+                'sku': sku7})
         Skuprice.objects.get_or_create(
             id=8,
-            defaults={'price': 14.99, 'created_date_time': datetime(2019, 4, 22, 0, 0, 0, tzinfo=timezone.utc), 'sku': sku7}
-        )
+            defaults={
+                'price': 14.99,
+                'created_date_time': datetime(
+                    2019,
+                    4,
+                    22,
+                    0,
+                    0,
+                    0,
+                    tzinfo=timezone.utc),
+                'sku': sku7})
         Productsku.objects.get_or_create(id=7, defaults={'product': product3, 'sku': sku7})
 
         self.stdout.write('  ✓ Products loaded:')

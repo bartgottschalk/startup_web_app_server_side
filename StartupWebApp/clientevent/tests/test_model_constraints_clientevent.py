@@ -359,7 +359,10 @@ class LinkeventFieldConstraintTest(TestCase):
 
     def setUp(self):
         Group.objects.create(name='Members')
-        Termsofuse.objects.create(version='1', version_note='Test', publication_date_time=timezone.now())
+        Termsofuse.objects.create(
+            version='1',
+            version_note='Test',
+            publication_date_time=timezone.now())
 
         self.user = User.objects.create_user(username='testuser', email='test@test.com')
         self.member = Member.objects.create(user=self.user, mb_cd='MEMBER123')

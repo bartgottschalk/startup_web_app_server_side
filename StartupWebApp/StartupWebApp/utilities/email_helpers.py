@@ -10,9 +10,9 @@ def maskEmailAddress(email_addr):
         masked_name += '*'
     logger.debug(f'Masked email name: {masked_name}')
     split_domain = split_addr[1].rsplit('.', 1)
-    #domain_name = split_domain[0][0:3]
+    # domain_name = split_domain[0][0:3]
     domain_name = split_domain[0]
-    #for i in range(3, len(split_domain[0])):
+    # for i in range(3, len(split_domain[0])):
     #    domain_name += '*'
     domain_root = split_domain[1]
-    return masked_name+'@'+domain_name+'.'+domain_root
+    return masked_name + '@' + domain_name + '.' + domain_root

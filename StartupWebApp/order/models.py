@@ -13,7 +13,8 @@ class Orderconfiguration(models.Model):
         db_table = 'order_configuration'
 
     def __str__(self):
-        return 'key: ' + str(self.key) + 'float_value: ' + str(self.float_value) + 'string_value: ' + str(self.string_value)
+        return 'key: ' + str(self.key) + 'float_value: ' + \
+            str(self.float_value) + 'string_value: ' + str(self.string_value)
 
 
 class Cartshippingaddress(models.Model):
@@ -29,7 +30,8 @@ class Cartshippingaddress(models.Model):
         db_table = 'order_cart_shipping_address'
 
     def __str__(self):
-        return str(self.name) + ', ' + str(self.address_line1) + ', ' + str(self.city) + ', ' + str(self.state) + ' ' + str(self.zip) + ', ' + str(self.country_code)
+        return str(self.name) + ', ' + str(self.address_line1) + ', ' + str(self.city) + \
+            ', ' + str(self.state) + ' ' + str(self.zip) + ', ' + str(self.country_code)
 
 
 class Cartpayment(models.Model):
@@ -41,20 +43,26 @@ class Cartpayment(models.Model):
         db_table = 'order_cart_payment'
 
     def __str__(self):
-        return str(self.email) + ': ' + str(self.stripe_customer_token) + ': ' + str(self.stripe_card_id)
+        return str(self.email) + ': ' + str(self.stripe_customer_token) + \
+            ': ' + str(self.stripe_card_id)
 
 
 class Cart(models.Model):
     member = models.ForeignKey(Member, on_delete=models.CASCADE, blank=True, null=True)
     anonymous_cart_id = models.CharField(max_length=100, blank=True, null=True)
-    shipping_address = models.ForeignKey(Cartshippingaddress, on_delete=models.CASCADE, blank=True, null=True)
+    shipping_address = models.ForeignKey(
+        Cartshippingaddress,
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True)
     payment = models.ForeignKey(Cartpayment, on_delete=models.CASCADE, blank=True, null=True)
 
     class Meta:
         db_table = 'order_cart'
 
     def __str__(self):
-        return str(self.member.user.username if self.member is not None else None) + ": " + str(self.anonymous_cart_id)
+        return str(self.member.user.username if self.member is not None else None) + \
+            ": " + str(self.anonymous_cart_id)
 
 
 class Skutype(models.Model):
@@ -90,7 +98,8 @@ class Sku(models.Model):
         db_table = 'order_sku'
 
     def __str__(self):
-        return str(self.id) + ', type: ' + str(self.sku_type) + ', color: ' + str(self.color) + ', size: ' + str(self.size)
+        return str(self.id) + ', type: ' + str(self.sku_type) + \
+            ', color: ' + str(self.color) + ', size: ' + str(self.size)
 
 
 class Skuprice(models.Model):
@@ -211,7 +220,8 @@ class Discountcode(models.Model):
         db_table = 'order_discount_code'
 
     def __str__(self):
-        return str(self.code) + ", start: " + str(self.start_date_time) + ", end: " + str(self.end_date_time)
+        return str(self.code) + ", start: " + str(self.start_date_time) + \
+            ", end: " + str(self.end_date_time)
 
 
 class Cartdiscount(models.Model):
@@ -237,7 +247,8 @@ class Shippingmethod(models.Model):
         db_table = 'order_shipping_method'
 
     def __str__(self):
-        return str(self.carrier) + ': ' + str(self.shipping_cost) + ': ' + str(self.tracking_code_base_url)
+        return str(self.carrier) + ': ' + str(self.shipping_cost) + \
+            ': ' + str(self.tracking_code_base_url)
 
 
 class Cartshippingmethod(models.Model):
@@ -266,7 +277,8 @@ class Orderpayment(models.Model):
         db_table = 'order_order_payment'
 
     def __str__(self):
-        return str(self.card_brand) + ': **** **** **** ' + str(self.card_last4) + ', Exp ' + str(self.card_exp_month) + '/' + str(self.card_exp_year)
+        return str(self.card_brand) + ': **** **** **** ' + str(self.card_last4) + \
+            ', Exp ' + str(self.card_exp_month) + '/' + str(self.card_exp_year)
 
     def order_identifier(self):
         if self.order_set.first() is not None:
@@ -289,7 +301,8 @@ class Ordershippingaddress(models.Model):
         db_table = 'order_order_shipping_address'
 
     def __str__(self):
-        return str(self.name) + ', ' + str(self.address_line1) + ', ' + str(self.city) + ', ' + str(self.state) + ' ' + str(self.zip) + ', ' + str(self.country_code)
+        return str(self.name) + ', ' + str(self.address_line1) + ', ' + str(self.city) + \
+            ', ' + str(self.state) + ' ' + str(self.zip) + ', ' + str(self.country_code)
 
     def order_identifier(self):
         if self.order_set.first() is not None:
@@ -312,7 +325,8 @@ class Orderbillingaddress(models.Model):
         db_table = 'order_order_billing_address'
 
     def __str__(self):
-        return str(self.name) + ', ' + str(self.address_line1) + ', ' + str(self.city) + ', ' + str(self.state) + ' ' + str(self.zip) + ', ' + str(self.country_code)
+        return str(self.name) + ', ' + str(self.address_line1) + ', ' + str(self.city) + \
+            ', ' + str(self.state) + ' ' + str(self.zip) + ', ' + str(self.country_code)
 
     def order_identifier(self):
         if self.order_set.first() is not None:
@@ -327,8 +341,16 @@ class Order(models.Model):
     member = models.ForeignKey(Member, on_delete=models.CASCADE, blank=True, null=True)
     prospect = models.ForeignKey(Prospect, on_delete=models.CASCADE, blank=True, null=True)
     payment = models.ForeignKey(Orderpayment, on_delete=models.CASCADE, blank=True, null=True)
-    shipping_address = models.ForeignKey(Ordershippingaddress, on_delete=models.CASCADE, blank=True, null=True)
-    billing_address = models.ForeignKey(Orderbillingaddress, on_delete=models.CASCADE, blank=True, null=True)
+    shipping_address = models.ForeignKey(
+        Ordershippingaddress,
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True)
+    billing_address = models.ForeignKey(
+        Orderbillingaddress,
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True)
     sales_tax_amt = models.FloatField(default=0)
     item_subtotal = models.FloatField(default=0)
     item_discount_amt = models.FloatField(default=0)
@@ -356,7 +378,8 @@ class Ordersku(models.Model):
         unique_together = (('order', 'sku'),)
 
     def __str__(self):
-        return str(self.order) + ":" + str(self.sku) + ":" + str(self.quantity) + ":" + str(self.price_each)
+        return str(self.order) + ":" + str(self.sku) + ":" + \
+            str(self.quantity) + ":" + str(self.price_each)
 
     def order_identifier(self):
         if self.order is not None:

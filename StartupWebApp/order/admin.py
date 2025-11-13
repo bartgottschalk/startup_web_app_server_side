@@ -1,29 +1,72 @@
 from django.contrib import admin
-from order.models import Orderpayment, Ordershippingaddress, Orderbillingaddress, Order, Ordersku, Orderdiscount, Status, Orderstatus, Ordershippingmethod
-from order.models import Orderconfiguration, Cartshippingaddress, Cart, Cartsku, Sku, Skuprice, Skuimage, Skutype, Skuinventory, Product, Productimage, Productvideo, Productsku, Discounttype, Discountcode, Cartdiscount, Shippingmethod, Cartshippingmethod
+from order.models import (
+    Orderpayment, Ordershippingaddress, Orderbillingaddress, Order, Ordersku,
+    Orderdiscount, Status, Orderstatus, Ordershippingmethod
+)
+from order.models import (
+    Orderconfiguration, Cartshippingaddress, Cart, Cartsku, Sku, Skuprice,
+    Skuimage, Skutype, Skuinventory, Product, Productimage, Productvideo,
+    Productsku, Discounttype, Discountcode, Cartdiscount, Shippingmethod,
+    Cartshippingmethod
+)
 
 
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('identifier', 'member', 'agreed_with_terms_of_sale', 'order_total', 'item_subtotal', 'item_discount_amt', 'shipping_amt', 'shipping_discount_amt', 'sales_tax_amt', 'order_date_time')
-    actions = ['generate_order_pdfs_for_home', 'generate_order_pdfs_for_terraslate', 'generate_order_pdfs_for_terraslate2', 'generate_order_pdfs_for_shapco']
+    list_display = (
+        'identifier',
+        'member',
+        'agreed_with_terms_of_sale',
+        'order_total',
+        'item_subtotal',
+        'item_discount_amt',
+        'shipping_amt',
+        'shipping_discount_amt',
+        'sales_tax_amt',
+        'order_date_time')
+    actions = [
+        'generate_order_pdfs_for_home',
+        'generate_order_pdfs_for_terraslate',
+        'generate_order_pdfs_for_terraslate2',
+        'generate_order_pdfs_for_shapco']
 
 # Define a new Orderpayment admin
 
 
 class OrderpaymentAdmin(admin.ModelAdmin):
-    list_display = ('order_identifier', 'card_brand', 'card_last4', 'card_exp_month', 'card_exp_year', 'email', 'card_zip')
+    list_display = (
+        'order_identifier',
+        'card_brand',
+        'card_last4',
+        'card_exp_month',
+        'card_exp_year',
+        'email',
+        'card_zip')
 
 # Define a new Ordershippingaddress admin
 
 
 class OrdershippingaddressAdmin(admin.ModelAdmin):
-    list_display = ('order_identifier', 'name', 'address_line1', 'city', 'state', 'zip', 'country_code')
+    list_display = (
+        'order_identifier',
+        'name',
+        'address_line1',
+        'city',
+        'state',
+        'zip',
+        'country_code')
 
 # Define a new Orderbillingaddress admin
 
 
 class OrderbillingaddressAdmin(admin.ModelAdmin):
-    list_display = ('order_identifier', 'name', 'address_line1', 'city', 'state', 'zip', 'country_code')
+    list_display = (
+        'order_identifier',
+        'name',
+        'address_line1',
+        'city',
+        'state',
+        'zip',
+        'country_code')
 
 # Define a new Cart admin
 
@@ -107,7 +150,15 @@ class DiscounttypeAdmin(admin.ModelAdmin):
 
 
 class DiscountcodeAdmin(admin.ModelAdmin):
-    list_display = ('code', 'description', 'start_date_time', 'end_date_time', 'combinable', 'discounttype', 'discount_amount', 'order_minimum')
+    list_display = (
+        'code',
+        'description',
+        'start_date_time',
+        'end_date_time',
+        'combinable',
+        'discounttype',
+        'discount_amount',
+        'order_minimum')
 
 # Define a new Cartdiscount admin
 

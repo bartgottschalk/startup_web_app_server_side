@@ -486,7 +486,7 @@ class ConfirmPaymentDataEndpointTest(TestCase):
         self.assertTrue(data['checkout_allowed'])
         self.assertIn('stripe_publishable_key', data)
         self.assertEqual(data['stripe_publishable_key'],
-                        settings.STRIPE_PUBLISHABLE_SECRET_KEY)
+                         settings.STRIPE_PUBLISHABLE_SECRET_KEY)
 
     def test_confirm_payment_data_returns_user_email(self):
         """Test that confirm_payment_data returns authenticated user email"""
@@ -572,7 +572,7 @@ class ConfirmPaymentDataEndpointTest(TestCase):
         self.cart.save()
 
         with patch('stripe.Customer.retrieve') as mock_stripe_retrieve, \
-             patch('order.utilities.order_utils.get_stripe_customer_payment_data') as mock_get_customer_data:
+                patch('order.utilities.order_utils.get_stripe_customer_payment_data') as mock_get_customer_data:
 
             # Mock Stripe customer object
             mock_customer = MagicMock()

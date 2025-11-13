@@ -17,7 +17,10 @@ class LinkeventAPITest(TestCase):
         # Setup necessary DB Objects
         ClientEventConfiguration.objects.create(id=1, log_client_events=True)
         Group.objects.create(name='Members')
-        Termsofuse.objects.create(version='1', version_note='Test Terms', publication_date_time=timezone.now())
+        Termsofuse.objects.create(
+            version='1',
+            version_note='Test Terms',
+            publication_date_time=timezone.now())
 
         # Create test user and member
         self.user = User.objects.create_user(username='testuser', email='test@test.com')
@@ -69,7 +72,7 @@ class LinkeventAPITest(TestCase):
 
         linkevent = Linkevent.objects.first()
         self.assertEqual(linkevent.user, self.user,
-                        'Link event should be associated with user')
+                         'Link event should be associated with user')
         self.assertEqual(linkevent.url, 'https://example.com/from-email')
         self.assertIsNone(linkevent.prospect)
         self.assertIsNone(linkevent.email)
@@ -86,9 +89,9 @@ class LinkeventAPITest(TestCase):
 
         linkevent = Linkevent.objects.first()
         self.assertIsNone(linkevent.user,
-                         'User should be None when only prospect code provided')
+                          'User should be None when only prospect code provided')
         self.assertEqual(linkevent.prospect, self.prospect,
-                        'Link event should be associated with prospect')
+                         'Link event should be associated with prospect')
 
     def test_linkevent_with_email_code(self):
         """Test that link event with email code associates email correctly"""
@@ -101,7 +104,7 @@ class LinkeventAPITest(TestCase):
 
         linkevent = Linkevent.objects.first()
         self.assertEqual(linkevent.email, self.email,
-                        'Link event should be associated with email')
+                         'Link event should be associated with email')
 
     def test_linkevent_with_ad_code(self):
         """Test that link event with ad code associates ad correctly"""
@@ -114,7 +117,7 @@ class LinkeventAPITest(TestCase):
 
         linkevent = Linkevent.objects.first()
         self.assertEqual(linkevent.ad, self.ad,
-                        'Link event should be associated with ad')
+                         'Link event should be associated with ad')
 
     def test_linkevent_with_anonymous_id(self):
         """Test that link event with anonymous_id is saved"""
@@ -127,7 +130,7 @@ class LinkeventAPITest(TestCase):
 
         linkevent = Linkevent.objects.first()
         self.assertEqual(linkevent.anonymous_id, 'anon_link_789',
-                        'Anonymous ID should be saved')
+                         'Anonymous ID should be saved')
         self.assertIsNone(linkevent.user)
         self.assertIsNone(linkevent.prospect)
 
@@ -144,11 +147,11 @@ class LinkeventAPITest(TestCase):
 
         linkevent = Linkevent.objects.first()
         self.assertEqual(linkevent.user, self.user,
-                        'Should associate with user')
+                         'Should associate with user')
         self.assertEqual(linkevent.email, self.email,
-                        'Should associate with email')
+                         'Should associate with email')
         self.assertEqual(linkevent.ad, self.ad,
-                        'Should associate with ad')
+                         'Should associate with ad')
 
     def test_linkevent_without_url_not_saved(self):
         """Test that link event without URL parameter is not saved"""
@@ -159,11 +162,11 @@ class LinkeventAPITest(TestCase):
 
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         self.assertEqual(response.content.decode('utf8'), '"thank you"',
-                        'Should still return thank you even without URL')
+                         'Should still return thank you even without URL')
 
         # Verify no link event was created
         self.assertEqual(Linkevent.objects.count(), 0,
-                        'Should not create link event without URL')
+                         'Should not create link event without URL')
 
     def test_linkevent_with_invalid_member_code_handles_gracefully(self):
         """Test that invalid member code does not crash"""
@@ -178,7 +181,7 @@ class LinkeventAPITest(TestCase):
         self.assertEqual(Linkevent.objects.count(), 1)
         linkevent = Linkevent.objects.first()
         self.assertIsNone(linkevent.user,
-                         'User should be None for invalid member code')
+                          'User should be None for invalid member code')
 
     def test_linkevent_with_invalid_prospect_code_handles_gracefully(self):
         """Test that invalid prospect code does not crash"""
@@ -191,7 +194,7 @@ class LinkeventAPITest(TestCase):
 
         linkevent = Linkevent.objects.first()
         self.assertIsNone(linkevent.prospect,
-                         'Prospect should be None for invalid prospect code')
+                          'Prospect should be None for invalid prospect code')
 
     def test_linkevent_with_invalid_email_code_handles_gracefully(self):
         """Test that invalid email code does not crash"""
@@ -204,7 +207,7 @@ class LinkeventAPITest(TestCase):
 
         linkevent = Linkevent.objects.first()
         self.assertIsNone(linkevent.email,
-                         'Email should be None for invalid email code')
+                          'Email should be None for invalid email code')
 
     def test_linkevent_with_invalid_ad_code_handles_gracefully(self):
         """Test that invalid ad code does not crash"""
@@ -217,7 +220,7 @@ class LinkeventAPITest(TestCase):
 
         linkevent = Linkevent.objects.first()
         self.assertIsNone(linkevent.ad,
-                         'Ad should be None for invalid ad code')
+                          'Ad should be None for invalid ad code')
 
     def test_linkevent_created_date_time_is_set(self):
         """Test that created_date_time is automatically set"""
@@ -234,16 +237,19 @@ class LinkeventAPITest(TestCase):
 
         linkevent = Linkevent.objects.first()
         self.assertIsNotNone(linkevent.created_date_time,
-                            'Created date time should be set')
+                             'Created date time should be set')
         self.assertGreaterEqual(linkevent.created_date_time, before_request,
-                               'Created time should be after request start')
+                                'Created time should be after request start')
         self.assertLessEqual(linkevent.created_date_time, after_request,
-                            'Created time should be before request end')
+                             'Created time should be before request end')
 
     def test_existing_linkevent_test_still_works(self):
         """Test that the existing linkevent test scenario still works"""
         # This replicates the existing test in test_apis.py
-        response = self.client.get('/clientevent/linkevent?mb_cd=&pr_cd=&anonymous_id=&em_cd=&ad_cd=AD123XYZ&url=/clientevent/linkevent?ad_cd=AD123XYZ')
+        response = self.client.get(
+            '/clientevent/linkevent?mb_cd=&pr_cd=&anonymous_id=&em_cd='
+            '&ad_cd=AD123XYZ&url=/clientevent/linkevent?ad_cd=AD123XYZ'
+        )
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         self.assertEqual(response.content.decode('utf8'), '"thank you"')
         self.assertEqual(Linkevent.objects.count(), 1)

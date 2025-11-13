@@ -20,11 +20,40 @@ class LoggedInAPITest(TestCase):
         ClientEventConfiguration.objects.create(id=1, log_client_events=True)
 
         Skutype.objects.create(id=1, title='product')
-        Skuinventory.objects.create(id=1, title='In Stock', identifier='in-stock', description='In Stock items are available to purchase.')
-        Product.objects.create(id=1, title='Paper Clips', title_url='PaperClips', identifier='bSusp6dBHm', headline='Paper clips can hold up to 20 pieces of paper together!', description_part_1='Made out of high quality metal and folded to exact specifications.', description_part_2='Use paperclips for all your paper binding needs!')
-        Sku.objects.create(id=1, color='Silver', size='Medium', sku_type_id=1, description='Left Sided Paperclip', sku_inventory_id=1)
-        Sku.objects.create(id=2, color='Gold', size='Large', sku_type_id=1, description='Right Sided Paperclip', sku_inventory_id=1)
-        Sku.objects.create(id=3, color='Bronze', size='Small', sku_type_id=1, description='Center Paperclip', sku_inventory_id=1)
+        Skuinventory.objects.create(
+            id=1,
+            title='In Stock',
+            identifier='in-stock',
+            description='In Stock items are available to purchase.')
+        Product.objects.create(
+            id=1,
+            title='Paper Clips',
+            title_url='PaperClips',
+            identifier='bSusp6dBHm',
+            headline='Paper clips can hold up to 20 pieces of paper together!',
+            description_part_1='Made out of high quality metal and folded to exact specifications.',
+            description_part_2='Use paperclips for all your paper binding needs!')
+        Sku.objects.create(
+            id=1,
+            color='Silver',
+            size='Medium',
+            sku_type_id=1,
+            description='Left Sided Paperclip',
+            sku_inventory_id=1)
+        Sku.objects.create(
+            id=2,
+            color='Gold',
+            size='Large',
+            sku_type_id=1,
+            description='Right Sided Paperclip',
+            sku_inventory_id=1)
+        Sku.objects.create(
+            id=3,
+            color='Bronze',
+            size='Small',
+            sku_type_id=1,
+            description='Center Paperclip',
+            sku_inventory_id=1)
         Skuprice.objects.create(id=1, price=3.5, created_date_time=timezone.now(), sku_id=1)
         Skuprice.objects.create(id=2, price=4.5, created_date_time=timezone.now(), sku_id=2)
         Skuprice.objects.create(id=3, price=2.5, created_date_time=timezone.now(), sku_id=3)
@@ -32,7 +61,10 @@ class LoggedInAPITest(TestCase):
         Productsku.objects.create(id=2, product_id=1, sku_id=2)
         Productsku.objects.create(id=3, product_id=1, sku_id=3)
         Group.objects.create(name='Members')
-        Termsofuse.objects.create(version='1', version_note='Test Terms', publication_date_time=timezone.now())
+        Termsofuse.objects.create(
+            version='1',
+            version_note='Test Terms',
+            publication_date_time=timezone.now())
 
     def test_authenticated_user_returns_logged_in_true(self):
         """Test that authenticated user receives logged_in=True with user info"""
@@ -53,15 +85,15 @@ class LoggedInAPITest(TestCase):
 
         response_data = json.loads(response.content.decode('utf8'))
         self.assertTrue(response_data['logged_in'],
-                       'Authenticated user should have logged_in=True')
+                        'Authenticated user should have logged_in=True')
         self.assertEqual(response_data['first_name'], 'John',
-                        'Should return first name')
+                         'Should return first name')
         self.assertEqual(response_data['last_name'], 'Doe',
-                        'Should return last name')
+                         'Should return last name')
         self.assertEqual(response_data['email_address'], 'testuser@test.com',
-                        'Should return email address')
+                         'Should return email address')
         self.assertIn('client_event_id', response_data,
-                     'Should return client_event_id')
+                      'Should return client_event_id')
 
     def test_authenticated_user_returns_correct_member_initials(self):
         """Test that authenticated user receives correct member_initials (first+last initial)"""
@@ -82,7 +114,7 @@ class LoggedInAPITest(TestCase):
 
         response_data = json.loads(response.content.decode('utf8'))
         self.assertEqual(response_data['member_initials'], 'JS',
-                        'Should return correct member initials (first+last)')
+                         'Should return correct member initials (first+last)')
 
     def test_authenticated_user_with_cart_returns_cart_count(self):
         """Test that authenticated user with cart items receives correct cart_item_count"""
@@ -109,7 +141,7 @@ class LoggedInAPITest(TestCase):
 
         response_data = json.loads(response.content.decode('utf8'))
         self.assertEqual(response_data['cart_item_count'], 2,
-                        'Should return count of 2 cart items (not quantity)')
+                         'Should return count of 2 cart items (not quantity)')
 
     def test_anonymous_user_returns_logged_in_false(self):
         """Test that anonymous user receives logged_in=False"""
@@ -118,15 +150,15 @@ class LoggedInAPITest(TestCase):
 
         response_data = json.loads(response.content.decode('utf8'))
         self.assertFalse(response_data['logged_in'],
-                        'Anonymous user should have logged_in=False')
+                         'Anonymous user should have logged_in=False')
         self.assertEqual(response_data['client_event_id'], 'null',
-                        'Anonymous user should have client_event_id=null')
+                         'Anonymous user should have client_event_id=null')
         self.assertNotIn('first_name', response_data,
-                        'Anonymous user should not have first_name in response')
+                         'Anonymous user should not have first_name in response')
         self.assertNotIn('last_name', response_data,
-                        'Anonymous user should not have last_name in response')
+                         'Anonymous user should not have last_name in response')
         self.assertNotIn('email_address', response_data,
-                        'Anonymous user should not have email_address in response')
+                         'Anonymous user should not have email_address in response')
 
     def test_anonymous_user_without_cart_returns_zero_cart_count(self):
         """Test that anonymous user without cart receives cart_item_count=0"""
@@ -137,9 +169,9 @@ class LoggedInAPITest(TestCase):
 
         response_data = json.loads(response.content.decode('utf8'))
         self.assertEqual(response_data['cart_item_count'], 0,
-                        'Anonymous user without cart should have cart_item_count=0')
+                         'Anonymous user without cart should have cart_item_count=0')
         self.assertFalse(response_data['logged_in'],
-                        'Should show logged_in=False')
+                         'Should show logged_in=False')
 
     def test_response_includes_log_client_events_configuration(self):
         """Test that response includes log_client_events configuration value"""
@@ -148,6 +180,6 @@ class LoggedInAPITest(TestCase):
 
         response_data = json.loads(response.content.decode('utf8'))
         self.assertIn('log_client_events', response_data,
-                     'Response should include log_client_events')
+                      'Response should include log_client_events')
         self.assertTrue(response_data['log_client_events'],
-                       'log_client_events should be True (set in setUp)')
+                        'log_client_events should be True (set in setUp)')

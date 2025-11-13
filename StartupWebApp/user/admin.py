@@ -11,7 +11,11 @@ from django.utils import timezone
 from smtplib import SMTPDataError
 import logging
 
-from user.models import Defaultshippingaddress, Member, Prospect, Emailunsubscribereasons, EmailunsubscribereasonsAdmin, Termsofuse, Membertermsofuseversionagreed, Emailtype, Emailstatus, Email, Emailsent, Ad, Adtype, Adstatus, Chatmessage
+from user.models import (
+    Defaultshippingaddress, Member, Prospect, Emailunsubscribereasons,
+    EmailunsubscribereasonsAdmin, Termsofuse, Membertermsofuseversionagreed,
+    Emailtype, Emailstatus, Email, Emailsent, Ad, Adtype, Adstatus, Chatmessage
+)
 from StartupWebApp.utilities import identifier
 
 from import_export import resources
@@ -47,7 +51,17 @@ class ProspectResource(resources.ModelResource):
 class ProspectAdmin(ImportExportModelAdmin):
     resource_class = ProspectResource
     actions = ['populate_prospect_codes']
-    list_display = ('first_name', 'last_name', 'email', 'phone', 'pr_cd', 'email_unsubscribed', 'prospect_comment', 'swa_comment', 'created_date_time', 'converted_date_time')
+    list_display = (
+        'first_name',
+        'last_name',
+        'email',
+        'phone',
+        'pr_cd',
+        'email_unsubscribed',
+        'prospect_comment',
+        'swa_comment',
+        'created_date_time',
+        'converted_date_time')
 
     def populate_prospect_codes(self, request, queryset):
         prospect_counter = 0
@@ -64,13 +78,17 @@ class ProspectAdmin(ImportExportModelAdmin):
 
             # email_unsubscribe_string
             if prospect.email_unsubscribe_string is None:
-                logger.info(f"email_unsubscribe_string empty for prospect {prospect.email}, setting new string")
+                logger.info(
+                    f"email_unsubscribe_string empty for prospect {
+                        prospect.email}, setting new string")
                 new_email_unsubscribe_string = identifier.getNewProspectEmailUnsubscribeString()
                 prospect.email_unsubscribe_string = new_email_unsubscribe_string
                 signed_string = email_unsubscribe_signer.sign(new_email_unsubscribe_string)
                 prospect.email_unsubscribe_string_signed = signed_string.rsplit(':', 1)[1]
             else:
-                logger.debug(f"email_unsubscribe_string already set for prospect {prospect.email}, skipping")
+                logger.debug(
+                    f"email_unsubscribe_string already set for prospect {
+                        prospect.email}, skipping")
 
             prospect.save()
             prospect_counter += 1
@@ -130,31 +148,62 @@ class EmailAdmin(admin.ModelAdmin):
                     recipients = Prospect.objects.filter(email_unsubscribed=False)
                     recipient_list = '<br/><br/>Notes:<br/>Prospects who would receive this email:<br/>'
                 elif email.email_type == Emailtype.objects.get(title='Member'):
-                    recipients = User.objects.filter(member__email_unsubscribed=False, member__newsletter_subscriber=True)
+                    recipients = User.objects.filter(
+                        member__email_unsubscribed=False,
+                        member__newsletter_subscriber=True)
                     recipient_list = '<br/><br/>Notes:<br/>Members who would receive this email:<br/>'
                 for recipient in recipients:
-                    recipient_list += str(recipient.first_name) + ' ' + str(recipient.last_name) + ' ' + recipient.email + '<br/>'
+                    recipient_list += str(recipient.first_name) + ' ' + \
+                        str(recipient.last_name) + ' ' + recipient.email + '<br/>'
 
                 for recipient in recipients:
                     if email.email_type == Emailtype.objects.get(title='Prospect'):
-                        draft_email_namespace = {'draft_text': '*** DRAFT ***', 'draft_html': '*** DRAFT ***<br/><br/>', 'msg_subject': email.subject, 'ENVIRONMENT_DOMAIN': settings.ENVIRONMENT_DOMAIN, 'recipient_first_name': recipient.first_name, 'em_cd': email.em_cd, 'mb_cd': None, 'pr_cd': recipient.pr_cd, 'token': None, 'pr_token': recipient.email_unsubscribe_string_signed}
+                        draft_email_namespace = {
+                            'draft_text': '*** DRAFT ***',
+                            'draft_html': '*** DRAFT ***<br/><br/>',
+                            'msg_subject': email.subject,
+                            'ENVIRONMENT_DOMAIN': settings.ENVIRONMENT_DOMAIN,
+                            'recipient_first_name': recipient.first_name,
+                            'em_cd': email.em_cd,
+                            'mb_cd': None,
+                            'pr_cd': recipient.pr_cd,
+                            'token': None,
+                            'pr_token': recipient.email_unsubscribe_string_signed}
                     elif email.email_type == Emailtype.objects.get(title='Member'):
-                        draft_email_namespace = {'draft_text': '*** DRAFT ***', 'draft_html': '*** DRAFT ***<br/><br/>', 'msg_subject': email.subject, 'ENVIRONMENT_DOMAIN': settings.ENVIRONMENT_DOMAIN, 'recipient_first_name': recipient.first_name, 'em_cd': email.em_cd, 'mb_cd': recipient.member.mb_cd, 'pr_cd': None, 'token': recipient.member.email_unsubscribe_string_signed, 'pr_token': None}
-                    formatted_body_text = (email.body_text + recipient_list).format(**draft_email_namespace)
-                    formatted_body_html = (email.body_html + recipient_list).format(**draft_email_namespace)
+                        draft_email_namespace = {
+                            'draft_text': '*** DRAFT ***',
+                            'draft_html': '*** DRAFT ***<br/><br/>',
+                            'msg_subject': email.subject,
+                            'ENVIRONMENT_DOMAIN': settings.ENVIRONMENT_DOMAIN,
+                            'recipient_first_name': recipient.first_name,
+                            'em_cd': email.em_cd,
+                            'mb_cd': recipient.member.mb_cd,
+                            'pr_cd': None,
+                            'token': recipient.member.email_unsubscribe_string_signed,
+                            'pr_token': None}
+                    formatted_body_text = (
+                        email.body_text +
+                        recipient_list).format(
+                        **draft_email_namespace)
+                    formatted_body_html = (
+                        email.body_html +
+                        recipient_list).format(
+                        **draft_email_namespace)
                     msg = EmailMultiAlternatives(
-                        subject = email.subject,
-                        body = formatted_body_text,
-                        from_email = email.from_address,
-                        to = ['contact@startupwebapp.com'],
-                        bcc = [email.bcc_address],
+                        subject=email.subject,
+                        body=formatted_body_text,
+                        from_email=email.from_address,
+                        to=['contact@startupwebapp.com'],
+                        bcc=[email.bcc_address],
                         reply_to=[email.from_address],
                     )
                     msg.attach_alternative(formatted_body_html, "text/html")
                     try:
                         msg.send(fail_silently=False)
-                    except SMTPDataError as e:
-                        logger.exception(f"SMTPDataError while sending draft email '{email.subject}'")
+                    except SMTPDataError:
+                        logger.exception(
+                            f"SMTPDataError while sending draft email '{
+                                email.subject}'")
             else:
                 logger.warning(f"Email '{email.subject}' is NOT Draft, skipping")
             email_counter += 1
@@ -175,21 +224,43 @@ class EmailAdmin(admin.ModelAdmin):
                 if email.email_type == Emailtype.objects.get(title='Prospect'):
                     recipients = Prospect.objects.filter(email_unsubscribed=False)
                 elif email.email_type == Emailtype.objects.get(title='Member'):
-                    recipients = User.objects.filter(member__email_unsubscribed=False, member__newsletter_subscriber=True)
+                    recipients = User.objects.filter(
+                        member__email_unsubscribed=False,
+                        member__newsletter_subscriber=True)
                 for recipient in recipients:
 
                     if email.email_type == Emailtype.objects.get(title='Prospect'):
-                        ready_email_namespace = {'draft_text': '', 'draft_html': '', 'msg_subject': email.subject, 'ENVIRONMENT_DOMAIN': settings.ENVIRONMENT_DOMAIN, 'recipient_first_name': recipient.first_name, 'em_cd': email.em_cd, 'mb_cd': None, 'pr_cd': recipient.pr_cd, 'token': None, 'pr_token': recipient.email_unsubscribe_string_signed}
+                        ready_email_namespace = {
+                            'draft_text': '',
+                            'draft_html': '',
+                            'msg_subject': email.subject,
+                            'ENVIRONMENT_DOMAIN': settings.ENVIRONMENT_DOMAIN,
+                            'recipient_first_name': recipient.first_name,
+                            'em_cd': email.em_cd,
+                            'mb_cd': None,
+                            'pr_cd': recipient.pr_cd,
+                            'token': None,
+                            'pr_token': recipient.email_unsubscribe_string_signed}
                     elif email.email_type == Emailtype.objects.get(title='Member'):
-                        ready_email_namespace = {'draft_text': '', 'draft_html': '', 'msg_subject': email.subject, 'ENVIRONMENT_DOMAIN': settings.ENVIRONMENT_DOMAIN, 'recipient_first_name': recipient.first_name, 'em_cd': email.em_cd, 'mb_cd': recipient.member.mb_cd, 'pr_cd': None, 'token': recipient.member.email_unsubscribe_string_signed, 'pr_token': None}
+                        ready_email_namespace = {
+                            'draft_text': '',
+                            'draft_html': '',
+                            'msg_subject': email.subject,
+                            'ENVIRONMENT_DOMAIN': settings.ENVIRONMENT_DOMAIN,
+                            'recipient_first_name': recipient.first_name,
+                            'em_cd': email.em_cd,
+                            'mb_cd': recipient.member.mb_cd,
+                            'pr_cd': None,
+                            'token': recipient.member.email_unsubscribe_string_signed,
+                            'pr_token': None}
                     formatted_body_text = email.body_text.format(**ready_email_namespace)
                     formatted_body_html = email.body_html.format(**ready_email_namespace)
                     msg = EmailMultiAlternatives(
-                        subject = email.subject,
-                        body = formatted_body_text,
-                        from_email = email.from_address,
-                        to = [recipient.email],
-                        bcc = [email.bcc_address],
+                        subject=email.subject,
+                        body=formatted_body_text,
+                        from_email=email.from_address,
+                        to=[recipient.email],
+                        bcc=[email.bcc_address],
                         reply_to=[email.from_address],
                     )
                     msg.attach_alternative(formatted_body_html, "text/html")
@@ -197,12 +268,17 @@ class EmailAdmin(admin.ModelAdmin):
                         msg.send(fail_silently=False)
                         now = timezone.now()
                         if email.email_type == Emailtype.objects.get(title='Prospect'):
-                            emailsent = Emailsent.objects.create(member=None, prospect=recipient, email=email, sent_date_time=now)
+                            emailsent = Emailsent.objects.create(
+                                member=None, prospect=recipient, email=email, sent_date_time=now)
                         elif email.email_type == Emailtype.objects.get(title='Member'):
-                            emailsent = Emailsent.objects.create(member=recipient.member, prospect=None, email=email, sent_date_time=now)
+                            emailsent = Emailsent.objects.create(
+                                member=recipient.member, prospect=None, email=email, sent_date_time=now)
                         logger.info(f"Email sent successfully: {emailsent}")
-                    except SMTPDataError as e:
-                        logger.exception(f"SMTPDataError while sending email '{email.subject}' to recipient {recipient.email}")
+                    except SMTPDataError:
+                        logger.exception(
+                            f"SMTPDataError while sending email '{
+                                email.subject}' to recipient {
+                                recipient.email}")
                 email.email_status = Emailstatus.objects.get(title='Sent')
                 email.save()
             else:
@@ -226,7 +302,20 @@ class EmailsentAdmin(admin.ModelAdmin):
 
 class AdAdmin(admin.ModelAdmin):
     actions = ['populate_ad_codes']
-    list_display = ('campaignid', 'adgroupid', 'adid', 'final_url', 'headline_1', 'headline_2', 'headline_3', 'description_1', 'description_2', 'final_url_suffix', 'ad_type', 'ad_status', 'ad_cd')
+    list_display = (
+        'campaignid',
+        'adgroupid',
+        'adid',
+        'final_url',
+        'headline_1',
+        'headline_2',
+        'headline_3',
+        'description_1',
+        'description_2',
+        'final_url_suffix',
+        'ad_type',
+        'ad_status',
+        'ad_cd')
 
     def populate_ad_codes(self, request, queryset):
         ad_counter = 0

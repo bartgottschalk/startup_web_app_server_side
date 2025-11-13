@@ -21,13 +21,33 @@ class ChangeMyPasswordAPITest(TestCase):
         ClientEventConfiguration.objects.create(id=1, log_client_events=True)
 
         Skutype.objects.create(id=1, title='product')
-        Skuinventory.objects.create(id=1, title='In Stock', identifier='in-stock', description='In Stock items are available to purchase.')
-        Product.objects.create(id=1, title='Paper Clips', title_url='PaperClips', identifier='bSusp6dBHm', headline='Paper clips can hold up to 20 pieces of paper together!', description_part_1='Made out of high quality metal and folded to exact specifications.', description_part_2='Use paperclips for all your paper binding needs!')
-        Sku.objects.create(id=1, color='Silver', size='Medium', sku_type_id=1, description='Left Sided Paperclip', sku_inventory_id=1)
+        Skuinventory.objects.create(
+            id=1,
+            title='In Stock',
+            identifier='in-stock',
+            description='In Stock items are available to purchase.')
+        Product.objects.create(
+            id=1,
+            title='Paper Clips',
+            title_url='PaperClips',
+            identifier='bSusp6dBHm',
+            headline='Paper clips can hold up to 20 pieces of paper together!',
+            description_part_1='Made out of high quality metal and folded to exact specifications.',
+            description_part_2='Use paperclips for all your paper binding needs!')
+        Sku.objects.create(
+            id=1,
+            color='Silver',
+            size='Medium',
+            sku_type_id=1,
+            description='Left Sided Paperclip',
+            sku_inventory_id=1)
         Skuprice.objects.create(id=1, price=3.5, created_date_time=timezone.now(), sku_id=1)
         Productsku.objects.create(id=1, product_id=1, sku_id=1)
         Group.objects.create(name='Members')
-        Termsofuse.objects.create(version='1', version_note='Test Terms', publication_date_time=timezone.now())
+        Termsofuse.objects.create(
+            version='1',
+            version_note='Test Terms',
+            publication_date_time=timezone.now())
 
         # Create a test user and log them in
         self.client.post('/user/create-account', data={
@@ -54,21 +74,27 @@ class ChangeMyPasswordAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"change_my_password": "success", "user-api-version": "0.0.1"}',
-                            'Valid password change should succeed')
+                             '{"change_my_password": "success", "user-api-version": "0.0.1"}',
+                             'Valid password change should succeed')
 
         # Verify password was changed
         user = User.objects.get(username='testuser')
-        self.assertTrue(user.check_password('NewValidPass2!'), 'Password should be changed to new password')
+        self.assertTrue(
+            user.check_password('NewValidPass2!'),
+            'Password should be changed to new password')
 
         # Verify confirmation email was sent
         self.assertEqual(len(mail.outbox), 1, 'Password change confirmation email should be sent')
-        self.assertIn('password', mail.outbox[0].subject.lower(), 'Email subject should mention password')
+        self.assertIn(
+            'password',
+            mail.outbox[0].subject.lower(),
+            'Email subject should mention password')
 
         # Verify user is still logged in after password change
         response = self.client.get('/user/logged-in')
         response_data = json.loads(response.content.decode('utf8'))
-        self.assertTrue(response_data['logged_in'], 'User should still be logged in after password change')
+        self.assertTrue(response_data['logged_in'],
+                        'User should still be logged in after password change')
 
     def test_unauthenticated_user(self):
         """Test that unauthenticated user cannot change password"""
@@ -81,9 +107,10 @@ class ChangeMyPasswordAPITest(TestCase):
             'confirm_new_password': 'NewValidPass2!'
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-        self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"change_my_password": "user_not_authenticated", "user-api-version": "0.0.1"}',
-                            'Unauthenticated user should not be able to change password')
+        self.assertJSONEqual(
+            response.content.decode('utf8'),
+            '{"change_my_password": "user_not_authenticated", "user-api-version": "0.0.1"}',
+            'Unauthenticated user should not be able to change password')
 
     def test_incorrect_current_password(self):
         """Test that incorrect current password is rejected"""
@@ -94,9 +121,15 @@ class ChangeMyPasswordAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         response_data = json.loads(response.content.decode('utf8'))
-        self.assertEqual(response_data['change_my_password'], 'errors', 'Incorrect current password should fail')
+        self.assertEqual(
+            response_data['change_my_password'],
+            'errors',
+            'Incorrect current password should fail')
         self.assertIn('errors', response_data, 'Should return error messages')
-        self.assertIn('current-password', response_data['errors'], 'Should have current-password error')
+        self.assertIn(
+            'current-password',
+            response_data['errors'],
+            'Should have current-password error')
 
         # Verify password was NOT changed
         user = User.objects.get(username='testuser')
@@ -111,7 +144,10 @@ class ChangeMyPasswordAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         response_data = json.loads(response.content.decode('utf8'))
-        self.assertEqual(response_data['change_my_password'], 'errors', 'Weak new password should be rejected')
+        self.assertEqual(
+            response_data['change_my_password'],
+            'errors',
+            'Weak new password should be rejected')
         self.assertIn('errors', response_data, 'Should return error messages')
 
         # Verify password was NOT changed
@@ -127,7 +163,10 @@ class ChangeMyPasswordAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         response_data = json.loads(response.content.decode('utf8'))
-        self.assertEqual(response_data['change_my_password'], 'errors', 'Mismatched passwords should be rejected')
+        self.assertEqual(
+            response_data['change_my_password'],
+            'errors',
+            'Mismatched passwords should be rejected')
 
         # Verify password was NOT changed
         user = User.objects.get(username='testuser')
@@ -142,7 +181,8 @@ class ChangeMyPasswordAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         response_data = json.loads(response.content.decode('utf8'))
-        self.assertEqual(response_data['change_my_password'], 'errors', 'New password same as current should be rejected')
+        self.assertEqual(response_data['change_my_password'], 'errors',
+                         'New password same as current should be rejected')
         self.assertIn('errors', response_data, 'Should return error messages')
         self.assertIn('password', response_data['errors'], 'Should have password error')
 
@@ -167,8 +207,8 @@ class ChangeMyPasswordAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"login": "true", "user-api-version": "0.0.1"}',
-                            'User should be able to login with new password')
+                             '{"login": "true", "user-api-version": "0.0.1"}',
+                             'User should be able to login with new password')
 
         # Logout and try old password (should fail)
         self.client.post('/user/logout')
@@ -179,5 +219,5 @@ class ChangeMyPasswordAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"login": "false", "user-api-version": "0.0.1"}',
-                            'Old password should no longer work')
+                             '{"login": "false", "user-api-version": "0.0.1"}',
+                             'Old password should no longer work')

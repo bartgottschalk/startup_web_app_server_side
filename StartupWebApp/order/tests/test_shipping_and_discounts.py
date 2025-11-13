@@ -151,7 +151,7 @@ class CartShippingMethodsEndpointTest(TestCase):
         self.assertEqual(standard_method['carrier'], 'USPS')
         self.assertEqual(standard_method['shipping_cost'], 5.00)
         self.assertEqual(standard_method['tracking_code_base_url'],
-                        'https://tools.usps.com/track')
+                         'https://tools.usps.com/track')
 
 
 class CartUpdateShippingMethodEndpointTest(TestCase):
@@ -218,7 +218,7 @@ class CartUpdateShippingMethodEndpointTest(TestCase):
         data = json.loads(response.content.decode('utf8'))
         self.assertEqual(data['cart_update_shipping_method'], 'error')
         self.assertEqual(data['errors']['error'],
-                        'shipping-method-identifier-required')
+                         'shipping-method-identifier-required')
 
     def test_cart_update_shipping_method_with_invalid_identifier(self):
         """Test error with invalid shipping method identifier"""
@@ -233,7 +233,7 @@ class CartUpdateShippingMethodEndpointTest(TestCase):
         data = json.loads(response.content.decode('utf8'))
         self.assertEqual(data['cart_update_shipping_method'], 'error')
         self.assertEqual(data['errors']['error'],
-                        'error-setting-cart-shipping-method')
+                         'error-setting-cart-shipping-method')
 
     def test_cart_update_shipping_method_creates_new_association(self):
         """Test creating new cart shipping method"""
@@ -544,7 +544,7 @@ class CartApplyDiscountCodeEndpointTest(TestCase):
         data = json.loads(response.content.decode('utf8'))
         self.assertEqual(data['cart_apply_discount_code'], 'error')
         self.assertEqual(data['errors']['error'],
-                        'cart-discount-code-already-applied')
+                         'cart-discount-code-already-applied')
 
     def test_cart_apply_discount_code_success(self):
         """Test successful discount code application"""

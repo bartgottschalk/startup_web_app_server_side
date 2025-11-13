@@ -29,21 +29,21 @@ class ButtonclickAPITest(TestCase):
 
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         self.assertEqual(response.content.decode('utf8'), '"thank you"',
-                        'Button click should return "thank you"')
+                         'Button click should return "thank you"')
 
         # Verify button click was created
         self.assertEqual(Buttonclick.objects.count(), 1,
-                        'Should create one button click record')
+                         'Should create one button click record')
 
         buttonclick = Buttonclick.objects.first()
         self.assertEqual(buttonclick.user, self.user,
-                        'Button click should be associated with user')
+                         'Button click should be associated with user')
         self.assertEqual(buttonclick.url, 'https://example.com/products',
-                        'URL should be saved correctly')
+                         'URL should be saved correctly')
         self.assertEqual(buttonclick.button_id, 'add-to-cart-btn',
-                        'Button ID should be saved')
+                         'Button ID should be saved')
         self.assertIsNone(buttonclick.anonymous_id,
-                         'Anonymous ID should be None for authenticated user')
+                          'Anonymous ID should be None for authenticated user')
 
     def test_anonymous_user_button_click_saved(self):
         """Test that anonymous user button click is saved with anonymous_id"""
@@ -61,9 +61,9 @@ class ButtonclickAPITest(TestCase):
 
         buttonclick = Buttonclick.objects.first()
         self.assertIsNone(buttonclick.user,
-                         'User should be None for anonymous button click')
+                          'User should be None for anonymous button click')
         self.assertEqual(buttonclick.anonymous_id, 'anon_click_123',
-                        'Anonymous ID should be saved')
+                         'Anonymous ID should be saved')
         self.assertEqual(buttonclick.button_id, 'checkout-now-btn')
 
     def test_button_click_without_url_not_saved(self):
@@ -76,11 +76,11 @@ class ButtonclickAPITest(TestCase):
 
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         self.assertEqual(response.content.decode('utf8'), '"thank you"',
-                        'Should still return thank you even without URL')
+                         'Should still return thank you even without URL')
 
         # Verify no button click was created
         self.assertEqual(Buttonclick.objects.count(), 0,
-                        'Should not create button click without URL')
+                         'Should not create button click without URL')
 
     def test_button_click_with_invalid_user_id_handles_gracefully(self):
         """Test that invalid user ID does not crash, saves with null user"""
@@ -96,7 +96,7 @@ class ButtonclickAPITest(TestCase):
         self.assertEqual(Buttonclick.objects.count(), 1)
         buttonclick = Buttonclick.objects.first()
         self.assertIsNone(buttonclick.user,
-                         'User should be None for invalid user ID')
+                          'User should be None for invalid user ID')
 
     def test_button_id_saved_correctly(self):
         """Test that button_id is saved correctly"""
@@ -110,7 +110,7 @@ class ButtonclickAPITest(TestCase):
 
         buttonclick = Buttonclick.objects.first()
         self.assertEqual(buttonclick.button_id, 'subscribe-newsletter-btn-123',
-                        'Button ID should match exactly what was sent')
+                         'Button ID should match exactly what was sent')
 
     def test_button_click_created_date_time_is_set(self):
         """Test that created_date_time is automatically set"""
@@ -128,11 +128,11 @@ class ButtonclickAPITest(TestCase):
 
         buttonclick = Buttonclick.objects.first()
         self.assertIsNotNone(buttonclick.created_date_time,
-                            'Created date time should be set')
+                             'Created date time should be set')
         self.assertGreaterEqual(buttonclick.created_date_time, before_request,
-                               'Created time should be after request start')
+                                'Created time should be after request start')
         self.assertLessEqual(buttonclick.created_date_time, after_request,
-                            'Created time should be before request end')
+                             'Created time should be before request end')
 
     def test_multiple_button_clicks_can_be_tracked(self):
         """Test that multiple button clicks can be tracked independently"""
@@ -151,7 +151,7 @@ class ButtonclickAPITest(TestCase):
         })
 
         self.assertEqual(Buttonclick.objects.count(), 2,
-                        'Should track multiple button clicks')
+                         'Should track multiple button clicks')
 
         button_ids = list(Buttonclick.objects.values_list('button_id', flat=True))
         self.assertIn('btn-1', button_ids)
@@ -174,9 +174,9 @@ class ButtonclickAPITest(TestCase):
         })
 
         self.assertEqual(Buttonclick.objects.count(), 2,
-                        'Should track each click separately')
+                         'Should track each click separately')
 
         # Both should have same button_id
         button_ids = list(Buttonclick.objects.values_list('button_id', flat=True))
         self.assertEqual(button_ids, ['same-button', 'same-button'],
-                        'Both clicks should have same button_id')
+                         'Both clicks should have same button_id')

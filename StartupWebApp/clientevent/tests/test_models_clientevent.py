@@ -9,7 +9,6 @@ from clientevent.models import Configuration, Pageview, AJAXError, Buttonclick, 
 from user.models import Member, Prospect, Email, Emailtype, Emailstatus, Ad, Adtype, Adstatus, Termsofuse
 
 
-
 class ConfigurationModelTest(TestCase):
     """Test Configuration model creation and behavior"""
 
@@ -25,7 +24,7 @@ class ConfigurationModelTest(TestCase):
         config = Configuration.objects.create()
 
         self.assertTrue(config.log_client_events,
-                       'log_client_events should default to True')
+                        'log_client_events should default to True')
 
     def test_configuration_str_representation(self):
         """Test that Configuration __str__ returns expected format"""
@@ -122,9 +121,9 @@ class PageviewModelTest(TestCase):
         # Verify pageview still exists but user is NULL
         pageview.refresh_from_db()
         self.assertIsNone(pageview.user,
-                         'User should be set to NULL after user deletion')
+                          'User should be set to NULL after user deletion')
         self.assertTrue(Pageview.objects.filter(id=pageview_id).exists(),
-                       'Pageview should not be deleted')
+                        'Pageview should not be deleted')
 
 
 class AJAXErrorModelTest(TestCase):
@@ -202,9 +201,9 @@ class AJAXErrorModelTest(TestCase):
         # Verify ajax_error still exists but user is NULL
         ajax_error.refresh_from_db()
         self.assertIsNone(ajax_error.user,
-                         'User should be set to NULL after user deletion')
+                          'User should be set to NULL after user deletion')
         self.assertTrue(AJAXError.objects.filter(id=ajax_error_id).exists(),
-                       'AJAXError should not be deleted')
+                        'AJAXError should not be deleted')
 
 
 class ButtonclickModelTest(TestCase):
@@ -282,9 +281,9 @@ class ButtonclickModelTest(TestCase):
         # Verify buttonclick still exists but user is NULL
         buttonclick.refresh_from_db()
         self.assertIsNone(buttonclick.user,
-                         'User should be set to NULL after user deletion')
+                          'User should be set to NULL after user deletion')
         self.assertTrue(Buttonclick.objects.filter(id=buttonclick_id).exists(),
-                       'Buttonclick should not be deleted')
+                        'Buttonclick should not be deleted')
 
 
 class LinkeventModelTest(TestCase):
@@ -292,7 +291,10 @@ class LinkeventModelTest(TestCase):
 
     def setUp(self):
         Group.objects.create(name='Members')
-        Termsofuse.objects.create(version='1', version_note='Test', publication_date_time=timezone.now())
+        Termsofuse.objects.create(
+            version='1',
+            version_note='Test',
+            publication_date_time=timezone.now())
 
         self.user = User.objects.create_user(username='testuser', email='test@test.com')
         self.member = Member.objects.create(user=self.user, mb_cd='MEMBER123')
@@ -385,9 +387,9 @@ class LinkeventModelTest(TestCase):
         # Verify linkevent still exists but user is NULL
         linkevent.refresh_from_db()
         self.assertIsNone(linkevent.user,
-                         'User should be set to NULL after user deletion')
+                          'User should be set to NULL after user deletion')
         self.assertTrue(Linkevent.objects.filter(id=linkevent_id).exists(),
-                       'Linkevent should not be deleted')
+                        'Linkevent should not be deleted')
 
     def test_linkevent_set_null_on_prospect_deletion(self):
         """Test that linkevent.prospect is set to NULL when prospect is deleted"""
@@ -404,9 +406,9 @@ class LinkeventModelTest(TestCase):
         # Verify linkevent still exists but prospect is NULL
         linkevent.refresh_from_db()
         self.assertIsNone(linkevent.prospect,
-                         'Prospect should be set to NULL after prospect deletion')
+                          'Prospect should be set to NULL after prospect deletion')
         self.assertTrue(Linkevent.objects.filter(id=linkevent_id).exists(),
-                       'Linkevent should not be deleted')
+                        'Linkevent should not be deleted')
 
     def test_linkevent_set_null_on_email_deletion(self):
         """Test that linkevent.email is set to NULL when email is deleted"""
@@ -423,9 +425,9 @@ class LinkeventModelTest(TestCase):
         # Verify linkevent still exists but email is NULL
         linkevent.refresh_from_db()
         self.assertIsNone(linkevent.email,
-                         'Email should be set to NULL after email deletion')
+                          'Email should be set to NULL after email deletion')
         self.assertTrue(Linkevent.objects.filter(id=linkevent_id).exists(),
-                       'Linkevent should not be deleted')
+                        'Linkevent should not be deleted')
 
     def test_linkevent_set_null_on_ad_deletion(self):
         """Test that linkevent.ad is set to NULL when ad is deleted"""
@@ -442,6 +444,6 @@ class LinkeventModelTest(TestCase):
         # Verify linkevent still exists but ad is NULL
         linkevent.refresh_from_db()
         self.assertIsNone(linkevent.ad,
-                         'Ad should be set to NULL after ad deletion')
+                          'Ad should be set to NULL after ad deletion')
         self.assertTrue(Linkevent.objects.filter(id=linkevent_id).exists(),
-                       'Linkevent should not be deleted')
+                        'Linkevent should not be deleted')

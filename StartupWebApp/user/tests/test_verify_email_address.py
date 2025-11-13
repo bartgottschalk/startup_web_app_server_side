@@ -20,13 +20,33 @@ class VerifyEmailAddressAPITest(TestCase):
         ClientEventConfiguration.objects.create(id=1, log_client_events=True)
 
         Skutype.objects.create(id=1, title='product')
-        Skuinventory.objects.create(id=1, title='In Stock', identifier='in-stock', description='In Stock items are available to purchase.')
-        Product.objects.create(id=1, title='Paper Clips', title_url='PaperClips', identifier='bSusp6dBHm', headline='Paper clips can hold up to 20 pieces of paper together!', description_part_1='Made out of high quality metal and folded to exact specifications.', description_part_2='Use paperclips for all your paper binding needs!')
-        Sku.objects.create(id=1, color='Silver', size='Medium', sku_type_id=1, description='Left Sided Paperclip', sku_inventory_id=1)
+        Skuinventory.objects.create(
+            id=1,
+            title='In Stock',
+            identifier='in-stock',
+            description='In Stock items are available to purchase.')
+        Product.objects.create(
+            id=1,
+            title='Paper Clips',
+            title_url='PaperClips',
+            identifier='bSusp6dBHm',
+            headline='Paper clips can hold up to 20 pieces of paper together!',
+            description_part_1='Made out of high quality metal and folded to exact specifications.',
+            description_part_2='Use paperclips for all your paper binding needs!')
+        Sku.objects.create(
+            id=1,
+            color='Silver',
+            size='Medium',
+            sku_type_id=1,
+            description='Left Sided Paperclip',
+            sku_inventory_id=1)
         Skuprice.objects.create(id=1, price=3.5, created_date_time=timezone.now(), sku_id=1)
         Productsku.objects.create(id=1, product_id=1, sku_id=1)
         Group.objects.create(name='Members')
-        Termsofuse.objects.create(version='1', version_note='Test Terms', publication_date_time=timezone.now())
+        Termsofuse.objects.create(
+            version='1',
+            version_note='Test Terms',
+            publication_date_time=timezone.now())
 
         # Create a test user and log them in
         self.client.post('/user/create-account', data={
@@ -48,22 +68,35 @@ class VerifyEmailAddressAPITest(TestCase):
         """Test successful email verification request from authenticated user"""
         response = self.client.post('/user/verify-email-address')
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-        self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"verify_email_address": "verification_email_sent", "user-api-version": "0.0.1"}',
-                            'Valid verification request should succeed')
+        self.assertJSONEqual(
+            response.content.decode('utf8'),
+            '{"verify_email_address": "verification_email_sent", "user-api-version": "0.0.1"}',
+            'Valid verification request should succeed')
 
         # Verify email was sent
         self.assertEqual(len(mail.outbox), 1, 'Verification email should be sent')
-        self.assertIn('verification', mail.outbox[0].subject.lower(), 'Email subject should mention verification')
-        self.assertEqual(mail.outbox[0].to[0], 'testuser@test.com', 'Email should be sent to user email')
+        self.assertIn(
+            'verification',
+            mail.outbox[0].subject.lower(),
+            'Email subject should mention verification')
+        self.assertEqual(
+            mail.outbox[0].to[0],
+            'testuser@test.com',
+            'Email should be sent to user email')
 
         # Verify tokens were generated in database
         user = User.objects.get(username='testuser')
         member = user.member
-        self.assertIsNotNone(member.email_verification_string, 'Email verification string should be generated')
-        self.assertIsNotNone(member.email_verification_string_signed, 'Email verification string signed should be generated')
-        self.assertEqual(len(member.email_verification_string), 20, 'Email verification string should be 20 characters')
-        self.assertTrue(len(member.email_verification_string_signed) > 20, 'Signed string should be longer than plain string')
+        self.assertIsNotNone(
+            member.email_verification_string,
+            'Email verification string should be generated')
+        self.assertIsNotNone(
+            member.email_verification_string_signed,
+            'Email verification string signed should be generated')
+        self.assertEqual(len(member.email_verification_string), 20,
+                         'Email verification string should be 20 characters')
+        self.assertTrue(len(member.email_verification_string_signed) > 20,
+                        'Signed string should be longer than plain string')
 
         # Verify email_verified is still False
         self.assertFalse(member.email_verified, 'Email should not be verified yet')
@@ -75,9 +108,10 @@ class VerifyEmailAddressAPITest(TestCase):
 
         response = self.client.post('/user/verify-email-address')
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-        self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"verify_email_address": "user_not_authenticated", "user-api-version": "0.0.1"}',
-                            'Unauthenticated user should not be able to request verification')
+        self.assertJSONEqual(
+            response.content.decode('utf8'),
+            '{"verify_email_address": "user_not_authenticated", "user-api-version": "0.0.1"}',
+            'Unauthenticated user should not be able to request verification')
 
         # Verify NO email was sent
         self.assertEqual(len(mail.outbox), 0, 'No email should be sent for unauthenticated user')
@@ -104,8 +138,14 @@ class VerifyEmailAddressAPITest(TestCase):
         second_signed_token = member.email_verification_string_signed
 
         # Verify tokens changed
-        self.assertNotEqual(first_token, second_token, 'New verification request should generate new token')
-        self.assertNotEqual(first_signed_token, second_signed_token, 'New verification request should generate new signed token')
+        self.assertNotEqual(
+            first_token,
+            second_token,
+            'New verification request should generate new token')
+        self.assertNotEqual(
+            first_signed_token,
+            second_signed_token,
+            'New verification request should generate new signed token')
 
         # Verify two emails were sent
         self.assertEqual(len(mail.outbox), 2, 'Both verification requests should send emails')
@@ -120,15 +160,19 @@ class VerifyEmailAddressAPITest(TestCase):
         member = user.member
 
         # Plain token should be exactly 20 characters
-        self.assertEqual(len(member.email_verification_string), 20, 'Plain token should be 20 characters')
-        self.assertTrue(member.email_verification_string.isalnum(), 'Plain token should be alphanumeric')
+        self.assertEqual(len(member.email_verification_string),
+                         20, 'Plain token should be 20 characters')
+        self.assertTrue(
+            member.email_verification_string.isalnum(),
+            'Plain token should be alphanumeric')
 
         # Signed token should contain colon (signature separator)
-        self.assertIn(':', member.email_verification_string_signed, 'Signed token should contain colon separator')
+        self.assertIn(':', member.email_verification_string_signed,
+                      'Signed token should contain colon separator')
 
         # Signed token should be longer than plain token (includes timestamp and signature)
-        self.assertGreater(len(member.email_verification_string_signed), len(member.email_verification_string),
-                          'Signed token should be longer than plain token')
+        self.assertGreater(len(member.email_verification_string_signed), len(
+            member.email_verification_string), 'Signed token should be longer than plain token')
 
     def test_email_content_includes_verification_link(self):
         """Test that verification email includes the signed verification code"""
@@ -145,10 +189,17 @@ class VerifyEmailAddressAPITest(TestCase):
         email_body = mail.outbox[0].body
 
         # Verify email contains the verification code
-        self.assertIn(signed_token, email_body, 'Email should contain the signed verification token')
-        self.assertIn('email_verification_code=', email_body, 'Email should contain verification URL parameter')
+        self.assertIn(
+            signed_token,
+            email_body,
+            'Email should contain the signed verification token')
+        self.assertIn('email_verification_code=', email_body,
+                      'Email should contain verification URL parameter')
         self.assertIn('/account/', email_body, 'Email should contain account page URL')
 
         # Verify email contains security warnings
         self.assertIn('24 hours', email_body, 'Email should mention 24-hour expiry')
-        self.assertIn('DID NOT REQUEST', email_body.upper(), 'Email should include security warning')
+        self.assertIn(
+            'DID NOT REQUEST',
+            email_body.upper(),
+            'Email should include security warning')

@@ -20,13 +20,33 @@ class UpdateCommunicationPreferencesAPITest(TestCase):
         ClientEventConfiguration.objects.create(id=1, log_client_events=True)
 
         Skutype.objects.create(id=1, title='product')
-        Skuinventory.objects.create(id=1, title='In Stock', identifier='in-stock', description='In Stock items are available to purchase.')
-        Product.objects.create(id=1, title='Paper Clips', title_url='PaperClips', identifier='bSusp6dBHm', headline='Paper clips can hold up to 20 pieces of paper together!', description_part_1='Made out of high quality metal and folded to exact specifications.', description_part_2='Use paperclips for all your paper binding needs!')
-        Sku.objects.create(id=1, color='Silver', size='Medium', sku_type_id=1, description='Left Sided Paperclip', sku_inventory_id=1)
+        Skuinventory.objects.create(
+            id=1,
+            title='In Stock',
+            identifier='in-stock',
+            description='In Stock items are available to purchase.')
+        Product.objects.create(
+            id=1,
+            title='Paper Clips',
+            title_url='PaperClips',
+            identifier='bSusp6dBHm',
+            headline='Paper clips can hold up to 20 pieces of paper together!',
+            description_part_1='Made out of high quality metal and folded to exact specifications.',
+            description_part_2='Use paperclips for all your paper binding needs!')
+        Sku.objects.create(
+            id=1,
+            color='Silver',
+            size='Medium',
+            sku_type_id=1,
+            description='Left Sided Paperclip',
+            sku_inventory_id=1)
         Skuprice.objects.create(id=1, price=3.5, created_date_time=timezone.now(), sku_id=1)
         Productsku.objects.create(id=1, product_id=1, sku_id=1)
         Group.objects.create(name='Members')
-        Termsofuse.objects.create(version='1', version_note='Test Terms', publication_date_time=timezone.now())
+        Termsofuse.objects.create(
+            version='1',
+            version_note='Test Terms',
+            publication_date_time=timezone.now())
 
         # Create a test user and log them in
         self.client.post('/user/create-account', data={
@@ -54,9 +74,10 @@ class UpdateCommunicationPreferencesAPITest(TestCase):
             'other': ''
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-        self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"update_communication_preferences": "success", "user-api-version": "0.0.1"}',
-                            'Valid newsletter subscription should succeed')
+        self.assertJSONEqual(
+            response.content.decode('utf8'),
+            '{"update_communication_preferences": "success", "user-api-version": "0.0.1"}',
+            'Valid newsletter subscription should succeed')
 
         # Verify member preferences were updated
         user = User.objects.get(username='testuser')
@@ -75,9 +96,10 @@ class UpdateCommunicationPreferencesAPITest(TestCase):
             'other': 'Too many emails'
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-        self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"update_communication_preferences": "success", "user-api-version": "0.0.1"}',
-                            'Valid unsubscribe should succeed')
+        self.assertJSONEqual(
+            response.content.decode('utf8'),
+            '{"update_communication_preferences": "success", "user-api-version": "0.0.1"}',
+            'Valid unsubscribe should succeed')
 
         # Verify member preferences were updated
         user = User.objects.get(username='testuser')
@@ -88,7 +110,9 @@ class UpdateCommunicationPreferencesAPITest(TestCase):
         reasons = Emailunsubscribereasons.objects.filter(member=user.member)
         self.assertEqual(reasons.count(), 1, 'Unsubscribe reason should be recorded')
         reason = reasons.first()
-        self.assertTrue(reason.no_longer_want_to_receive, 'No longer want to receive should be True')
+        self.assertTrue(
+            reason.no_longer_want_to_receive,
+            'No longer want to receive should be True')
         self.assertFalse(reason.never_signed_up, 'Never signed up should be False')
         self.assertFalse(reason.inappropriate, 'Inappropriate should be False')
         self.assertTrue(reason.spam, 'Spam should be True')
@@ -108,13 +132,15 @@ class UpdateCommunicationPreferencesAPITest(TestCase):
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         response_data = json.loads(response.content.decode('utf8'))
         self.assertEqual(response_data['update_communication_preferences'], 'errors',
-                        'Conflicting preferences should be rejected')
+                         'Conflicting preferences should be rejected')
         self.assertIn('errors', response_data, 'Should return error messages')
         self.assertIn('invalid_data', response_data['errors'], 'Should have invalid_data error')
 
         # Verify member preferences were NOT updated
         user = User.objects.get(username='testuser')
-        self.assertFalse(user.member.newsletter_subscriber, 'Newsletter subscriber should remain False')
+        self.assertFalse(
+            user.member.newsletter_subscriber,
+            'Newsletter subscriber should remain False')
         self.assertFalse(user.member.email_unsubscribed, 'Email unsubscribed should remain False')
 
     def test_unsubscribe_token_regenerated_when_flag_changes(self):
@@ -139,9 +165,9 @@ class UpdateCommunicationPreferencesAPITest(TestCase):
         # Verify tokens changed
         user.refresh_from_db()
         self.assertNotEqual(user.member.email_unsubscribe_string, initial_token,
-                           'Unsubscribe token should change when flag changes')
+                            'Unsubscribe token should change when flag changes')
         self.assertNotEqual(user.member.email_unsubscribe_string_signed, initial_signed_token,
-                           'Signed unsubscribe token should change when flag changes')
+                            'Signed unsubscribe token should change when flag changes')
 
         # Verify new tokens are not None
         self.assertIsNotNone(user.member.email_unsubscribe_string)
@@ -162,9 +188,10 @@ class UpdateCommunicationPreferencesAPITest(TestCase):
             'other': ''
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-        self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"update_communication_preferences": "user_not_authenticated", "user-api-version": "0.0.1"}',
-                            'Unauthenticated user should be rejected')
+        self.assertJSONEqual(
+            response.content.decode('utf8'),
+            '{"update_communication_preferences": "user_not_authenticated", "user-api-version": "0.0.1"}',
+            'Unauthenticated user should be rejected')
 
     def test_missing_required_data_rejected(self):
         """Test that request with missing required data is rejected"""
@@ -176,7 +203,7 @@ class UpdateCommunicationPreferencesAPITest(TestCase):
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         response_data = json.loads(response.content.decode('utf8'))
         self.assertEqual(response_data['update_communication_preferences'], 'errors',
-                        'Missing required data should be rejected')
+                         'Missing required data should be rejected')
         self.assertIn('errors', response_data, 'Should return error messages')
         self.assertIn('data_missing', response_data['errors'], 'Should have data_missing error')
 
@@ -196,4 +223,7 @@ class UpdateCommunicationPreferencesAPITest(TestCase):
         # Verify NO unsubscribe reasons were recorded (all false/empty)
         user = User.objects.get(username='testuser')
         reasons = Emailunsubscribereasons.objects.filter(member=user.member)
-        self.assertEqual(reasons.count(), 0, 'No reasons should be recorded when all are false/empty')
+        self.assertEqual(
+            reasons.count(),
+            0,
+            'No reasons should be recorded when all are false/empty')

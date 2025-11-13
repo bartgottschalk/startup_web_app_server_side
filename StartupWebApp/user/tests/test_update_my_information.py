@@ -21,13 +21,33 @@ class UpdateMyInformationAPITest(TestCase):
         ClientEventConfiguration.objects.create(id=1, log_client_events=True)
 
         Skutype.objects.create(id=1, title='product')
-        Skuinventory.objects.create(id=1, title='In Stock', identifier='in-stock', description='In Stock items are available to purchase.')
-        Product.objects.create(id=1, title='Paper Clips', title_url='PaperClips', identifier='bSusp6dBHm', headline='Paper clips can hold up to 20 pieces of paper together!', description_part_1='Made out of high quality metal and folded to exact specifications.', description_part_2='Use paperclips for all your paper binding needs!')
-        Sku.objects.create(id=1, color='Silver', size='Medium', sku_type_id=1, description='Left Sided Paperclip', sku_inventory_id=1)
+        Skuinventory.objects.create(
+            id=1,
+            title='In Stock',
+            identifier='in-stock',
+            description='In Stock items are available to purchase.')
+        Product.objects.create(
+            id=1,
+            title='Paper Clips',
+            title_url='PaperClips',
+            identifier='bSusp6dBHm',
+            headline='Paper clips can hold up to 20 pieces of paper together!',
+            description_part_1='Made out of high quality metal and folded to exact specifications.',
+            description_part_2='Use paperclips for all your paper binding needs!')
+        Sku.objects.create(
+            id=1,
+            color='Silver',
+            size='Medium',
+            sku_type_id=1,
+            description='Left Sided Paperclip',
+            sku_inventory_id=1)
         Skuprice.objects.create(id=1, price=3.5, created_date_time=timezone.now(), sku_id=1)
         Productsku.objects.create(id=1, product_id=1, sku_id=1)
         Group.objects.create(name='Members')
-        Termsofuse.objects.create(version='1', version_note='Test Terms', publication_date_time=timezone.now())
+        Termsofuse.objects.create(
+            version='1',
+            version_note='Test Terms',
+            publication_date_time=timezone.now())
 
         # Create a test user and log them in
         self.client.post('/user/create-account', data={
@@ -54,8 +74,8 @@ class UpdateMyInformationAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"update_my_information": "success", "user-api-version": "0.0.1"}',
-                            'Valid update should succeed')
+                             '{"update_my_information": "success", "user-api-version": "0.0.1"}',
+                             'Valid update should succeed')
 
         # Verify user data was updated
         user = User.objects.get(username='testuser')
@@ -80,8 +100,8 @@ class UpdateMyInformationAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"update_my_information": "success", "user-api-version": "0.0.1"}',
-                            'Valid update with email change should succeed')
+                             '{"update_my_information": "success", "user-api-version": "0.0.1"}',
+                             'Valid update with email change should succeed')
 
         # Verify user data was updated
         user.refresh_from_db()
@@ -90,11 +110,16 @@ class UpdateMyInformationAPITest(TestCase):
         self.assertEqual(user.email, 'newemail@test.com')
 
         # Verify email_verified was reset to False
-        self.assertFalse(user.member.email_verified, 'Email verified should be reset to False on email change')
+        self.assertFalse(user.member.email_verified,
+                         'Email verified should be reset to False on email change')
 
         # Verify new verification tokens were generated
-        self.assertIsNotNone(user.member.email_verification_string, 'New verification token should be generated')
-        self.assertIsNotNone(user.member.email_verification_string_signed, 'New signed token should be generated')
+        self.assertIsNotNone(
+            user.member.email_verification_string,
+            'New verification token should be generated')
+        self.assertIsNotNone(
+            user.member.email_verification_string_signed,
+            'New signed token should be generated')
 
         # Verify email was sent
         self.assertEqual(len(mail.outbox), 1, 'Email notification should be sent on email change')
@@ -129,7 +154,10 @@ class UpdateMyInformationAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         response_data = json.loads(response.content.decode('utf8'))
-        self.assertEqual(response_data['update_my_information'], 'errors', 'Invalid first name should be rejected')
+        self.assertEqual(
+            response_data['update_my_information'],
+            'errors',
+            'Invalid first name should be rejected')
         self.assertIn('errors', response_data, 'Should return error messages')
         self.assertIn('firstname', response_data['errors'], 'Should have firstname error')
 
@@ -146,7 +174,10 @@ class UpdateMyInformationAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         response_data = json.loads(response.content.decode('utf8'))
-        self.assertEqual(response_data['update_my_information'], 'errors', 'Invalid last name should be rejected')
+        self.assertEqual(
+            response_data['update_my_information'],
+            'errors',
+            'Invalid last name should be rejected')
         self.assertIn('errors', response_data, 'Should return error messages')
         self.assertIn('lastname', response_data['errors'], 'Should have lastname error')
 
@@ -163,7 +194,8 @@ class UpdateMyInformationAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         response_data = json.loads(response.content.decode('utf8'))
-        self.assertEqual(response_data['update_my_information'], 'errors', 'Invalid email should be rejected')
+        self.assertEqual(response_data['update_my_information'],
+                         'errors', 'Invalid email should be rejected')
         self.assertIn('errors', response_data, 'Should return error messages')
         self.assertIn('email-address', response_data['errors'], 'Should have email-address error')
 
@@ -182,9 +214,10 @@ class UpdateMyInformationAPITest(TestCase):
             'email_address': 'hacker@test.com'
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-        self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"update_my_information": "user_not_authenticated", "user-api-version": "0.0.1"}',
-                            'Unauthenticated user should be rejected')
+        self.assertJSONEqual(
+            response.content.decode('utf8'),
+            '{"update_my_information": "user_not_authenticated", "user-api-version": "0.0.1"}',
+            'Unauthenticated user should be rejected')
 
     def test_email_verification_tokens_regenerated_on_email_change(self):
         """Test that new verification tokens are generated when email changes"""
@@ -204,9 +237,9 @@ class UpdateMyInformationAPITest(TestCase):
         # Verify tokens changed
         user.refresh_from_db()
         self.assertNotEqual(user.member.email_verification_string, initial_token,
-                           'Plain token should change on email change')
+                            'Plain token should change on email change')
         self.assertNotEqual(user.member.email_verification_string_signed, initial_signed_token,
-                           'Signed token should change on email change')
+                            'Signed token should change on email change')
 
         # Verify new tokens are valid (20 chars, not None)
         self.assertIsNotNone(user.member.email_verification_string)

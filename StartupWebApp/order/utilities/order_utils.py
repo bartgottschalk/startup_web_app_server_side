@@ -1,5 +1,10 @@
-from order.models import Ordersku, Orderdiscount, Orderstatus, Ordershippingmethod
-from order.models import Orderconfiguration, Skuprice, Skuimage, Cart, Cartsku, Cartdiscount, Productsku, Productimage, Cartshippingmethod
+from order.models import (
+    Ordersku, Orderdiscount, Orderstatus, Ordershippingmethod
+)
+from order.models import (
+    Orderconfiguration, Skuprice, Skuimage, Cart, Cartsku, Cartdiscount,
+    Productsku, Productimage, Cartshippingmethod
+)
 from StartupWebApp.utilities import random
 from django.conf import settings
 import stripe
@@ -11,12 +16,14 @@ logger = logging.getLogger(__name__)
 
 
 def checkout_allowed(request):
-    an_ct_values_allowed_to_checkout = Orderconfiguration.objects.get(key='an_ct_values_allowed_to_checkout').string_value
+    an_ct_values_allowed_to_checkout = Orderconfiguration.objects.get(
+        key='an_ct_values_allowed_to_checkout').string_value
     if an_ct_values_allowed_to_checkout is not None:
         an_ct_values_allowed_to_checkout_arr = an_ct_values_allowed_to_checkout.split(',')
     else:
         an_ct_values_allowed_to_checkout_arr = []
-    usernames_allowed_to_checkout = Orderconfiguration.objects.get(key='usernames_allowed_to_checkout').string_value
+    usernames_allowed_to_checkout = Orderconfiguration.objects.get(
+        key='usernames_allowed_to_checkout').string_value
     if usernames_allowed_to_checkout is not None:
         usernames_allowed_to_checkout_arr = usernames_allowed_to_checkout.split(',')
     else:
@@ -32,7 +39,8 @@ def checkout_allowed(request):
                 checkout_allowed = True
                 break
     else:
-        signed_cookie = request.get_signed_cookie(key='an_ct', default=False, salt='anonymouscartcookieisthis')
+        signed_cookie = request.get_signed_cookie(
+            key='an_ct', default=False, salt='anonymouscartcookieisthis')
         for an_ct in an_ct_values_allowed_to_checkout_arr:
             if str(an_ct) == "*":
                 checkout_allowed = True
@@ -60,17 +68,24 @@ def get_cart_items(request, cart):
                 sku_data['color'] = cartsku.sku.color
                 sku_data['size'] = cartsku.sku.size
                 sku_data['description'] = cartsku.sku.description
-                sku_data['price'] = Skuprice.objects.filter(sku=cartsku.sku).latest('created_date_time').price
+                sku_data['price'] = Skuprice.objects.filter(
+                    sku=cartsku.sku).latest('created_date_time').price
                 sku_data['quantity'] = cartsku.quantity
-                sku_data['parent_product__title'] = Productsku.objects.get(sku=cartsku.sku).product.title
-                sku_data['parent_product__title_url'] = Productsku.objects.get(sku=cartsku.sku).product.title_url
-                sku_data['parent_product__identifier'] = Productsku.objects.get(sku=cartsku.sku).product.identifier
-                sku_image_main_exists = Skuimage.objects.filter(sku=cartsku.sku, main_image=True).exists()
+                sku_data['parent_product__title'] = Productsku.objects.get(
+                    sku=cartsku.sku).product.title
+                sku_data['parent_product__title_url'] = Productsku.objects.get(
+                    sku=cartsku.sku).product.title_url
+                sku_data['parent_product__identifier'] = Productsku.objects.get(
+                    sku=cartsku.sku).product.identifier
+                sku_image_main_exists = Skuimage.objects.filter(
+                    sku=cartsku.sku, main_image=True).exists()
                 sku_image_url = None
                 if sku_image_main_exists is True:
                     sku_image_url = Skuimage.objects.get(sku=cartsku.sku, main_image=True).image_url
                 else:
-                    sku_image_url = Productimage.objects.get(product=Productsku.objects.get(sku=cartsku.sku).product, main_image=True).image_url
+                    sku_image_url = Productimage.objects.get(
+                        product=Productsku.objects.get(
+                            sku=cartsku.sku).product, main_image=True).image_url
                 sku_data['sku_image_url'] = sku_image_url
                 product_sku_dict[counter] = sku_data
                 counter += 1
@@ -94,7 +109,16 @@ def set_anonymous_cart_cookie(request, response, cart):
         cart.save()
         # Only set domain in production (DEBUG=False) to allow cookies to work with localhost
         domain = '.startupwebapp.com' if not settings.DEBUG else None
-        response.set_signed_cookie(key='an_ct', value=cookie_value, salt='anonymouscartcookieisthis', max_age=31536000, expires=None, path='/', domain=domain, secure=None, httponly=False)
+        response.set_signed_cookie(
+            key='an_ct',
+            value=cookie_value,
+            salt='anonymouscartcookieisthis',
+            max_age=31536000,
+            expires=None,
+            path='/',
+            domain=domain,
+            secure=None,
+            httponly=False)
 
 
 def look_up_cart(request):
@@ -105,7 +129,8 @@ def look_up_cart(request):
         if member_cart_exists is True:
             cart = Cart.objects.get(member=request.user.member)
     else:
-        signed_cookie = request.get_signed_cookie(key='an_ct', default=False, salt='anonymouscartcookieisthis')
+        signed_cookie = request.get_signed_cookie(
+            key='an_ct', default=False, salt='anonymouscartcookieisthis')
         anonymous_cart_exists = Cart.objects.filter(anonymous_cart_id=signed_cookie).exists()
         if anonymous_cart_exists is True:
             cart = Cart.objects.get(anonymous_cart_id=signed_cookie)
@@ -122,7 +147,8 @@ def look_up_member_cart(request):
 
 def look_up_anonymous_cart(request):
     cart = None
-    signed_cookie = request.get_signed_cookie(key='an_ct', default=False, salt='anonymouscartcookieisthis')
+    signed_cookie = request.get_signed_cookie(
+        key='an_ct', default=False, salt='anonymouscartcookieisthis')
     anonymous_cart_exists = Cart.objects.filter(anonymous_cart_id=signed_cookie).exists()
     if anonymous_cart_exists is True:
         cart = Cart.objects.get(anonymous_cart_id=signed_cookie)
@@ -179,7 +205,8 @@ def get_cart_totals(cart):
 
     item_discount = calculate_cart_item_discount(cart, item_subtotal)
     shipping_discount = calculate_shipping_discount(cart, item_subtotal)
-    cart_total = item_subtotal - item_discount + shipping_subtotal - (shipping_discount if shipping_discount is not None else 0)
+    cart_total = item_subtotal - item_discount + shipping_subtotal - \
+        (shipping_discount if shipping_discount is not None else 0)
 
     cart_totals_dict['item_subtotal'] = item_subtotal
     cart_totals_dict['item_discount'] = item_discount
@@ -262,7 +289,8 @@ def calculate_cart_item_discount(cart, item_subtotal):
                 else:
                     if item_subtotal >= cartdiscount.discountcode.order_minimum:
                         if cartdiscount.discountcode.discounttype.action == 'percent-off':
-                            item_discount += item_subtotal * (cartdiscount.discountcode.discount_amount/100)
+                            item_discount += item_subtotal * \
+                                (cartdiscount.discountcode.discount_amount / 100)
                         if cartdiscount.discountcode.discounttype.action == 'dollar-amt-off':
                             item_discount += item_discount + cartdiscount.discountcode.discount_amount
                     else:
@@ -293,7 +321,12 @@ def calculate_shipping_discount(cart, item_subtotal):
 def calculate_item_subtotal(cart):
     item_subtotal = 0
     for cartsku in Cartsku.objects.filter(cart=cart):
-        item_subtotal += (Skuprice.objects.filter(sku=cartsku.sku).latest('created_date_time').price * Cartsku.objects.get(cart=cart, sku=cartsku.sku).quantity)
+        item_subtotal += (
+            Skuprice.objects.filter(
+                sku=cartsku.sku).latest('created_date_time').price *
+            Cartsku.objects.get(
+                cart=cart,
+                sku=cartsku.sku).quantity)
     return item_subtotal
 
 
@@ -342,15 +375,22 @@ def get_order_items(order):
             sku_data['description'] = ordersku.sku.description
             sku_data['price'] = ordersku.price_each
             sku_data['quantity'] = ordersku.quantity
-            sku_data['parent_product__title'] = Productsku.objects.get(sku=ordersku.sku).product.title
-            sku_data['parent_product__title_url'] = Productsku.objects.get(sku=ordersku.sku).product.title_url
-            sku_data['parent_product__identifier'] = Productsku.objects.get(sku=ordersku.sku).product.identifier
-            sku_image_main_exists = Skuimage.objects.filter(sku=ordersku.sku, main_image=True).exists()
+            sku_data['parent_product__title'] = Productsku.objects.get(
+                sku=ordersku.sku).product.title
+            sku_data['parent_product__title_url'] = Productsku.objects.get(
+                sku=ordersku.sku).product.title_url
+            sku_data['parent_product__identifier'] = Productsku.objects.get(
+                sku=ordersku.sku).product.identifier
+            sku_image_main_exists = Skuimage.objects.filter(
+                sku=ordersku.sku, main_image=True).exists()
             sku_image_url = None
             if sku_image_main_exists is True:
                 sku_image_url = Skuimage.objects.get(sku=ordersku.sku, main_image=True).image_url
             else:
-                sku_image_url = Productimage.objects.get(product=Productsku.objects.get(sku=ordersku.sku).product, main_image=True).image_url
+                sku_image_url = Productimage.objects.get(
+                    product=Productsku.objects.get(
+                        sku=ordersku.sku).product,
+                    main_image=True).image_url
             sku_data['sku_image_url'] = sku_image_url
             product_sku_dict[counter] = sku_data
             counter += 1
@@ -464,14 +504,23 @@ def get_confirmation_email_product_information_text_format(order_item_dict):
     for product_sku_id in order_item_dict['product_sku_data']:
         sku_title_str = order_item_dict['product_sku_data'][product_sku_id]['parent_product__title']
         if order_item_dict['product_sku_data'][product_sku_id]['description'] is not None:
-            sku_title_str += ', ' + order_item_dict['product_sku_data'][product_sku_id]['description']
+            sku_title_str += ', ' + \
+                order_item_dict['product_sku_data'][product_sku_id]['description']
         if order_item_dict['product_sku_data'][product_sku_id]['color'] is not None:
             sku_title_str += ', ' + order_item_dict['product_sku_data'][product_sku_id]['color']
         if order_item_dict['product_sku_data'][product_sku_id]['size'] is not None:
             sku_title_str += ', ' + order_item_dict['product_sku_data'][product_sku_id]['size']
-        item_each_formatted = '${:,.2f}'.format(float(order_item_dict['product_sku_data'][product_sku_id]['price']))
-        item_subtotal_formatted = '${:,.2f}'.format(float(order_item_dict['product_sku_data'][product_sku_id]['price']) * int(order_item_dict['product_sku_data'][product_sku_id]['quantity']))
-        product_information_text += sku_title_str + ', ' + item_each_formatted + ' each, Quantity: ' + str(order_item_dict['product_sku_data'][product_sku_id]['quantity']) + ', Subtotal: ' + item_subtotal_formatted
+        item_each_formatted = '${:,.2f}'.format(
+            float(order_item_dict['product_sku_data'][product_sku_id]['price']))
+        item_subtotal_formatted = '${:,.2f}'.format(
+            float(
+                order_item_dict['product_sku_data'][product_sku_id]['price']) * int(
+                order_item_dict['product_sku_data'][product_sku_id]['quantity']))
+        product_information_text += (
+            sku_title_str + ', ' + item_each_formatted + ' each, Quantity: ' +
+            str(order_item_dict['product_sku_data'][product_sku_id]['quantity']) +
+            ', Subtotal: ' + item_subtotal_formatted
+        )
         product_information_text += '\r\n'
 
     product_information_text = product_information_text[:-2]
@@ -480,7 +529,7 @@ def get_confirmation_email_product_information_text_format(order_item_dict):
 
 def get_confirmation_email_shipping_information_text_format(shipping_method):
     shipping_cost_formatted = '${:,.2f}'.format(shipping_method.shipping_cost)
-    shipping_information =  shipping_method.carrier + ' ' + shipping_cost_formatted
+    shipping_information = shipping_method.carrier + ' ' + shipping_cost_formatted
     return shipping_information
 
 
@@ -492,13 +541,15 @@ def get_confirmation_email_discount_code_text_format(discount_code_dict):
             combinable_str = 'Yes'
 
         value_str = discount_code_dict[discount_code_id]['description']
-        value_str = value_str.replace('{}', str(discount_code_dict[discount_code_id]['discount_amount']))
+        value_str = value_str.replace(
+            '{}', str(discount_code_dict[discount_code_id]['discount_amount']))
 
         wont_be_applied_str = ''
         if not discount_code_dict[discount_code_id]['discount_applied']:
             wont_be_applied_str = ' [This code cannot be combined or does not qualify for your order.]'
 
-        discount_code_text += 'Code: ' + discount_code_dict[discount_code_id]['code'] + wont_be_applied_str + ', ' + value_str + ', Combinable: ' + combinable_str
+        discount_code_text += 'Code: ' + discount_code_dict[discount_code_id]['code'] + \
+            wont_be_applied_str + ', ' + value_str + ', Combinable: ' + combinable_str
         discount_code_text += '\r\n'
 
     if discount_code_text == '':
@@ -526,7 +577,8 @@ def get_confirmation_email_order_totals_text_format(cart_totals_dict):
 
 
 def get_confirmation_email_order_payment_text_format(payment):
-    order_payment_information = str(payment.card_brand) + ': **** **** **** ' + str(payment.card_last4) + ', Exp: ' + str(payment.card_exp_month) + '/' + str(payment.card_exp_year)
+    order_payment_information = str(payment.card_brand) + ': **** **** **** ' + str(
+        payment.card_last4) + ', Exp: ' + str(payment.card_exp_month) + '/' + str(payment.card_exp_year)
     return order_payment_information
 
 
@@ -546,7 +598,9 @@ def retrieve_stripe_customer(customer_token):
     try:
         customer = stripe.Customer.retrieve(customer_token)
         return customer
-    except (stripe.error.CardError, stripe.error.RateLimitError, stripe.error.InvalidRequestError, stripe.error.AuthenticationError, stripe.error.APIConnectionError, stripe.error.StripeError) as e:
+    except (stripe.error.CardError, stripe.error.RateLimitError,
+            stripe.error.InvalidRequestError, stripe.error.AuthenticationError,
+            stripe.error.APIConnectionError, stripe.error.StripeError) as e:
         # Log the error and return None to allow graceful handling by caller
         logger.error(f"Stripe error in retrieve_stripe_customer: {type(e).__name__}: {str(e)}")
         return None
@@ -560,7 +614,9 @@ def create_stripe_customer(stripe_token, email, metadata_key, metadata_value):
             metadata={metadata_key: metadata_value},
         )
         return customer
-    except (stripe.error.CardError, stripe.error.RateLimitError, stripe.error.InvalidRequestError, stripe.error.AuthenticationError, stripe.error.APIConnectionError, stripe.error.StripeError) as e:
+    except (stripe.error.CardError, stripe.error.RateLimitError,
+            stripe.error.InvalidRequestError, stripe.error.AuthenticationError,
+            stripe.error.APIConnectionError, stripe.error.StripeError) as e:
         # Log the error and return None to allow graceful handling by caller
         logger.error(f"Stripe error in create_stripe_customer: {type(e).__name__}: {str(e)}")
         return None
@@ -569,12 +625,17 @@ def create_stripe_customer(stripe_token, email, metadata_key, metadata_value):
 def stripe_customer_replace_default_payemnt(customer_token, stripe_token):
     try:
         stripe.Customer.modify(customer_token,
-            source=stripe_token,
-        )
+                               source=stripe_token,
+                               )
         return True
-    except (stripe.error.CardError, stripe.error.RateLimitError, stripe.error.InvalidRequestError, stripe.error.AuthenticationError, stripe.error.APIConnectionError, stripe.error.StripeError) as e:
+    except (stripe.error.CardError, stripe.error.RateLimitError,
+            stripe.error.InvalidRequestError, stripe.error.AuthenticationError,
+            stripe.error.APIConnectionError, stripe.error.StripeError) as e:
         # Log the error and return None to indicate failure
-        logger.error(f"Stripe error in stripe_customer_replace_default_payment: {type(e).__name__}: {str(e)}")
+        logger.error(
+            f"Stripe error in stripe_customer_replace_default_payment: {
+                type(e).__name__}: {
+                str(e)}")
         return None
 
 
@@ -585,7 +646,9 @@ def stripe_customer_add_card(customer_token, stripe_token):
             return None
         card = customer.sources.create(source=stripe_token)
         return card
-    except (stripe.error.CardError, stripe.error.RateLimitError, stripe.error.InvalidRequestError, stripe.error.AuthenticationError, stripe.error.APIConnectionError, stripe.error.StripeError) as e:
+    except (stripe.error.CardError, stripe.error.RateLimitError,
+            stripe.error.InvalidRequestError, stripe.error.AuthenticationError,
+            stripe.error.APIConnectionError, stripe.error.StripeError) as e:
         # Log the error and return None to allow graceful handling by caller
         logger.error(f"Stripe error in stripe_customer_add_card: {type(e).__name__}: {str(e)}")
         return None
@@ -594,10 +657,15 @@ def stripe_customer_add_card(customer_token, stripe_token):
 def stripe_customer_change_default_payemnt(customer_token, card_id):
     try:
         stripe.Customer.modify(customer_token,
-            default_source=card_id,
-        )
+                               default_source=card_id,
+                               )
         return True
-    except (stripe.error.CardError, stripe.error.RateLimitError, stripe.error.InvalidRequestError, stripe.error.AuthenticationError, stripe.error.APIConnectionError, stripe.error.StripeError) as e:
+    except (stripe.error.CardError, stripe.error.RateLimitError,
+            stripe.error.InvalidRequestError, stripe.error.AuthenticationError,
+            stripe.error.APIConnectionError, stripe.error.StripeError) as e:
         # Log the error and return None to indicate failure
-        logger.error(f"Stripe error in stripe_customer_change_default_payment: {type(e).__name__}: {str(e)}")
+        logger.error(
+            f"Stripe error in stripe_customer_change_default_payment: {
+                type(e).__name__}: {
+                str(e)}")
         return None

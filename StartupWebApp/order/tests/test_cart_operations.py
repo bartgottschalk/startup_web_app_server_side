@@ -593,7 +593,7 @@ class CartRemoveSkuEndpointTest(TestCase):
             shipping_cost=5.00,
             active=True
         )
-        cart_shipping_method = Cartshippingmethod.objects.create(
+        Cartshippingmethod.objects.create(
             cart=self.cart,
             shippingmethod=shipping_method
         )
@@ -620,14 +620,14 @@ class CartRemoveSkuEndpointTest(TestCase):
         from order.models import Shippingmethod
 
         # Create active shipping methods
-        shipping_method_1 = Shippingmethod.objects.create(
+        Shippingmethod.objects.create(
             identifier='express',
             carrier='FedEx',
             shipping_cost=15.00,
             tracking_code_base_url='https://www.fedex.com/track',
             active=True
         )
-        shipping_method_2 = Shippingmethod.objects.create(
+        Shippingmethod.objects.create(
             identifier='standard',
             carrier='USPS',
             shipping_cost=5.00,
@@ -656,7 +656,9 @@ class CartRemoveSkuEndpointTest(TestCase):
         self.assertEqual(cart_shipping_methods['0']['identifier'], 'express')
         self.assertEqual(cart_shipping_methods['0']['carrier'], 'FedEx')
         self.assertEqual(cart_shipping_methods['0']['shipping_cost'], 15.00)
-        self.assertEqual(cart_shipping_methods['0']['tracking_code_base_url'], 'https://www.fedex.com/track')
+        self.assertEqual(
+            cart_shipping_methods['0']['tracking_code_base_url'],
+            'https://www.fedex.com/track')
 
         # Second method should be standard (lower cost)
         self.assertIn('1', cart_shipping_methods)

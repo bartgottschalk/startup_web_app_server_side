@@ -21,13 +21,33 @@ class SetNewPasswordAPITest(TestCase):
         ClientEventConfiguration.objects.create(id=1, log_client_events=True)
 
         Skutype.objects.create(id=1, title='product')
-        Skuinventory.objects.create(id=1, title='In Stock', identifier='in-stock', description='In Stock items are available to purchase.')
-        Product.objects.create(id=1, title='Paper Clips', title_url='PaperClips', identifier='bSusp6dBHm', headline='Paper clips can hold up to 20 pieces of paper together!', description_part_1='Made out of high quality metal and folded to exact specifications.', description_part_2='Use paperclips for all your paper binding needs!')
-        Sku.objects.create(id=1, color='Silver', size='Medium', sku_type_id=1, description='Left Sided Paperclip', sku_inventory_id=1)
+        Skuinventory.objects.create(
+            id=1,
+            title='In Stock',
+            identifier='in-stock',
+            description='In Stock items are available to purchase.')
+        Product.objects.create(
+            id=1,
+            title='Paper Clips',
+            title_url='PaperClips',
+            identifier='bSusp6dBHm',
+            headline='Paper clips can hold up to 20 pieces of paper together!',
+            description_part_1='Made out of high quality metal and folded to exact specifications.',
+            description_part_2='Use paperclips for all your paper binding needs!')
+        Sku.objects.create(
+            id=1,
+            color='Silver',
+            size='Medium',
+            sku_type_id=1,
+            description='Left Sided Paperclip',
+            sku_inventory_id=1)
         Skuprice.objects.create(id=1, price=3.5, created_date_time=timezone.now(), sku_id=1)
         Productsku.objects.create(id=1, product_id=1, sku_id=1)
         Group.objects.create(name='Members')
-        Termsofuse.objects.create(version='1', version_note='Test Terms', publication_date_time=timezone.now())
+        Termsofuse.objects.create(
+            version='1',
+            version_note='Test Terms',
+            publication_date_time=timezone.now())
 
         # Create a test user
         self.client.post('/user/create-account', data={
@@ -64,24 +84,30 @@ class SetNewPasswordAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"set_new_password": "success", "user-api-version": "0.0.1"}',
-                            'Setting new password with valid token should succeed')
+                             '{"set_new_password": "success", "user-api-version": "0.0.1"}',
+                             'Setting new password with valid token should succeed')
 
         # Verify password was changed
         user = User.objects.get(username='testuser')
-        self.assertTrue(user.check_password('NewValidPass2!'), 'Password should be changed to new password')
+        self.assertTrue(
+            user.check_password('NewValidPass2!'),
+            'Password should be changed to new password')
 
         # Verify token was cleared from database
         self.member.refresh_from_db()
-        self.assertIsNone(self.member.reset_password_string, 'Reset password string should be cleared')
-        self.assertIsNone(self.member.reset_password_string_signed, 'Reset password string signed should be cleared')
+        self.assertIsNone(
+            self.member.reset_password_string,
+            'Reset password string should be cleared')
+        self.assertIsNone(
+            self.member.reset_password_string_signed,
+            'Reset password string signed should be cleared')
 
     def test_expired_token(self):
         """Test that expired token (older than 24 hours) is rejected"""
         # Create an expired token by using TimestampSigner with old timestamp
         # Note: We can't easily create an actually expired token in the past through the API
         # So we'll create a token with a modified timestamp
-        signer = TimestampSigner(salt='reset_email')
+        TimestampSigner(salt='reset_email')
 
         # Create a fake expired signed token (this will be rejected as invalid)
         # In reality, we would need to manipulate time, but Django's TimestampSigner validates on unsign
@@ -95,7 +121,10 @@ class SetNewPasswordAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         response_data = json.loads(response.content.decode('utf8'))
-        self.assertEqual(response_data['set_new_password'], 'signature-invalid', 'Expired/invalid token should fail')
+        self.assertEqual(
+            response_data['set_new_password'],
+            'signature-invalid',
+            'Expired/invalid token should fail')
 
         # Verify password was NOT changed
         user = User.objects.get(username='testuser')
@@ -111,7 +140,10 @@ class SetNewPasswordAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         response_data = json.loads(response.content.decode('utf8'))
-        self.assertEqual(response_data['set_new_password'], 'signature-invalid', 'Invalid token should fail')
+        self.assertEqual(
+            response_data['set_new_password'],
+            'signature-invalid',
+            'Invalid token should fail')
 
         # Verify password was NOT changed
         user = User.objects.get(username='testuser')
@@ -134,7 +166,10 @@ class SetNewPasswordAPITest(TestCase):
         # When user doesn't exist, the endpoint returns None (no JSON response)
         # The view catches ObjectDoesNotExist and prints but doesn't return JSON
         # We expect either no response or an error response
-        self.assertIn('set_new_password', response_data, 'Response should contain set_new_password key')
+        self.assertIn(
+            'set_new_password',
+            response_data,
+            'Response should contain set_new_password key')
 
     def test_weak_password_rejected(self):
         """Test that weak password is rejected during password reset"""
@@ -146,7 +181,10 @@ class SetNewPasswordAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         response_data = json.loads(response.content.decode('utf8'))
-        self.assertEqual(response_data['set_new_password'], 'password-error', 'Weak password should be rejected')
+        self.assertEqual(
+            response_data['set_new_password'],
+            'password-error',
+            'Weak password should be rejected')
         self.assertIn('errors', response_data, 'Should return error messages')
 
         # Verify password was NOT changed
@@ -155,7 +193,8 @@ class SetNewPasswordAPITest(TestCase):
 
         # Verify token was NOT cleared (user can try again)
         self.member.refresh_from_db()
-        self.assertIsNotNone(self.member.reset_password_string, 'Reset token should still exist after failed attempt')
+        self.assertIsNotNone(self.member.reset_password_string,
+                             'Reset token should still exist after failed attempt')
 
     def test_password_mismatch(self):
         """Test that mismatched passwords are rejected"""
@@ -167,7 +206,10 @@ class SetNewPasswordAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         response_data = json.loads(response.content.decode('utf8'))
-        self.assertEqual(response_data['set_new_password'], 'password-error', 'Mismatched passwords should be rejected')
+        self.assertEqual(
+            response_data['set_new_password'],
+            'password-error',
+            'Mismatched passwords should be rejected')
 
         # Verify password was NOT changed
         user = User.objects.get(username='testuser')
@@ -192,8 +234,8 @@ class SetNewPasswordAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"login": "true", "user-api-version": "0.0.1"}',
-                            'User should be able to login with new password')
+                             '{"login": "true", "user-api-version": "0.0.1"}',
+                             'User should be able to login with new password')
 
         # Verify user is logged in
         response = self.client.get('/user/logged-in')
@@ -209,5 +251,5 @@ class SetNewPasswordAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"login": "false", "user-api-version": "0.0.1"}',
-                            'Old password should no longer work')
+                             '{"login": "false", "user-api-version": "0.0.1"}',
+                             'Old password should no longer work')

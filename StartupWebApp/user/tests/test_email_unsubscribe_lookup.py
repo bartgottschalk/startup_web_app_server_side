@@ -20,13 +20,33 @@ class EmailUnsubscribeLookupAPITest(TestCase):
         ClientEventConfiguration.objects.create(id=1, log_client_events=True)
 
         Skutype.objects.create(id=1, title='product')
-        Skuinventory.objects.create(id=1, title='In Stock', identifier='in-stock', description='In Stock items are available to purchase.')
-        Product.objects.create(id=1, title='Paper Clips', title_url='PaperClips', identifier='bSusp6dBHm', headline='Paper clips can hold up to 20 pieces of paper together!', description_part_1='Made out of high quality metal and folded to exact specifications.', description_part_2='Use paperclips for all your paper binding needs!')
-        Sku.objects.create(id=1, color='Silver', size='Medium', sku_type_id=1, description='Left Sided Paperclip', sku_inventory_id=1)
+        Skuinventory.objects.create(
+            id=1,
+            title='In Stock',
+            identifier='in-stock',
+            description='In Stock items are available to purchase.')
+        Product.objects.create(
+            id=1,
+            title='Paper Clips',
+            title_url='PaperClips',
+            identifier='bSusp6dBHm',
+            headline='Paper clips can hold up to 20 pieces of paper together!',
+            description_part_1='Made out of high quality metal and folded to exact specifications.',
+            description_part_2='Use paperclips for all your paper binding needs!')
+        Sku.objects.create(
+            id=1,
+            color='Silver',
+            size='Medium',
+            sku_type_id=1,
+            description='Left Sided Paperclip',
+            sku_inventory_id=1)
         Skuprice.objects.create(id=1, price=3.5, created_date_time=timezone.now(), sku_id=1)
         Productsku.objects.create(id=1, product_id=1, sku_id=1)
         Group.objects.create(name='Members')
-        Termsofuse.objects.create(version='1', version_note='Test Terms', publication_date_time=timezone.now())
+        Termsofuse.objects.create(
+            version='1',
+            version_note='Test Terms',
+            publication_date_time=timezone.now())
 
         # Create a test user and log them in
         self.client.post('/user/create-account', data={
@@ -73,7 +93,7 @@ class EmailUnsubscribeLookupAPITest(TestCase):
 
         response_data = json.loads(response.content.decode('utf8'))
         self.assertEqual(response_data['email_unsubscribe_lookup'], 'success',
-                        'Valid token lookup should succeed')
+                         'Valid token lookup should succeed')
         self.assertIn('email_address', response_data, 'Should return email address')
 
         # Verify email is masked (should contain asterisks)
@@ -88,7 +108,7 @@ class EmailUnsubscribeLookupAPITest(TestCase):
 
         response_data = json.loads(response.content.decode('utf8'))
         self.assertEqual(response_data['email_unsubscribe_lookup'], 'error',
-                        'Invalid token should return error')
+                         'Invalid token should return error')
         self.assertIn('errors', response_data, 'Should return error details')
         # Could be 'token-altered' or 'member-not-found' depending on token format
         self.assertIn('error', response_data['errors'], 'Should have error field')
@@ -104,10 +124,10 @@ class EmailUnsubscribeLookupAPITest(TestCase):
 
         response_data = json.loads(response.content.decode('utf8'))
         self.assertEqual(response_data['email_unsubscribe_lookup'], 'error',
-                        'Already unsubscribed should return error')
+                         'Already unsubscribed should return error')
         self.assertIn('errors', response_data, 'Should return error details')
         self.assertEqual(response_data['errors']['error'], 'email-address-already-unsubscribed',
-                        'Should indicate email already unsubscribed')
+                         'Should indicate email already unsubscribed')
 
     def test_missing_token_rejected(self):
         """Test that request without token is rejected"""
@@ -116,10 +136,10 @@ class EmailUnsubscribeLookupAPITest(TestCase):
 
         response_data = json.loads(response.content.decode('utf8'))
         self.assertEqual(response_data['email_unsubscribe_lookup'], 'error',
-                        'Missing token should return error')
+                         'Missing token should return error')
         self.assertIn('errors', response_data, 'Should return error details')
         self.assertEqual(response_data['errors']['error'], 'token-required',
-                        'Should indicate token is required')
+                         'Should indicate token is required')
 
     def test_nonexistent_member_token_rejected(self):
         """Test that token for non-existent member is rejected"""
@@ -131,7 +151,7 @@ class EmailUnsubscribeLookupAPITest(TestCase):
 
         response_data = json.loads(response.content.decode('utf8'))
         self.assertEqual(response_data['email_unsubscribe_lookup'], 'error',
-                        'Non-existent member token should return error')
+                         'Non-existent member token should return error')
         self.assertIn('errors', response_data, 'Should return error details')
         self.assertEqual(response_data['errors']['error'], 'member-not-found',
-                        'Should indicate member not found')
+                         'Should indicate member not found')
