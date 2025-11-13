@@ -14,7 +14,6 @@ from order.models import (
 from user.models import Member, Prospect, Termsofuse
 
 
-
 class OrderconfigurationModelTest(TestCase):
     """Test Orderconfiguration model"""
 

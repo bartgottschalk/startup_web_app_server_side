@@ -91,7 +91,7 @@ class ProcessStripePaymentTokenEndpointTest(TestCase):
         self.member.save()
 
         with patch('order.utilities.order_utils.stripe_customer_add_card') as mock_add_card, \
-             patch('order.utilities.order_utils.stripe_customer_change_default_payemnt') as mock_change_default:
+                patch('order.utilities.order_utils.stripe_customer_change_default_payemnt') as mock_change_default:
 
             # Mock adding card
             mock_card = MagicMock()
@@ -223,7 +223,11 @@ class ProcessStripePaymentTokenEndpointTest(TestCase):
 
         with patch('order.utilities.order_utils.create_stripe_customer') as mock_create_customer:
             # Mock Stripe error
-            error_body = {'error': {'type': 'card_error', 'code': 'card_declined', 'message': 'Your card was declined.'}}
+            error_body = {
+                'error': {
+                    'type': 'card_error',
+                    'code': 'card_declined',
+                    'message': 'Your card was declined.'}}
             mock_create_customer.side_effect = stripe.error.CardError(
                 'Card declined', 'card', 'card_declined', http_status=402, json_body=error_body
             )

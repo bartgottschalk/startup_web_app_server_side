@@ -175,7 +175,7 @@ class ProductsEndpointTest(TestCase):
         product_data = data['products_data']['PROD001']
 
         self.assertEqual(product_data['product_image_url'],
-                        'https://example.com/paperclip.jpg')
+                         'https://example.com/paperclip.jpg')
 
     def test_products_when_no_products_exist(self):
         """Test products endpoint when no products exist"""
@@ -313,7 +313,7 @@ class ProductEndpointTest(TestCase):
             if img_data['main']:
                 main_image_found = True
                 self.assertEqual(img_data['image_url'],
-                               'https://example.com/paperclip-main.jpg')
+                                 'https://example.com/paperclip-main.jpg')
                 self.assertEqual(img_data['caption'], 'Main product image')
 
         self.assertTrue(main_image_found, 'Main image should be present')
@@ -329,9 +329,9 @@ class ProductEndpointTest(TestCase):
 
         video_data = list(product_videos.values())[0]
         self.assertEqual(video_data['video_url'],
-                        'https://example.com/paperclip.mp4')
+                         'https://example.com/paperclip.mp4')
         self.assertEqual(video_data['video_thumbnail_url'],
-                        'https://example.com/paperclip-thumb.jpg')
+                         'https://example.com/paperclip-thumb.jpg')
         self.assertEqual(video_data['caption'], 'Product demo video')
 
     def test_product_includes_all_skus(self):
@@ -364,7 +364,7 @@ class ProductEndpointTest(TestCase):
 
         sku_image = list(sku1_data['sku_images'].values())[0]
         self.assertEqual(sku_image['image_url'],
-                        'https://example.com/silver-sku.jpg')
+                         'https://example.com/silver-sku.jpg')
         self.assertTrue(sku_image['main'])
         self.assertEqual(sku_image['caption'], 'Silver variant')
 

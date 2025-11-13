@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-#from user.models import Email, Prospect
+# from user.models import Email, Prospect
 
 # Create your models here.
 
@@ -25,7 +25,8 @@ class Pageview(models.Model):
     created_date_time = models.DateTimeField()
 
     def __str__(self):
-        return str(self.user_id) + ',' + str(self.anonymous_id) + ',' + str(self.url) + ',' + str(self.remote_addr) + ',' + str(self.created_date_time)
+        return str(self.user_id) + ',' + str(self.anonymous_id) + ',' + str(self.url) + \
+            ',' + str(self.remote_addr) + ',' + str(self.created_date_time)
 
     class Meta:
         db_table = 'clientevent_pageview'
@@ -39,7 +40,8 @@ class AJAXError(models.Model):
     created_date_time = models.DateTimeField()
 
     def __str__(self):
-        return str(self.user_id) + ',' + str(self.anonymous_id) + ',' + str(self.url) + ',' + str(self.error_id) + ',' + str(self.created_date_time)
+        return str(self.user_id) + ',' + str(self.anonymous_id) + ',' + str(self.url) + \
+            ',' + str(self.error_id) + ',' + str(self.created_date_time)
 
     class Meta:
         db_table = 'clientevent_ajax_error'
@@ -53,7 +55,8 @@ class Buttonclick(models.Model):
     created_date_time = models.DateTimeField()
 
     def __str__(self):
-        return str(self.user_id) + ',' + str(self.anonymous_id) + ',' + str(self.url) + ',' + str(self.button_id) + ',' + str(self.created_date_time)
+        return str(self.user_id) + ',' + str(self.anonymous_id) + ',' + str(self.url) + \
+            ',' + str(self.button_id) + ',' + str(self.created_date_time)
 
     class Meta:
         db_table = 'clientevent_button_click'
@@ -69,7 +72,8 @@ class Linkevent(models.Model):
     created_date_time = models.DateTimeField()
 
     def __str__(self):
-        return "user: " + str(self.user_id) + ', prospect: ' + str(self.prospect) + ', anonymous: ' + str(self.anonymous_id) + ', ' + str(self.url) + ', ' + str(self.created_date_time)
+        return "user: " + str(self.user_id) + ', prospect: ' + str(self.prospect) + ', anonymous: ' + \
+            str(self.anonymous_id) + ', ' + str(self.url) + ', ' + str(self.created_date_time)
 
     class Meta:
         db_table = 'clientevent_linkevent'

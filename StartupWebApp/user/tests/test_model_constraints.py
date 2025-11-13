@@ -210,20 +210,22 @@ class MembertermsofuseversionagreedUniqueTogetherTest(TestCase):
     def test_member_can_agree_to_different_tos_versions(self):
         """Test that member can agree to multiple TOS versions"""
         # Agree to version 1
-        agreement1 = Membertermsofuseversionagreed.objects.create(
+        Membertermsofuseversionagreed.objects.create(
             member=self.member,
             termsofuseversion=self.tos_v1,
             agreed_date_time=timezone.now()
         )
 
         # Agree to version 2 (should succeed)
-        agreement2 = Membertermsofuseversionagreed.objects.create(
+        Membertermsofuseversionagreed.objects.create(
             member=self.member,
             termsofuseversion=self.tos_v2,
             agreed_date_time=timezone.now()
         )
 
-        self.assertEqual(Membertermsofuseversionagreed.objects.filter(member=self.member).count(), 2)
+        self.assertEqual(
+            Membertermsofuseversionagreed.objects.filter(
+                member=self.member).count(), 2)
 
     def test_different_members_can_agree_to_same_tos_version(self):
         """Test that different members can agree to same TOS version"""
@@ -231,19 +233,21 @@ class MembertermsofuseversionagreedUniqueTogetherTest(TestCase):
         member2 = Member.objects.create(user=user2)
 
         # Both members agree to version 1
-        agreement1 = Membertermsofuseversionagreed.objects.create(
+        Membertermsofuseversionagreed.objects.create(
             member=self.member,
             termsofuseversion=self.tos_v1,
             agreed_date_time=timezone.now()
         )
 
-        agreement2 = Membertermsofuseversionagreed.objects.create(
+        Membertermsofuseversionagreed.objects.create(
             member=member2,
             termsofuseversion=self.tos_v1,
             agreed_date_time=timezone.now()
         )
 
-        self.assertEqual(Membertermsofuseversionagreed.objects.filter(termsofuseversion=self.tos_v1).count(), 2)
+        self.assertEqual(
+            Membertermsofuseversionagreed.objects.filter(
+                termsofuseversion=self.tos_v1).count(), 2)
 
 
 class EmailUniqueConstraintTest(TestCase):
@@ -508,7 +512,7 @@ class MaxLengthFieldTest(TestCase):
         # Create email that's exactly 254 chars
         local_part = 'a' * 50
         domain = 'b' * 200 + '.com'  # 204 chars
-        long_email = local_part + '@' + domain  # 255 chars total
+        local_part + '@' + domain  # 255 chars total
 
         # This should work (truncated to 254)
         prospect = Prospect.objects.create(

@@ -24,17 +24,18 @@ from .settings_secret import *  # noqa: F403,F401
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False #override in secrets for local ONLY
+DEBUG = False  # override in secrets for local ONLY
 
-CSRF_COOKIE_SECURE = True #override in secrets for local ONLY
+CSRF_COOKIE_SECURE = True  # override in secrets for local ONLY
 
 # get secret settings again for overrides
-from .settings_secret import *  # noqa: F403,F401,F811
+from .settings_secret import *  # noqa: F403,F401,F811,E402
 
 # Django 4.0+ compatibility: Convert CSRF_TRUSTED_ORIGINS from old string format to new list format
 # In Django 4.0+, CSRF_TRUSTED_ORIGINS must be a list with schemes (http:// or https://)
 # Old format: CSRF_TRUSTED_ORIGINS = ".startupwebapp.com"
-# New format: CSRF_TRUSTED_ORIGINS = ['https://*.startupwebapp.com', 'http://localhost:8080', 'http://localhost:8000']
+# New format: CSRF_TRUSTED_ORIGINS = ['https://*.startupwebapp.com',
+# 'http://localhost:8080', 'http://localhost:8000']
 if 'CSRF_TRUSTED_ORIGINS' in globals():  # noqa: F405
     if isinstance(CSRF_TRUSTED_ORIGINS, str):  # noqa: F405
         # Convert old string format to new list format
@@ -53,7 +54,7 @@ if 'CSRF_TRUSTED_ORIGINS' in globals():  # noqa: F405
                 f'https://{old_origin.lstrip(".")}',
             ]
 
-#ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = []
 
 # Security settings for production
 # These settings are only applied when DEBUG=False (production environment)
@@ -109,9 +110,9 @@ MIDDLEWARE = [
 # CORS Config
 CORS_ALLOW_CREDENTIALS = True
 
-#SESSION_COOKIE_DOMAIN = ".startupwebapp.com" # set in settings_secret.py by environment
-#CSRF_TRUSTED_ORIGINS = ".startupwebapp.com" # set in settings_secret.py by environment
-#CSRF_COOKIE_AGE = 300  # 5 minutes, in seconds default is 31449600 or 1 year
+# SESSION_COOKIE_DOMAIN = ".startupwebapp.com" # set in settings_secret.py by environment
+# CSRF_TRUSTED_ORIGINS = ".startupwebapp.com" # set in settings_secret.py by environment
+# CSRF_COOKIE_AGE = 300  # 5 minutes, in seconds default is 31449600 or 1 year
 
 # CSRF Cookie Domain - only set for production
 # In production, this allows cookies to be shared between api.startupwebapp.com and www.startupwebapp.com
@@ -120,7 +121,7 @@ if not DEBUG:
     CSRF_COOKIE_DOMAIN = ".startupwebapp.com"
 
 SESSION_COOKIE_AGE = 1209600  # 2 weeks, in seconds
-#SESSION_COOKIE_AGE = 300  # 5 minutes, in seconds
+# SESSION_COOKIE_AGE = 300  # 5 minutes, in seconds
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 LOGIN_URL = "/login"

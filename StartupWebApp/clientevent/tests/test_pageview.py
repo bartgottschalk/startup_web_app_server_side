@@ -28,19 +28,19 @@ class PageviewAPITest(TestCase):
 
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         self.assertEqual(response.content.decode('utf8'), '"thank you"',
-                        'Pageview should return "thank you"')
+                         'Pageview should return "thank you"')
 
         # Verify pageview was created
         self.assertEqual(Pageview.objects.count(), 1,
-                        'Should create one pageview record')
+                         'Should create one pageview record')
 
         pageview = Pageview.objects.first()
         self.assertEqual(pageview.user, self.user,
-                        'Pageview should be associated with user')
+                         'Pageview should be associated with user')
         self.assertEqual(pageview.url, 'https://example.com/test-page',
-                        'URL should be saved correctly')
+                         'URL should be saved correctly')
         self.assertIsNone(pageview.anonymous_id,
-                         'Anonymous ID should be None for authenticated user')
+                          'Anonymous ID should be None for authenticated user')
 
     def test_anonymous_user_pageview_saved(self):
         """Test that anonymous user pageview is saved with anonymous_id"""
@@ -57,9 +57,9 @@ class PageviewAPITest(TestCase):
 
         pageview = Pageview.objects.first()
         self.assertIsNone(pageview.user,
-                         'User should be None for anonymous pageview')
+                          'User should be None for anonymous pageview')
         self.assertEqual(pageview.anonymous_id, 'anon_12345',
-                        'Anonymous ID should be saved')
+                         'Anonymous ID should be saved')
         self.assertEqual(pageview.url, 'https://example.com/test-page')
 
     def test_pageview_without_url_not_saved(self):
@@ -71,11 +71,11 @@ class PageviewAPITest(TestCase):
 
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         self.assertEqual(response.content.decode('utf8'), '"thank you"',
-                        'Should still return thank you even without URL')
+                         'Should still return thank you even without URL')
 
         # Verify no pageview was created
         self.assertEqual(Pageview.objects.count(), 0,
-                        'Should not create pageview without URL')
+                         'Should not create pageview without URL')
 
     def test_pageview_with_page_width_saved(self):
         """Test that page width is saved when provided"""
@@ -89,7 +89,7 @@ class PageviewAPITest(TestCase):
 
         pageview = Pageview.objects.first()
         self.assertEqual(pageview.page_width, 1920,
-                        'Page width should be saved as integer')
+                         'Page width should be saved as integer')
 
     def test_pageview_saves_remote_addr_and_user_agent(self):
         """Test that remote IP address and user agent are saved"""
@@ -107,9 +107,9 @@ class PageviewAPITest(TestCase):
 
         pageview = Pageview.objects.first()
         self.assertEqual(pageview.http_user_agent, 'Mozilla/5.0 Test Browser',
-                        'User agent should be saved')
+                         'User agent should be saved')
         self.assertEqual(pageview.remote_addr, '192.168.1.1',
-                        'Remote address should be saved')
+                         'Remote address should be saved')
 
     def test_pageview_with_invalid_user_id_handles_gracefully(self):
         """Test that invalid user ID does not crash, saves with null user"""
@@ -124,7 +124,7 @@ class PageviewAPITest(TestCase):
         self.assertEqual(Pageview.objects.count(), 1)
         pageview = Pageview.objects.first()
         self.assertIsNone(pageview.user,
-                         'User should be None for invalid user ID')
+                          'User should be None for invalid user ID')
 
     def test_pageview_with_null_client_event_id(self):
         """Test that 'null' string for client_event_id is handled correctly"""
@@ -137,7 +137,7 @@ class PageviewAPITest(TestCase):
 
         pageview = Pageview.objects.first()
         self.assertIsNone(pageview.user,
-                         'User should be None when client_event_id is "null"')
+                          'User should be None when client_event_id is "null"')
 
     def test_pageview_created_date_time_is_set(self):
         """Test that created_date_time is automatically set"""
@@ -154,11 +154,11 @@ class PageviewAPITest(TestCase):
 
         pageview = Pageview.objects.first()
         self.assertIsNotNone(pageview.created_date_time,
-                            'Created date time should be set')
+                             'Created date time should be set')
         self.assertGreaterEqual(pageview.created_date_time, before_request,
-                               'Created time should be after request start')
+                                'Created time should be after request start')
         self.assertLessEqual(pageview.created_date_time, after_request,
-                            'Created time should be before request end')
+                             'Created time should be before request end')
 
     def test_pageview_with_x_forwarded_for_header(self):
         """Test that X-Forwarded-For header is used for remote address if present"""
@@ -176,4 +176,4 @@ class PageviewAPITest(TestCase):
 
         pageview = Pageview.objects.first()
         self.assertEqual(pageview.remote_addr, '10.0.0.1',
-                        'Should use X-Forwarded-For when present')
+                         'Should use X-Forwarded-For when present')

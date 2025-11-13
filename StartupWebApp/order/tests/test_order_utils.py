@@ -51,7 +51,13 @@ class CalculateCartItemDiscountTest(TestCase):
         # Create cart
         self.cart = Cart.objects.create(member=self.member)
 
-    def _create_discount_code(self, code, discounttype, discount_amount, order_minimum=0.0, combinable=True):
+    def _create_discount_code(
+            self,
+            code,
+            discounttype,
+            discount_amount,
+            order_minimum=0.0,
+            combinable=True):
         """Helper method to create discount codes with all required fields"""
         return Discountcode.objects.create(
             code=code,
@@ -187,7 +193,13 @@ class CalculateShippingDiscountTest(TestCase):
         # Create cart
         self.cart = Cart.objects.create(member=self.member)
 
-    def _create_discount_code(self, code, discounttype, discount_amount, order_minimum=0.0, combinable=True):
+    def _create_discount_code(
+            self,
+            code,
+            discounttype,
+            discount_amount,
+            order_minimum=0.0,
+            combinable=True):
         """Helper method to create discount codes with all required fields"""
         return Discountcode.objects.create(
             code=code,
@@ -338,7 +350,13 @@ class GetOrderDiscountCodesTest(TestCase):
             order_date_time=timezone.now()
         )
 
-    def _create_discount_code(self, code, discounttype, discount_amount, order_minimum=0.0, combinable=True):
+    def _create_discount_code(
+            self,
+            code,
+            discounttype,
+            discount_amount,
+            order_minimum=0.0,
+            combinable=True):
         """Helper method to create discount codes"""
         return Discountcode.objects.create(
             code=code,

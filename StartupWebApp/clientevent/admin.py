@@ -11,7 +11,14 @@ class PageviewResource(resources.ModelResource):
 
 class PageviewAdmin(ImportExportModelAdmin):
     resource_class = PageviewResource
-    list_display = ('user', 'anonymous_id', 'url', 'page_width', 'remote_addr', 'http_user_agent', 'created_date_time')
+    list_display = (
+        'user',
+        'anonymous_id',
+        'url',
+        'page_width',
+        'remote_addr',
+        'http_user_agent',
+        'created_date_time')
     list_filter = ('user', 'anonymous_id', 'remote_addr')
 
 

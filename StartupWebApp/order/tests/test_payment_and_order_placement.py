@@ -346,7 +346,7 @@ class ProcessStripePaymentTokenEndpointTest(TestCase):
         from unittest.mock import patch, MagicMock
 
         with patch('order.utilities.order_utils.create_stripe_customer') as mock_create_customer, \
-             patch('order.utilities.order_utils.look_up_cart') as mock_look_up_cart:
+                patch('order.utilities.order_utils.look_up_cart') as mock_look_up_cart:
 
             # Mock Stripe customer creation
             mock_customer = MagicMock()
@@ -496,7 +496,11 @@ class ProcessStripePaymentTokenEndpointTest(TestCase):
 
         with patch('order.utilities.order_utils.create_stripe_customer') as mock_create_customer:
             # Mock Stripe error
-            error_body = {'error': {'type': 'card_error', 'code': 'card_declined', 'message': 'Your card was declined.'}}
+            error_body = {
+                'error': {
+                    'type': 'card_error',
+                    'code': 'card_declined',
+                    'message': 'Your card was declined.'}}
             mock_create_customer.side_effect = stripe.error.CardError(
                 'Card declined', 'card', 'card_declined', http_status=402, json_body=error_body
             )
@@ -556,7 +560,7 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
         # Create order status and shipping configurations
         from order.models import Status, Shippingmethod
 
-        status = Status.objects.create(
+        Status.objects.create(
             identifier='processing',
             title='Processing',
             description='Order is being processed'
@@ -695,7 +699,7 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
         data = json.loads(response.content.decode('utf8'))
         self.assertEqual(data['confirm_place_order'], 'error')
         self.assertEqual(data['errors']['error'],
-                        'agree-to-terms-of-sale-must-be-checked')
+                         'agree-to-terms-of-sale-must-be-checked')
 
     def test_confirm_place_order_when_no_cart(self):
         """Test error when cart doesn't exist"""
@@ -748,7 +752,7 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
 
         # Mock email sending to avoid needing Email templates
         with patch('user.models.Email.objects.get') as mock_email_get, \
-             patch('user.models.Emailtype.objects.get') as mock_emailtype_get:
+                patch('user.models.Emailtype.objects.get') as mock_emailtype_get:
 
             mock_email = MagicMock()
             mock_email.subject = 'Order Confirmation'
@@ -770,7 +774,7 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
                 return mock_type
             mock_emailtype_get.side_effect = emailtype_side_effect
 
-            with patch('django.core.mail.EmailMultiAlternatives.send') as mock_send_email:
+            with patch('django.core.mail.EmailMultiAlternatives.send'):
                 self.client.login(username='testuser', password='testpass123')
 
                 response = self.client.post('/order/confirm-place-order', {
@@ -841,7 +845,7 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
 
         # Mock email sending to avoid needing Email templates
         with patch('user.models.Email.objects.get') as mock_email_get, \
-             patch('user.models.Emailtype.objects.get') as mock_emailtype_get:
+                patch('user.models.Emailtype.objects.get') as mock_emailtype_get:
 
             mock_email = MagicMock()
             mock_email.subject = 'Order Confirmation'
@@ -861,10 +865,10 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
                 return mock_type
             mock_emailtype_get.side_effect = emailtype_side_effect
 
-            with patch('django.core.mail.EmailMultiAlternatives.send') as mock_send_email, \
-                 patch('order.utilities.order_utils.look_up_cart') as mock_look_up_cart:
+            with patch('django.core.mail.EmailMultiAlternatives.send'), \
+                    patch('order.utilities.order_utils.look_up_cart') as mock_look_up_cart:
                 # Create prospect for anonymous user
-                prospect = Prospect.objects.create(
+                Prospect.objects.create(
                     email='anonymous@test.com',
                     created_date_time=timezone.now()
                 )
@@ -931,7 +935,9 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
                 self.assertEqual(order.prospect.email, 'anonymous@test.com')
 
                 # Verify cart was cleared
-                self.assertEqual(Cart.objects.filter(anonymous_cart_id=anonymous_cart_id).count(), 0)
+                self.assertEqual(
+                    Cart.objects.filter(
+                        anonymous_cart_id=anonymous_cart_id).count(), 0)
 
     def test_confirm_place_order_with_save_defaults(self):
         """Test order placement with save defaults enabled"""
@@ -939,8 +945,8 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
 
         # Mock email sending and Stripe API
         with patch('user.models.Email.objects.get') as mock_email_get, \
-             patch('user.models.Emailtype.objects.get') as mock_emailtype_get, \
-             patch('stripe.Customer.modify') as mock_stripe_modify:
+                patch('user.models.Emailtype.objects.get') as mock_emailtype_get, \
+                patch('stripe.Customer.modify') as mock_stripe_modify:
 
             mock_email = MagicMock()
             mock_email.subject = 'Order Confirmation'
@@ -963,7 +969,7 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
             # Mock Stripe Customer.modify to avoid real API calls
             mock_stripe_modify.return_value = {'id': 'cus_test123'}
 
-            with patch('django.core.mail.EmailMultiAlternatives.send') as mock_send_email:
+            with patch('django.core.mail.EmailMultiAlternatives.send'):
                 self.client.login(username='testuser', password='testpass123')
 
                 # Verify no default shipping address exists
@@ -1036,8 +1042,8 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
 
         # Mock email sending and Stripe API
         with patch('user.models.Email.objects.get') as mock_email_get, \
-             patch('user.models.Emailtype.objects.get') as mock_emailtype_get, \
-             patch('stripe.Customer.modify') as mock_stripe_modify:
+                patch('user.models.Emailtype.objects.get') as mock_emailtype_get, \
+                patch('stripe.Customer.modify') as mock_stripe_modify:
 
             mock_email = MagicMock()
             mock_email.subject = 'Order Confirmation'
@@ -1057,7 +1063,7 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
             mock_emailtype_get.side_effect = emailtype_side_effect
             mock_stripe_modify.return_value = {'id': 'cus_test123'}
 
-            with patch('django.core.mail.EmailMultiAlternatives.send') as mock_send_email:
+            with patch('django.core.mail.EmailMultiAlternatives.send'):
                 self.client.login(username='testuser', password='testpass123')
 
                 response = self.client.post('/order/confirm-place-order', {
@@ -1104,7 +1110,9 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
                 # Verify existing default shipping address was updated (not replaced)
                 self.assertEqual(self.member.default_shipping_address.id, existing_default.id)
                 self.assertEqual(self.member.default_shipping_address.name, 'Updated Name')
-                self.assertEqual(self.member.default_shipping_address.address_line1, 'Updated Address')
+                self.assertEqual(
+                    self.member.default_shipping_address.address_line1,
+                    'Updated Address')
                 self.assertEqual(self.member.default_shipping_address.city, 'Updated City')
                 self.assertEqual(self.member.default_shipping_address.state, 'NY')
                 self.assertEqual(self.member.default_shipping_address.zip, '99999')
@@ -1115,7 +1123,7 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
         from unittest.mock import patch, MagicMock
 
         with patch('user.models.Email.objects.get') as mock_email_get, \
-             patch('user.models.Emailtype.objects.get') as mock_emailtype_get:
+                patch('user.models.Emailtype.objects.get') as mock_emailtype_get:
 
             mock_email = MagicMock()
             mock_email.subject = 'Order Confirmation'
@@ -1134,8 +1142,8 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
                 return mock_type
             mock_emailtype_get.side_effect = emailtype_side_effect
 
-            with patch('django.core.mail.EmailMultiAlternatives.send') as mock_send_email, \
-                 patch('order.utilities.order_utils.look_up_cart') as mock_look_up_cart:
+            with patch('django.core.mail.EmailMultiAlternatives.send'), \
+                    patch('order.utilities.order_utils.look_up_cart') as mock_look_up_cart:
 
                 # Create prospect for anonymous user
                 prospect = Prospect.objects.create(
@@ -1206,7 +1214,7 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
         from unittest.mock import patch, MagicMock
 
         with patch('user.models.Email.objects.get') as mock_email_get, \
-             patch('user.models.Emailtype.objects.get') as mock_emailtype_get:
+                patch('user.models.Emailtype.objects.get') as mock_emailtype_get:
 
             mock_email = MagicMock()
             mock_email.subject = 'Order Confirmation'
@@ -1225,8 +1233,8 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
                 return mock_type
             mock_emailtype_get.side_effect = emailtype_side_effect
 
-            with patch('django.core.mail.EmailMultiAlternatives.send') as mock_send_email, \
-                 patch('order.utilities.order_utils.look_up_cart') as mock_look_up_cart:
+            with patch('django.core.mail.EmailMultiAlternatives.send'), \
+                    patch('order.utilities.order_utils.look_up_cart') as mock_look_up_cart:
 
                 # Create prospect for anonymous user
                 prospect = Prospect.objects.create(
@@ -1327,7 +1335,7 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
 
         # Mock email sending
         with patch('user.models.Email.objects.get') as mock_email_get, \
-             patch('user.models.Emailtype.objects.get') as mock_emailtype_get:
+                patch('user.models.Emailtype.objects.get') as mock_emailtype_get:
 
             mock_email = MagicMock()
             mock_email.subject = 'Order Confirmation'
@@ -1346,7 +1354,7 @@ class ConfirmPlaceOrderEndpointTest(TestCase):
                 return mock_type
             mock_emailtype_get.side_effect = emailtype_side_effect
 
-            with patch('django.core.mail.EmailMultiAlternatives.send') as mock_send_email:
+            with patch('django.core.mail.EmailMultiAlternatives.send'):
                 self.client.login(username='testuser', password='testpass123')
 
                 response = self.client.post('/order/confirm-place-order', {

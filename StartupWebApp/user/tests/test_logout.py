@@ -20,13 +20,33 @@ class LogoutAPITest(TestCase):
         ClientEventConfiguration.objects.create(id=1, log_client_events=True)
 
         Skutype.objects.create(id=1, title='product')
-        Skuinventory.objects.create(id=1, title='In Stock', identifier='in-stock', description='In Stock items are available to purchase.')
-        Product.objects.create(id=1, title='Paper Clips', title_url='PaperClips', identifier='bSusp6dBHm', headline='Paper clips can hold up to 20 pieces of paper together!', description_part_1='Made out of high quality metal and folded to exact specifications.', description_part_2='Use paperclips for all your paper binding needs!')
-        Sku.objects.create(id=1, color='Silver', size='Medium', sku_type_id=1, description='Left Sided Paperclip', sku_inventory_id=1)
+        Skuinventory.objects.create(
+            id=1,
+            title='In Stock',
+            identifier='in-stock',
+            description='In Stock items are available to purchase.')
+        Product.objects.create(
+            id=1,
+            title='Paper Clips',
+            title_url='PaperClips',
+            identifier='bSusp6dBHm',
+            headline='Paper clips can hold up to 20 pieces of paper together!',
+            description_part_1='Made out of high quality metal and folded to exact specifications.',
+            description_part_2='Use paperclips for all your paper binding needs!')
+        Sku.objects.create(
+            id=1,
+            color='Silver',
+            size='Medium',
+            sku_type_id=1,
+            description='Left Sided Paperclip',
+            sku_inventory_id=1)
         Skuprice.objects.create(id=1, price=3.5, created_date_time=timezone.now(), sku_id=1)
         Productsku.objects.create(id=1, product_id=1, sku_id=1)
         Group.objects.create(name='Members')
-        Termsofuse.objects.create(version='1', version_note='Test Terms', publication_date_time=timezone.now())
+        Termsofuse.objects.create(
+            version='1',
+            version_note='Test Terms',
+            publication_date_time=timezone.now())
 
         # Create a test user
         self.client.post('/user/create-account', data={
@@ -51,8 +71,8 @@ class LogoutAPITest(TestCase):
         response = self.client.post('/user/logout')
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"logout": "true", "user-api-version": "0.0.1"}',
-                            'Logout should succeed')
+                             '{"logout": "true", "user-api-version": "0.0.1"}',
+                             'Logout should succeed')
 
         # Verify user is logged out
         response = self.client.get('/user/logged-in')
@@ -77,7 +97,10 @@ class LogoutAPITest(TestCase):
 
         # Session should be cleared/changed
         session_key_after = self.client.session.session_key
-        self.assertNotEqual(session_key_before, session_key_after, 'Session should be cleared after logout')
+        self.assertNotEqual(
+            session_key_before,
+            session_key_after,
+            'Session should be cleared after logout')
 
     def test_logout_when_not_authenticated(self):
         """Test logout when user is not authenticated"""
@@ -88,8 +111,8 @@ class LogoutAPITest(TestCase):
         response = self.client.post('/user/logout')
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"logout": "user_not_authenticated", "user-api-version": "0.0.1"}',
-                            'Logout for anonymous user should return user_not_authenticated')
+                             '{"logout": "user_not_authenticated", "user-api-version": "0.0.1"}',
+                             'Logout for anonymous user should return user_not_authenticated')
 
     def test_logout_sets_anonymous_client_event_cookie(self):
         """Test that logout sets anonymousclientevent cookie"""
@@ -97,11 +120,15 @@ class LogoutAPITest(TestCase):
         response = self.client.post('/user/logout')
 
         # Check that anonymousclientevent cookie is set
-        self.assertIn('anonymousclientevent', response.cookies, 'anonymousclientevent cookie should be set on logout')
+        self.assertIn('anonymousclientevent', response.cookies,
+                      'anonymousclientevent cookie should be set on logout')
 
         # Verify cookie properties
         cookie = response.cookies['anonymousclientevent']
-        self.assertEqual(cookie['domain'], '.startupwebapp.com', 'Cookie domain should be .startupwebapp.com')
+        self.assertEqual(
+            cookie['domain'],
+            '.startupwebapp.com',
+            'Cookie domain should be .startupwebapp.com')
         self.assertEqual(cookie['path'], '/', 'Cookie path should be /')
         self.assertEqual(int(cookie['max-age']), 31536000, 'Cookie should have 1 year max-age')
 
@@ -111,15 +138,15 @@ class LogoutAPITest(TestCase):
         response = self.client.post('/user/logout')
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"logout": "true", "user-api-version": "0.0.1"}',
-                            'First logout should succeed')
+                             '{"logout": "true", "user-api-version": "0.0.1"}',
+                             'First logout should succeed')
 
         # Second logout
         response = self.client.post('/user/logout')
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"logout": "user_not_authenticated", "user-api-version": "0.0.1"}',
-                            'Second logout should return user_not_authenticated')
+                             '{"logout": "user_not_authenticated", "user-api-version": "0.0.1"}',
+                             'Second logout should return user_not_authenticated')
 
     def test_logout_with_cart_items(self):
         """Test logout when user has items in cart"""
@@ -129,7 +156,8 @@ class LogoutAPITest(TestCase):
         # Verify cart has items
         response = self.client.get('/user/logged-in')
         response_data = json.loads(response.content.decode('utf8'))
-        self.assertEqual(response_data['cart_item_count'], 1, 'Cart should have 1 item before logout')
+        self.assertEqual(response_data['cart_item_count'], 1,
+                         'Cart should have 1 item before logout')
 
         # Logout
         response = self.client.post('/user/logout')
@@ -137,8 +165,8 @@ class LogoutAPITest(TestCase):
 
         # Verify logout succeeded
         self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"logout": "true", "user-api-version": "0.0.1"}',
-                            'Logout with cart items should succeed')
+                             '{"logout": "true", "user-api-version": "0.0.1"}',
+                             'Logout with cart items should succeed')
 
         # Verify user is logged out but cart is preserved
         response = self.client.get('/user/logged-in')
@@ -168,8 +196,8 @@ class LogoutAPITest(TestCase):
         })
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
         self.assertJSONEqual(response.content.decode('utf8'),
-                            '{"login": "true", "user-api-version": "0.0.1"}',
-                            'Second login should succeed')
+                             '{"login": "true", "user-api-version": "0.0.1"}',
+                             'Second login should succeed')
 
         # Verify user is logged in
         response = self.client.get('/user/logged-in')

@@ -20,13 +20,33 @@ class AccountContentAPITest(TestCase):
         ClientEventConfiguration.objects.create(id=1, log_client_events=True)
 
         Skutype.objects.create(id=1, title='product')
-        Skuinventory.objects.create(id=1, title='In Stock', identifier='in-stock', description='In Stock items are available to purchase.')
-        Product.objects.create(id=1, title='Paper Clips', title_url='PaperClips', identifier='bSusp6dBHm', headline='Paper clips can hold up to 20 pieces of paper together!', description_part_1='Made out of high quality metal and folded to exact specifications.', description_part_2='Use paperclips for all your paper binding needs!')
-        Sku.objects.create(id=1, color='Silver', size='Medium', sku_type_id=1, description='Left Sided Paperclip', sku_inventory_id=1)
+        Skuinventory.objects.create(
+            id=1,
+            title='In Stock',
+            identifier='in-stock',
+            description='In Stock items are available to purchase.')
+        Product.objects.create(
+            id=1,
+            title='Paper Clips',
+            title_url='PaperClips',
+            identifier='bSusp6dBHm',
+            headline='Paper clips can hold up to 20 pieces of paper together!',
+            description_part_1='Made out of high quality metal and folded to exact specifications.',
+            description_part_2='Use paperclips for all your paper binding needs!')
+        Sku.objects.create(
+            id=1,
+            color='Silver',
+            size='Medium',
+            sku_type_id=1,
+            description='Left Sided Paperclip',
+            sku_inventory_id=1)
         Skuprice.objects.create(id=1, price=3.5, created_date_time=timezone.now(), sku_id=1)
         Productsku.objects.create(id=1, product_id=1, sku_id=1)
         Group.objects.create(name='Members')
-        self.terms = Termsofuse.objects.create(version='1', version_note='Test Terms', publication_date_time=timezone.now())
+        self.terms = Termsofuse.objects.create(
+            version='1',
+            version_note='Test Terms',
+            publication_date_time=timezone.now())
 
         # Create a test user and log them in
         self.client.post('/user/create-account', data={
@@ -138,7 +158,7 @@ class AccountContentAPITest(TestCase):
         """Test that orders data is included for users with order history"""
         # Create an order for the user
         user = User.objects.get(username='testuser')
-        order = Order.objects.create(
+        Order.objects.create(
             member=user.member,
             identifier='TEST123',
             order_date_time=timezone.now(),
@@ -184,7 +204,7 @@ class AccountContentAPITest(TestCase):
         user.member.save()
 
         with patch('stripe.Customer.retrieve') as mock_stripe_retrieve, \
-             patch('order.utilities.order_utils.get_stripe_customer_payment_data') as mock_get_payment_data:
+                patch('order.utilities.order_utils.get_stripe_customer_payment_data') as mock_get_payment_data:
 
             # Mock Stripe customer
             mock_customer = MagicMock()
@@ -237,7 +257,7 @@ class AccountContentAPITest(TestCase):
         user = User.objects.get(username='testuser')
 
         # Create an expired verification token (simulate old token)
-        signer = TimestampSigner(salt='emailverificationsalt')
+        TimestampSigner(salt='emailverificationsalt')
         # Create a token that's already expired by setting it manually
         # We'll use an invalid signature format to trigger the exception
         user.member.email_verification_string_signed = 'invalid_signature_that_will_fail'

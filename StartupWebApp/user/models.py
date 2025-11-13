@@ -15,7 +15,19 @@ class Defaultshippingaddress(models.Model):
     country_code = models.CharField(max_length=10, blank=True, null=True)
 
     def __str__(self):
-        return str(self.name) + ', ' + str(self.address_line1) + ', ' + str(self.city) + ', ' + str(self.state) + ' ' + str(self.zip) + ', ' + str(self.country_code)
+        return (
+            str(self.name)
+            + ', '
+            + str(self.address_line1)
+            + ', '
+            + str(self.city)
+            + ', '
+            + str(self.state)
+            + ' '
+            + str(self.zip)
+            + ', '
+            + str(self.country_code)
+        )
 
 
 class Member(models.Model):
@@ -31,7 +43,9 @@ class Member(models.Model):
     reset_password_string_signed = models.CharField(max_length=200, blank=True, null=True)
     mb_cd = models.CharField(unique=True, max_length=50, blank=True, null=True)
     stripe_customer_token = models.CharField(unique=True, max_length=100, blank=True, null=True)
-    default_shipping_address = models.ForeignKey(Defaultshippingaddress, on_delete=models.CASCADE, blank=True, null=True)
+    default_shipping_address = models.ForeignKey(
+        Defaultshippingaddress, on_delete=models.CASCADE, blank=True, null=True
+    )
     use_default_shipping_and_payment_info = models.BooleanField(default=False)
 
     def __str__(self):
@@ -53,7 +67,8 @@ class Prospect(models.Model):
     converted_date_time = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
-        return str(self.first_name) + " " + str(self.last_name) + ", Email: " + str(self.email)# + ", Prospect Code: " + str(self.pr_cd) + ", Email Unsubscribed String Signed: " + str(self.email_unsubscribe_string_signed)
+        # + ", Prospect Code: " + str(self.pr_cd) + ", Email Unsubscribed String Signed: " + str(self.email_unsubscribe_string_signed) # noqa: E501
+        return str(self.first_name) + " " + str(self.last_name) + ", Email: " + str(self.email)
 
 
 class Emailunsubscribereasons(models.Model):
@@ -67,11 +82,27 @@ class Emailunsubscribereasons(models.Model):
     created_date_time = models.DateTimeField()
 
     def __str__(self):
-        return "user: " + str(self.member.user.username if self.member is not None else None) + ", prospect: " + str(self.prospect.email if self.prospect is not None else None) + ", : " + str(self.no_longer_want_to_receive) + ", " + str(self.never_signed_up) + ", " + str(self.inappropriate) + ", " + str(self.spam) + ", " + str(self.other) + " @ " + str(self.created_date_time)
+        username = self.member.user.username if self.member is not None else None
+        email = self.prospect.email if self.prospect is not None else None
+        return (
+            f"user: {username}, prospect: {email}, : "
+            f"{self.no_longer_want_to_receive}, {self.never_signed_up}, "
+            f"{self.inappropriate}, {self.spam}, {self.other} @ "
+            f"{self.created_date_time}"
+        )
 
 
 class EmailunsubscribereasonsAdmin(admin.ModelAdmin):
-    list_display = ('member', 'prospect', 'no_longer_want_to_receive', 'never_signed_up', 'inappropriate', 'spam', 'other', 'created_date_time')
+    list_display = (
+        'member',
+        'prospect',
+        'no_longer_want_to_receive',
+        'never_signed_up',
+        'inappropriate',
+        'spam',
+        'other',
+        'created_date_time',
+    )
 
 
 class Termsofuse(models.Model):
@@ -146,7 +177,14 @@ class Emailsent(models.Model):
         db_table = 'user_email_sent'
 
     def __str__(self):
-        return "user: " + str(self.member.user.username if self.member is not None else None) + ", prospect: " + str(self.prospect.email if self.prospect is not None else None) + ", email: " + str(self.email.subject)
+        return (
+            "user: "
+            + str(self.member.user.username if self.member is not None else None)
+            + ", prospect: "
+            + str(self.prospect.email if self.prospect is not None else None)
+            + ", email: "
+            + str(self.email.subject)
+        )
 
 
 class Adtype(models.Model):
@@ -203,4 +241,15 @@ class Chatmessage(models.Model):
         db_table = 'user_chat_message'
 
     def __str__(self):
-        return "user: " + str(self.member.user.username if self.member is not None else None) + ", prospect: " + str(self.prospect.email if self.prospect is not None else None) + ", name: " + str(self.name) + ", email_address: " + str(self.email_address) + ", message: " + str(self.message)
+        return (
+            "user: "
+            + str(self.member.user.username if self.member is not None else None)
+            + ", prospect: "
+            + str(self.prospect.email if self.prospect is not None else None)
+            + ", name: "
+            + str(self.name)
+            + ", email_address: "
+            + str(self.email_address)
+            + ", message: "
+            + str(self.message)
+        )
