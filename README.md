@@ -126,7 +126,7 @@ docker-compose exec -e HEADLESS=TRUE backend python manage.py test functional_te
 
 **Run Python linting** (backend):
 ```bash
-docker-compose exec backend flake8 user order clientevent StartupWebApp --max-line-length=100 --statistics
+docker-compose exec backend flake8 user order clientevent StartupWebApp --max-line-length=120 --statistics
 ```
 
 **Run JavaScript linting** (frontend - requires Node.js on host):
