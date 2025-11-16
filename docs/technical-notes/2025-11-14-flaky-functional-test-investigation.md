@@ -1,8 +1,11 @@
 # Flaky Functional Test Investigation and Fix
 
 **Date**: November 14, 2025
-**Status**: In Progress - Significantly Improved (50% → 80-90% pass rate)
-**Branch**: `bugfix/readme-linting-and-flaky-test`
+**Status**: ✅ SUPERSEDED - See [2025-11-16-csrf-token-stale-variable-bug-fix.md](2025-11-16-csrf-token-stale-variable-bug-fix.md)
+**Branch**: `bugfix/readme-linting-and-flaky-test` (initial investigation)
+**Final Fix Branch**: `bugfix/csrf-token-stale-variable` (complete resolution)
+
+> **Note**: This document describes the initial investigation that improved test pass rate from 50% to 80-90% through test-side workarounds. The root cause was fully resolved on November 16, 2025 by fixing the production JavaScript code, achieving 100% pass rate. See the linked document above for complete resolution details.
 
 ## Problem Statement
 
