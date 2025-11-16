@@ -321,7 +321,7 @@ Hi Claude. I want to continue working on these two repositories together:
 
   Please review all documentation (especially `docs/PROJECT_HISTORY.md` and recent technical notes in `docs/technical-notes/`) and propose next steps based on the Planned Work Items above.
 
-  **Current Focus**: Code quality and reliability improvements complete! Next priorities:
+  **Current Focus**: Database migration for production readiness
   1. ✅ Completed Backend Phase 1: High priority (272 issues fixed)
   2. ✅ Completed Backend Phase 2: Style/formatting (1,179 issues fixed)
   3. ✅ Completed Backend Phase 3: Critical issues (85 issues fixed)
@@ -329,5 +329,10 @@ Hi Claude. I want to continue working on these two repositories together:
   5. ✅ Completed Logging: Replace print() with Django logging (106 replaced, 101 deleted)
   6. ✅ Completed Backend Phase 4-6: Zero linting errors (2,286 → 0, 100% reduction)
   7. ✅ Completed CSRF Token Bug Fix: 100% test pass rate (26 instances fixed, 20 files)
-  8. ⏳ Expand test coverage (3/19 JavaScript files tested, 16% coverage)
-  9. ⏳ Database migration planning (Planned Work Item #3)
+  8. **🔄 NEXT: Database migration from SQLite to PostgreSQL/MySQL (Planned Work Item #3)**
+     - Critical blocker for AWS production deployment
+     - Evaluate database options (RDS PostgreSQL, RDS MySQL, Aurora)
+     - Update Django settings and install database driver
+     - Verify all 733 tests pass against new database
+     - Document migration process and rollback procedure
+  9. ⏳ Future: Expand test coverage (3/19 JavaScript files tested, 16% coverage)
