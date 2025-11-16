@@ -120,6 +120,22 @@ class AnonymousGlobalFunctionalTests(BaseFunctionalTest):
 	def test_chat(self):
 		self.browser.get(self.static_home_page_url)
 
+		# wait for page to fully load and acquire CSRF token
+		functional_testing_utilities.wait_for_element_to_load_by_id(self, 'chat-icon-wrapper')
+
+		# wait for CSRF token to be fully ready (cookie + JS variable)
+		import time
+		start_time = time.time()
+		while True:
+			# Check both cookie exists AND JavaScript variable is set
+			csrf_cookie = self.browser.get_cookie('csrftoken')
+			csrf_js_var = self.browser.execute_script("return typeof csrftoken !== 'undefined' && csrftoken !== null && csrftoken !== '';")
+			if csrf_cookie is not None and csrf_js_var:
+				break
+			if time.time() - start_time > 10:
+				raise TimeoutError('CSRF token was not fully initialized within 10 seconds')
+			time.sleep(0.1)
+
 		# clear fixed footer
 		functional_testing_utilities.wait_click_by_class_name(self, 'footer-fixed-action-link')
 
