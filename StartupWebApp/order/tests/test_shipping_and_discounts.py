@@ -149,7 +149,7 @@ class CartShippingMethodsEndpointTest(TestCase):
         )
 
         self.assertEqual(standard_method['carrier'], 'USPS')
-        self.assertEqual(standard_method['shipping_cost'], 5.00)
+        self.assertEqual(standard_method['shipping_cost'], '5.00')
         self.assertEqual(standard_method['tracking_code_base_url'],
                          'https://tools.usps.com/track')
 
@@ -384,7 +384,7 @@ class CartDiscountCodesEndpointTest(TestCase):
         discount_data = discount_codes[str(self.discount_code.id)]
         self.assertEqual(discount_data['code'], 'SAVE10')
         self.assertEqual(discount_data['description'], '10% off')
-        self.assertEqual(discount_data['discount_amount'], 10.0)
+        self.assertEqual(discount_data['discount_amount'], '10.00')
 
 
 class CartApplyDiscountCodeEndpointTest(TestCase):

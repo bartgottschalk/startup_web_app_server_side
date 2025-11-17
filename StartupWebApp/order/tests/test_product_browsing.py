@@ -159,13 +159,13 @@ class ProductsEndpointTest(TestCase):
 
         # Product with single SKU
         product1_data = data['products_data']['PROD001']
-        self.assertEqual(product1_data['price_low'], 3.50)
-        self.assertEqual(product1_data['price_high'], 3.50)
+        self.assertEqual(product1_data['price_low'], '3.50')
+        self.assertEqual(product1_data['price_high'], '3.50')
 
         # Product with multiple SKUs
         product2_data = data['products_data']['PROD002']
-        self.assertEqual(product2_data['price_low'], 5.00)
-        self.assertEqual(product2_data['price_high'], 8.00)
+        self.assertEqual(product2_data['price_low'], '5.00')
+        self.assertEqual(product2_data['price_high'], '8.00')
 
     def test_products_includes_main_image(self):
         """Test that products include main product image"""
@@ -348,7 +348,7 @@ class ProductEndpointTest(TestCase):
         self.assertEqual(sku1_data['color'], 'Silver')
         self.assertEqual(sku1_data['size'], 'Medium')
         self.assertEqual(sku1_data['description'], 'Standard paperclip')
-        self.assertEqual(sku1_data['price'], 3.50)
+        self.assertEqual(sku1_data['price'], '3.50')
         self.assertEqual(sku1_data['inventory_status_identifier'], 'in-stock')
         self.assertEqual(sku1_data['inventory_status_title'], 'In Stock')
 

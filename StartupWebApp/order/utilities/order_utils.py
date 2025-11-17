@@ -279,8 +279,12 @@ def load_address_dict(address):
 
 
 def calculate_cart_item_discount(cart, item_subtotal):
+    from decimal import Decimal
+    # Convert item_subtotal to Decimal for precise calculations
+    if not isinstance(item_subtotal, Decimal):
+        item_subtotal = Decimal(str(item_subtotal))
     noncombinable_found = False
-    item_discount = 0
+    item_discount = Decimal('0')
     for cartdiscount in Cartdiscount.objects.filter(cart=cart):
         if cartdiscount.discountcode.discounttype.applies_to == 'item_total':
             if not cartdiscount.discountcode.combinable:
@@ -290,7 +294,7 @@ def calculate_cart_item_discount(cart, item_subtotal):
                     if item_subtotal >= cartdiscount.discountcode.order_minimum:
                         if cartdiscount.discountcode.discounttype.action == 'percent-off':
                             item_discount += item_subtotal * \
-                                (cartdiscount.discountcode.discount_amount / 100)
+                                (cartdiscount.discountcode.discount_amount / Decimal('100'))
                         if cartdiscount.discountcode.discounttype.action == 'dollar-amt-off':
                             item_discount += item_discount + cartdiscount.discountcode.discount_amount
                     else:

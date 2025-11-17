@@ -287,7 +287,7 @@ class ConfirmShippingMethodEndpointTest(TestCase):
         shipping_method = data['confirm_shipping_method']
         self.assertEqual(shipping_method['identifier'], 'standard')
         self.assertEqual(shipping_method['carrier'], 'USPS')
-        self.assertEqual(shipping_method['shipping_cost'], 5.00)
+        self.assertEqual(shipping_method['shipping_cost'], '5.00')
 
 
 class ConfirmDiscountCodesEndpointTest(TestCase):
