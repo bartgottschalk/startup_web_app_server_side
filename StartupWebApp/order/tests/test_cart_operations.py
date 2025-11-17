@@ -105,7 +105,7 @@ class CartItemsEndpointTest(TestCase):
         item = list(product_sku_data.values())[0]
         self.assertEqual(item['sku_id'], self.sku.id)
         self.assertEqual(item['quantity'], 2)
-        self.assertEqual(item['price'], 10.00)
+        self.assertEqual(item['price'], '10.00')
         self.assertEqual(item['parent_product__title'], 'Test Product')
 
     def test_cart_items_anonymous_with_no_cart(self):
@@ -422,7 +422,7 @@ class CartUpdateSkuQuantityEndpointTest(TestCase):
         self.assertEqual(data['cart_update_sku_quantity'], 'success')
         self.assertTrue(data['cart_found'])
         self.assertIn('sku_subtotal', data)
-        self.assertEqual(data['sku_subtotal'], 50.00)  # 5 * 10.00
+        self.assertEqual(data['sku_subtotal'], '50.00')  # 5 * 10.00
 
         # Verify quantity was updated
         self.cartsku.refresh_from_db()
@@ -655,7 +655,7 @@ class CartRemoveSkuEndpointTest(TestCase):
         self.assertIn('0', cart_shipping_methods)
         self.assertEqual(cart_shipping_methods['0']['identifier'], 'express')
         self.assertEqual(cart_shipping_methods['0']['carrier'], 'FedEx')
-        self.assertEqual(cart_shipping_methods['0']['shipping_cost'], 15.00)
+        self.assertEqual(cart_shipping_methods['0']['shipping_cost'], '15.00')
         self.assertEqual(
             cart_shipping_methods['0']['tracking_code_base_url'],
             'https://www.fedex.com/track')
@@ -664,7 +664,7 @@ class CartRemoveSkuEndpointTest(TestCase):
         self.assertIn('1', cart_shipping_methods)
         self.assertEqual(cart_shipping_methods['1']['identifier'], 'standard')
         self.assertEqual(cart_shipping_methods['1']['carrier'], 'USPS')
-        self.assertEqual(cart_shipping_methods['1']['shipping_cost'], 5.00)
+        self.assertEqual(cart_shipping_methods['1']['shipping_cost'], '5.00')
 
 
 class CartDeleteCartEndpointTest(TestCase):
@@ -848,7 +848,7 @@ class CartTotalsEndpointTest(TestCase):
         self.assertTrue(data['cart_found'])
 
         cart_totals = data['cart_totals_data']
-        self.assertEqual(cart_totals['item_subtotal'], 30.00)  # 3 * 10.00
+        self.assertEqual(cart_totals['item_subtotal'], '30.00')  # 3 * 10.00
 
     def test_cart_totals_includes_all_fields(self):
         """Test that cart_totals includes all required fields"""

@@ -6,7 +6,7 @@ from user.models import Member, Prospect
 
 class Orderconfiguration(models.Model):
     key = models.CharField(max_length=100)
-    float_value = models.FloatField(blank=True, null=True)
+    float_value = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     string_value = models.CharField(max_length=500, blank=True, null=True)
 
     class Meta:
@@ -104,7 +104,7 @@ class Sku(models.Model):
 
 class Skuprice(models.Model):
     sku = models.ForeignKey(Sku, on_delete=models.CASCADE)
-    price = models.FloatField(default=0)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_date_time = models.DateTimeField()
 
     class Meta:
@@ -213,8 +213,8 @@ class Discountcode(models.Model):
     end_date_time = models.DateTimeField()
     combinable = models.BooleanField(default=False)
     discounttype = models.ForeignKey(Discounttype, on_delete=models.CASCADE)
-    discount_amount = models.FloatField(default=0)
-    order_minimum = models.FloatField(default=0)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    order_minimum = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     class Meta:
         db_table = 'order_discount_code'
@@ -239,7 +239,7 @@ class Cartdiscount(models.Model):
 class Shippingmethod(models.Model):
     identifier = models.CharField(max_length=100)
     carrier = models.CharField(max_length=100)
-    shipping_cost = models.FloatField(blank=True)
+    shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True)
     tracking_code_base_url = models.CharField(max_length=200)
     active = models.BooleanField(default=True)
 
@@ -351,12 +351,12 @@ class Order(models.Model):
         on_delete=models.CASCADE,
         blank=True,
         null=True)
-    sales_tax_amt = models.FloatField(default=0)
-    item_subtotal = models.FloatField(default=0)
-    item_discount_amt = models.FloatField(default=0)
-    shipping_amt = models.FloatField(default=0)
-    shipping_discount_amt = models.FloatField(default=0)
-    order_total = models.FloatField(default=0)
+    sales_tax_amt = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    item_subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    item_discount_amt = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    shipping_amt = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    shipping_discount_amt = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    order_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     agreed_with_terms_of_sale = models.BooleanField(default=False)
     order_date_time = models.DateTimeField()
 
@@ -371,7 +371,7 @@ class Ordersku(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     sku = models.ForeignKey(Sku, on_delete=models.CASCADE)
     quantity = models.IntegerField(default=1)
-    price_each = models.FloatField(default=0)
+    price_each = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     class Meta:
         db_table = 'order_order_sku'
