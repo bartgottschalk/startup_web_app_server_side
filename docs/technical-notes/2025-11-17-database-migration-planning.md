@@ -264,15 +264,213 @@ DATABASES = {
 
 **Recommendation**: Consider for staging/development environments
 
+### Option 5: AWS Lightsail Databases
+
+**Overview:**
+Lightsail is AWS's simplified managed database service with fixed monthly pricing.
+
+**Pros:**
+- **Significant cost savings**: $15/month (1 GB RAM, 2 vCPU) vs $26/month for RDS db.t4g.small
+- **30-40% cheaper** than equivalent RDS instance
+- **Simplified management**: Fixed pricing includes data transfer allowance
+- **PostgreSQL 12-16 support**: Full Django ORM compatibility
+- **Multi-tenant capable**: Can create multiple databases on single instance
+- **Django compatibility**: 100% compatible (same PostgreSQL engine, uses psycopg2)
+- **Easy setup**: Streamlined configuration interface
+
+**Cons:**
+- ⚠️ **CRITICAL: Cannot migrate to RDS later** - No upgrade path, must dump/restore
+- **PostgreSQL 12 EOL**: February 28, 2025 (must use version 13+)
+- **Less flexible scaling**: Fewer instance size options
+- **Limited monitoring**: Less advanced CloudWatch metrics and alerting
+- **No Reserved Instance discounts**: Cannot commit for long-term savings
+- **Fewer optimization features**: No connection pooling, read replicas, or advanced tuning
+
+**Cost Analysis:**
+```
+Lightsail: $15/month for 3-5 forks = $3-5/month per experiment
+RDS:       $26/month for 3-5 forks = $5-8/month per experiment
+Savings:   $11/month ($132/year)
+```
+
+**When to Consider:**
+- Pure experimentation phase where 95%+ of forks expected to fail
+- Extremely cost-sensitive projects
+- Short-term prototyping (< 6 months)
+- Willing to accept migration pain if any fork succeeds
+
+**When to Avoid:**
+- Any fork has potential to scale or succeed
+- Need advanced monitoring and optimization
+- Want flexibility to migrate to Aurora later
+- Planning for production longevity
+
+**Verdict**: Could save $132/year BUT creates technical debt. The $11/month savings isn't worth the migration friction when a fork succeeds.
+
+**Recommendation Score: 6/10** - Good for pure experimentation, risky for anything with success potential
+
+### Option 6: Amazon DynamoDB (NoSQL)
+
+**Overview:**
+AWS's fully managed NoSQL database service with key-value and document data models.
+
+**Pros:**
+- Scales to massive traffic automatically (millions of requests/second)
+- Pay-per-request pricing can be cheap at very low volume ($5-10/month)
+- No server maintenance or capacity planning
+- Excellent for document-heavy, schema-less data
+- Microsecond latency at any scale
+
+**Cons:**
+- ❌ **FUNDAMENTALLY INCOMPATIBLE with Django ORM**
+- ❌ **Requires complete application rewrite** (estimated 6-12 months, $50,000+ developer time)
+- ❌ **No foreign keys, no joins, no relational integrity**
+- ❌ **All 721 tests would need complete rewriting**
+- ❌ **Django Admin panel breaks** (relies on ORM)
+- ❌ **CASCADE deletes must be manually implemented**
+- ❌ **E-commerce queries become extremely difficult** (no JOIN support)
+- ❌ Available Django packages (django-dynamodb-engine) are abandoned/unmaintained
+- **Must denormalize data**: Duplicate information across documents for performance
+- **Complex query planning**: Global Secondary Indexes (GSI) require careful design
+- **Transaction limitations**: Max 25 items per transaction
+- **Multi-tenant complexity**: Separate tables per fork, complex IAM policies
+
+**Migration Impact:**
+```python
+# Current Django ORM (works beautifully):
+order = Order.objects.get(id=123)
+order_items = order.ordersku_set.all()  # Automatic join via ForeignKey
+customer = order.member.user  # Traverses relationships
+
+# DynamoDB equivalent (nightmare):
+# Must manually fetch and join data across multiple queries
+# No transaction support across "tables"
+# Extensive data duplication required for performance
+```
+
+**Handling Your 40+ Relational Tables:**
+- Every ForeignKey relationship becomes application-managed
+- Complex denormalization strategy required
+- Order/Cart/Product relationships need complete redesign
+- Multiple round-trip queries for simple operations
+- No referential integrity enforcement
+
+**Pricing Reality:**
+- Database costs: $5-10/month (cheap!)
+- Developer time: 1000+ hours to rewrite application ($50,000+ at $50/hour)
+- Test suite: Complete rewrite required (721 tests)
+- Stripe integration: Needs revision
+- **Total cost**: Catastrophic
+
+**Verdict**: Wrong tool for Django e-commerce with complex relationships. The database might be cheap, but the rewrite cost is astronomical.
+
+**Recommendation Score: 1/10** - **DO NOT USE** for this project
+
+### Option 7: Amazon Aurora Serverless v2 (Detailed Analysis)
+
+**Overview:**
+Auto-scaling Aurora PostgreSQL with pay-per-use pricing based on Aurora Capacity Units (ACUs).
+
+**Pricing Model:**
+- **$0.12 per ACU-hour**
+- **1 ACU** ≈ 2 GB RAM + corresponding CPU
+- **Minimum: 0.5 ACU** (cannot scale to zero like Serverless v1)
+- Scales automatically based on load
+
+**Cost Analysis for Low-Traffic Multi-Tenant:**
+```
+Minimum (idle most of time):
+0.5 ACU × $0.12/hour × 730 hours = $43.80/month
+(70% MORE expensive than RDS db.t4g.small at $26/month)
+
+Moderate load (1 ACU average):
+1 ACU × $0.12/hour × 730 hours = $87.60/month
+(238% MORE expensive than RDS)
+
+With RDS Proxy (required for connection pooling):
+Additional 8 ACU minimum = $70/month extra
+Total: $113.80/month minimum
+```
+
+**When It Makes Sense:**
+- Truly unpredictable traffic with large spikes (10x variation)
+- Apps idle 80%+ of time but need instant scale-up
+- Staging/development environments used intermittently
+- Cannot predict capacity needs at all
+
+**When RDS is Better (Your Case):**
+- ✅ Low but **steady** traffic (experimental apps running 24/7)
+- ✅ Predictable resource needs (even if small)
+- ✅ Cost-conscious startup budget
+- ✅ Multiple apps sharing one instance
+
+**Multi-Tenant Considerations:**
+- Can create multiple databases on single Aurora Serverless cluster
+- But minimum cost is $43.80/month vs $26/month for RDS
+- **Saves $0** vs dedicated Aurora instances
+- **Costs 70% more** than RDS for steady workload
+
+**Important Gotchas:**
+- Cannot scale to 0 ACU (always paying for 0.5+ ACU minimum)
+- RDS Proxy adds significant cost if needed
+- Scaling events can take 15-30 seconds (not instant)
+- More complex billing to understand and forecast
+
+**Verdict**: More expensive than RDS with no benefit for steady low-traffic multi-tenant use case.
+
+**Recommendation Score: 3/10** - Wrong pricing model for your workload
+
+### Option 8: Other AWS Options (Brief Summary)
+
+**Amazon Aurora Standard (Provisioned):**
+- Cost: ~$62/month (db.t4g.medium equivalent)
+- Performance: 3x throughput vs RDS PostgreSQL
+- When to use: After 6-12 months if any fork sees significant success
+- Rating: 5/10 (overkill now, consider later)
+
+**Amazon DocumentDB (MongoDB-compatible):**
+- Cost: Similar to Aurora ($60+/month)
+- Use case: Document-heavy applications (CMS, content catalogs)
+- Django compatibility: Limited (requires PyMongo, not Django ORM)
+- Rating: 2/10 (same issues as DynamoDB, wrong tool)
+
+**Amazon Neptune (Graph Database):**
+- Cost: Expensive ($70+/month minimum)
+- Use case: Social networks, recommendation engines, fraud detection graphs
+- Django compatibility: No native support
+- Rating: 1/10 (completely wrong tool for e-commerce)
+
+## Database Selection Decision Matrix
+
+| Option | Monthly Cost | Django ORM | Migration Effort | Multi-Tenant | Scaling Path | Score |
+|--------|--------------|------------|------------------|--------------|--------------|-------|
+| **RDS PostgreSQL** ✅ | **$26** | ✅ 100% | **2-3 days** | ✅ Easy | Excellent | **9/10** |
+| RDS MySQL | $21 | ✅ 95% | 2-3 days | ✅ Easy | Good | 6/10 |
+| Aurora PostgreSQL | $62 | ✅ 100% | 2-3 days | ✅ Easy | Excellent | 5/10 |
+| Aurora Serverless v2 | $44+ | ✅ 100% | 2-3 days | ✅ Easy | Good | 3/10 |
+| Lightsail PostgreSQL | $15 | ✅ 100% | 2-3 days | ✅ Easy | ⚠️ Blocked | 6/10 |
+| DynamoDB | $5-10 | ❌ 0% | **6-12 months** | ⚠️ Complex | Excellent* | 1/10 |
+| DocumentDB | $60+ | ❌ 20% | 4-8 months | ⚠️ Complex | Good | 2/10 |
+| Neptune | $70+ | ❌ 0% | 8-12 months | ❌ N/A | Limited | 1/10 |
+
+*DynamoDB scales excellently, but you'll never migrate to it due to prohibitive rewrite cost.
+
 ## Final Recommendation: AWS RDS PostgreSQL 16.x
 
 **Rationale:**
 1. **Django Community Standard**: PostgreSQL is the de facto production database for Django
-2. **Future-Proof**: Supports advanced features if needed later (JSON, full-text search, arrays)
-3. **Cost-Effective**: Reasonable pricing for startup budget (~$26/month for db.t4g.small)
-4. **Performance**: Superior query optimization and transaction handling
-5. **Reliability**: Proven track record with Django applications
-6. **Migration Path**: Clear upgrade path to Aurora if scaling needs increase
+2. **Django ORM Compatibility**: 100% compatible with zero code changes required
+3. **Cost-Effective Multi-Tenant**: $26/month for 3-5 experimental forks = $5-8/month per experiment
+   - 80-90% savings vs separate instances
+   - Better value than Lightsail when considering upgrade path
+   - Much cheaper than Aurora Serverless v2 ($44+/month minimum)
+4. **Migration Effort**: 2-3 days from SQLite (vs 6-12 months for DynamoDB)
+5. **Future-Proof**: Supports advanced features if needed later (JSON, full-text search, arrays)
+6. **Performance**: Superior query optimization and transaction handling for complex e-commerce queries
+7. **Reliability**: Proven track record with Django applications, ACID compliance
+8. **Scaling Path**: Clear upgrade path to Aurora or larger RDS instances when needed
+9. **Test Suite Compatibility**: All 721 tests will pass with minor adjustments (vs complete rewrite for NoSQL)
+10. **No Lock-In**: Can migrate to Aurora or scale vertically without dump/restore (unlike Lightsail)
 
 ## Implementation Plan
 
@@ -845,13 +1043,48 @@ Skip Phase 1 (FloatField fix), minimal testing: 10-15 hours (2-3 days)
 
 ### Questions for Discussion
 
-1. Should we fix FloatField→DecimalField before or after migration?
-2. Do we need to migrate existing SQLite data or start fresh?
-3. Should we create a staging environment first?
-4. What's the target timeline for production deployment?
-5. What's the budget for AWS RDS? (db.t4g.small ~$26/month shared across forks)
-6. How many experimental forks do you anticipate running initially? (affects sizing)
-7. Do you want separate database users per fork for better security/isolation?
+~~1. Should we fix FloatField→DecimalField before or after migration?~~
+~~2. Do we need to migrate existing SQLite data or start fresh?~~
+~~3. Should we create a staging environment first?~~
+~~4. What's the target timeline for production deployment?~~
+~~5. What's the budget for AWS RDS? (db.t4g.small ~$26/month shared across forks)~~
+~~6. How many experimental forks do you anticipate running initially? (affects sizing)~~
+~~7. Do you want separate database users per fork for better security/isolation?~~
+
+### ✅ Decisions Made (November 17, 2025)
+
+1. **FloatField→DecimalField**: Fix BEFORE migration (Phase 1, thorough approach)
+   - Rationale: Do it once, do it right. Better financial accuracy from the start.
+
+2. **Data Migration Strategy**: Start with fresh PostgreSQL database
+   - Rationale: No existing SQLite data needs to be preserved. Cleaner, faster, matches production deployment approach.
+   - Impact: Skip Phase 4 data dump/restore steps entirely. Just run migrations.
+
+3. **Database Cleanup**: Remove `rg_` prefix (Refrigerator Games legacy) during migration
+   - Change: `rg_unittest` → `startupwebapp_dev`
+   - Files affected: settings_secret.py, buildspec_unit_tests.yml, migration comments
+
+4. **Instance Sizing**: AWS RDS db.t4g.small (2 vCPU, 2 GB RAM) at $26/month
+   - Expected forks: Up to 5 experimental applications initially
+   - Capacity: db.t4g.small supports 3-5 low-traffic apps comfortably
+   - Budget: $26/month total = ~$5/month per experiment
+
+5. **Database User Strategy**: Start with shared database user (simpler)
+   - Single user `django_app` with access to all databases
+   - Can migrate to separate users per fork later if needed for security
+
+6. **Timeline**: Thorough approach (3-5 days)
+   - Prioritize correctness and comprehensive testing over speed
+   - All 721 tests must pass before considering migration complete
+
+7. **Staging Environment**: Skip for now
+   - Go from local Docker → AWS production
+   - Can add staging later if needed
+
+8. **Multi-Database Names**:
+   - Main app: `startupwebapp_dev` (local), `startupwebapp_prod` (AWS)
+   - Future forks: `healthtech_experiment`, `fintech_experiment`, etc.
+   - Configured via `DATABASE_NAME` environment variable per fork
 
 ## Multi-Tenant Best Practices & Considerations
 
@@ -1090,7 +1323,13 @@ This multi-tenant approach is ideal for experimentation phase. You can validate 
 
 ---
 
-**Document Version**: 2.0 (Multi-Tenant Strategy)
+**Document Version**: 2.2 (Multi-Tenant Strategy + AWS Options + Final Decisions)
 **Last Updated**: November 17, 2025
 **Author**: Claude Code (AI Assistant)
-**Review Status**: Awaiting human approval
+**Review Status**: ✅ Approved - Ready for Implementation
+
+**Changelog**:
+- **v2.2 (Nov 17, 2025)**: Added final implementation decisions (8 key decisions made). Ready to begin Phase 1 implementation.
+- **v2.1 (Nov 17, 2025)**: Added comprehensive analysis of AWS Lightsail, DynamoDB, Aurora Serverless v2, DocumentDB, Neptune. Added decision matrix comparing all 8 database options with scores.
+- **v2.0 (Nov 17, 2025)**: Initial multi-tenant strategy document with PostgreSQL migration plan.
+- **v1.0 (Nov 17, 2025)**: Original database migration planning document.
