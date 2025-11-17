@@ -11,7 +11,7 @@ Hi Claude. I want to continue working on these two repositories together:
   ## Repository Context
 
   **Tech Stack:**
-  - Backend: Django 4.2.16 (4.2 LTS), Python 3.12.12, SQLite, Stripe integration
+  - Backend: Django 4.2.16 (4.2 LTS), Python 3.12.12, PostgreSQL (migrating from SQLite), Stripe integration
   - Frontend: jQuery 3.7.1, nginx:alpine
   - Infrastructure: Docker Compose with custom bridge network "startupwebapp"
   - Testing: Selenium 3.141.0 with Firefox ESR (headless mode)
@@ -250,9 +250,13 @@ Hi Claude. I want to continue working on these two repositories together:
        - ✅ Changed 26 instances across 20 JavaScript files
        - ✅ Achieved 100% functional test pass rate (previously 80-90%)
        - ✅ Zero ESLint errors/warnings maintained
-     - ⏳ **Next Options**:
+     - ⏳ **Next: PostgreSQL Migration** (In Progress - November 17, 2025)
+       - Comprehensive planning completed (docs/technical-notes/2025-11-17-database-migration-planning.md v2.2)
+       - All implementation decisions made (8 key decisions documented)
+       - Target: AWS RDS PostgreSQL 16.x multi-tenant architecture
+       - Timeline: 3-5 days thorough implementation
+     - 🔮 **Future Options**:
        - Expand test coverage (currently only 3/19 JavaScript files tested, ~16% coverage)
-       - Database migration planning (SQLite → PostgreSQL/MySQL for AWS deployment)
 
   2. **✅ Replace print statements with proper logging (COMPLETED - November 12, 2025)**
      - ✅ Converted 106 print() statements to proper logging calls
@@ -261,22 +265,24 @@ Hi Claude. I want to continue working on these two repositories together:
      - ✅ Environment-aware: DEBUG in dev, INFO in production
      - ✅ Production-ready: persistent logs, severity levels, full context
 
-  3. **Migrate from SQLite to production database**
-     - Critical for production deployment
-     - Evaluate AWS database options:
-       - Amazon RDS PostgreSQL (most popular Django choice)
-       - Amazon RDS MySQL (compatible, widely supported)
-       - Amazon Aurora PostgreSQL (AWS-optimized, auto-scaling)
-       - Amazon Aurora MySQL (AWS-optimized)
-     - Consider factors: cost, performance, backup/restore, scaling needs
-     - Update Django settings.py database configuration
-     - Install appropriate database driver (psycopg2 for PostgreSQL, mysqlclient for MySQL)
-     - Test all 689 unit tests against new database
-     - Test all 28 functional tests against new database
-     - Verify Stripe integration works with new database
-     - Document migration process and rollback procedure
-     - Update requirements.txt with database driver dependencies
-     - Must complete before AWS deployment (task #6)
+  3. **✅ Migrate from SQLite to PostgreSQL** (Planning Complete - Ready for Implementation)
+     - **Status**: Comprehensive planning complete (v2.2), implementation starting
+     - **Decision**: AWS RDS PostgreSQL 16.x with multi-tenant architecture
+     - **Cost**: $26/month for up to 5 experimental forks (db.t4g.small)
+     - **Architecture**: Separate databases per fork on shared RDS instance
+     - **Implementation Plan** (7 phases documented):
+       - Phase 1: Fix FloatField→DecimalField for currency fields (TDD approach)
+       - Phase 2: Set up local Docker PostgreSQL with multi-database support
+       - Phase 3: Configure Django with environment-based database selection
+       - Phase 4: Run migrations on fresh PostgreSQL database (no data migration needed)
+       - Phase 5: Testing & validation (all 721 tests must pass)
+       - Phase 6: Production AWS RDS setup (when ready)
+       - Phase 7: Documentation & rollback planning
+     - **Database Naming**: Remove legacy `rg_` prefix → `startupwebapp_dev`
+     - **Alternatives Evaluated**: Lightsail, DynamoDB, Aurora Serverless v2 (all rejected)
+     - **Timeline**: 3-5 days thorough implementation
+     - **See**: docs/technical-notes/2025-11-17-database-migration-planning.md
+     - **Must complete before**: AWS deployment (task #6)
 
   4. **Consider Stripe library upgrade (optional)**
      - Current: stripe==5.5.0
@@ -321,7 +327,7 @@ Hi Claude. I want to continue working on these two repositories together:
 
   Please review all documentation (especially `docs/PROJECT_HISTORY.md` and recent technical notes in `docs/technical-notes/`) and propose next steps based on the Planned Work Items above.
 
-  **Current Focus**: Database migration for production readiness
+  **Current Focus**: PostgreSQL Migration (Production Readiness Phase)
   1. ✅ Completed Backend Phase 1: High priority (272 issues fixed)
   2. ✅ Completed Backend Phase 2: Style/formatting (1,179 issues fixed)
   3. ✅ Completed Backend Phase 3: Critical issues (85 issues fixed)
@@ -329,10 +335,20 @@ Hi Claude. I want to continue working on these two repositories together:
   5. ✅ Completed Logging: Replace print() with Django logging (106 replaced, 101 deleted)
   6. ✅ Completed Backend Phase 4-6: Zero linting errors (2,286 → 0, 100% reduction)
   7. ✅ Completed CSRF Token Bug Fix: 100% test pass rate (26 instances fixed, 20 files)
-  8. **🔄 NEXT: Database migration from SQLite to PostgreSQL/MySQL (Planned Work Item #3)**
-     - Critical blocker for AWS production deployment
-     - Evaluate database options (RDS PostgreSQL, RDS MySQL, Aurora)
-     - Update Django settings and install database driver
-     - Verify all 733 tests pass against new database
-     - Document migration process and rollback procedure
-  9. ⏳ Future: Expand test coverage (3/19 JavaScript files tested, 16% coverage)
+  8. ✅ Completed PostgreSQL Migration Planning (v2.2 - comprehensive analysis, all decisions made)
+  9. **🔄 IN PROGRESS: PostgreSQL Migration Implementation (Planned Work Item #3)**
+     - **Status**: Ready to begin Phase 1 - FloatField→DecimalField conversion
+     - **Decision**: AWS RDS PostgreSQL 16.x with multi-tenant architecture
+     - **Architecture**: Separate databases per fork on shared RDS instance ($26/month for 5 forks)
+     - **Implementation Phases**:
+       - Phase 1: Fix FloatField→DecimalField for currency fields (TDD approach)
+       - Phase 2: Docker PostgreSQL setup with multi-database support
+       - Phase 3: Django configuration with environment variables
+       - Phase 4: Run migrations on fresh PostgreSQL database
+       - Phase 5: Testing & validation (all 721 tests must pass)
+       - Phase 6: AWS RDS production setup (when ready)
+       - Phase 7: Documentation & rollback planning
+     - **Database Naming**: Remove legacy `rg_` prefix → `startupwebapp_dev`
+     - **Timeline**: 3-5 days thorough implementation
+     - **See**: docs/technical-notes/2025-11-17-database-migration-planning.md v2.2
+  10. ⏳ Future: Expand test coverage (3/19 JavaScript files tested, 16% coverage)
