@@ -3,6 +3,7 @@
 import json
 
 from django.test import TestCase
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group
 
@@ -18,7 +19,7 @@ from user.models import Member, Prospect, Termsofuse
 from StartupWebApp.utilities import unittest_utilities
 
 
-class IndexEndpointTest(TestCase):
+class IndexEndpointTest(PostgreSQLTestCase):
     """Test the index endpoint"""
 
     def test_index_returns_version(self):
@@ -30,7 +31,7 @@ class IndexEndpointTest(TestCase):
         self.assertIn("0.0.1", response.content.decode('utf8'))
 
 
-class ProductsEndpointTest(TestCase):
+class ProductsEndpointTest(PostgreSQLTestCase):
     """Test the products list endpoint"""
 
     def setUp(self):
@@ -188,7 +189,7 @@ class ProductsEndpointTest(TestCase):
         self.assertEqual(len(data['products_data']), 0)
 
 
-class ProductEndpointTest(TestCase):
+class ProductEndpointTest(PostgreSQLTestCase):
     """Test the individual product detail endpoint"""
 
     def setUp(self):
@@ -381,7 +382,7 @@ class ProductEndpointTest(TestCase):
         self.assertEqual(data['product_identifier'], 'INVALID')
 
 
-class OrderDetailEndpointTest(TestCase):
+class OrderDetailEndpointTest(PostgreSQLTestCase):
     """Test the order detail endpoint"""
 
     def setUp(self):

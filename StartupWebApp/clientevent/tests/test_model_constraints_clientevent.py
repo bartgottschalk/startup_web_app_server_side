@@ -2,6 +2,7 @@
 # Focus on null/blank validation, max_length, and required fields
 
 from django.test import TestCase
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group
 from django.db import IntegrityError
@@ -10,7 +11,7 @@ from clientevent.models import Pageview, AJAXError, Buttonclick, Linkevent
 from user.models import Member, Prospect, Email, Emailtype, Emailstatus, Ad, Adtype, Adstatus, Termsofuse
 
 
-class PageviewFieldConstraintTest(TestCase):
+class PageviewFieldConstraintTest(PostgreSQLTestCase):
     """Test Pageview model field constraints"""
 
     def setUp(self):
@@ -92,7 +93,7 @@ class PageviewFieldConstraintTest(TestCase):
         self.assertIsNone(pageview.http_user_agent)
 
 
-class PageviewMaxLengthTest(TestCase):
+class PageviewMaxLengthTest(PostgreSQLTestCase):
     """Test Pageview model max_length constraints"""
 
     def setUp(self):
@@ -144,7 +145,7 @@ class PageviewMaxLengthTest(TestCase):
         self.assertEqual(len(pageview.http_user_agent), 1000)
 
 
-class AJAXErrorFieldConstraintTest(TestCase):
+class AJAXErrorFieldConstraintTest(PostgreSQLTestCase):
     """Test AJAXError model field constraints"""
 
     def setUp(self):
@@ -207,7 +208,7 @@ class AJAXErrorFieldConstraintTest(TestCase):
         self.assertIsNone(ajax_error.anonymous_id)
 
 
-class AJAXErrorMaxLengthTest(TestCase):
+class AJAXErrorMaxLengthTest(PostgreSQLTestCase):
     """Test AJAXError model max_length constraints"""
 
     def setUp(self):
@@ -249,7 +250,7 @@ class AJAXErrorMaxLengthTest(TestCase):
         self.assertEqual(len(ajax_error.error_id), 100)
 
 
-class ButtonclickFieldConstraintTest(TestCase):
+class ButtonclickFieldConstraintTest(PostgreSQLTestCase):
     """Test Buttonclick model field constraints"""
 
     def setUp(self):
@@ -312,7 +313,7 @@ class ButtonclickFieldConstraintTest(TestCase):
         self.assertIsNone(buttonclick.anonymous_id)
 
 
-class ButtonclickMaxLengthTest(TestCase):
+class ButtonclickMaxLengthTest(PostgreSQLTestCase):
     """Test Buttonclick model max_length constraints"""
 
     def setUp(self):
@@ -354,7 +355,7 @@ class ButtonclickMaxLengthTest(TestCase):
         self.assertEqual(len(buttonclick.button_id), 100)
 
 
-class LinkeventFieldConstraintTest(TestCase):
+class LinkeventFieldConstraintTest(PostgreSQLTestCase):
     """Test Linkevent model field constraints"""
 
     def setUp(self):
@@ -469,7 +470,7 @@ class LinkeventFieldConstraintTest(TestCase):
         self.assertIsNone(linkevent.ad)
 
 
-class LinkeventMaxLengthTest(TestCase):
+class LinkeventMaxLengthTest(PostgreSQLTestCase):
     """Test Linkevent model max_length constraints"""
 
     def setUp(self):

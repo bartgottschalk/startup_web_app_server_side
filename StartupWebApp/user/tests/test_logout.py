@@ -3,6 +3,7 @@
 import json
 
 from django.test import TestCase
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.contrib.auth.models import Group
 
@@ -13,7 +14,7 @@ from user.models import Termsofuse
 from StartupWebApp.utilities import unittest_utilities
 
 
-class LogoutAPITest(TestCase):
+class LogoutAPITest(PostgreSQLTestCase):
 
     def setUp(self):
         # Setup necessary DB Objects

@@ -2,12 +2,13 @@
 # Tests validation functions used throughout the application
 
 from django.test import TestCase
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.contrib.auth.models import User
 
 from StartupWebApp.form import validator
 
 
-class EmailValidationTests(TestCase):
+class EmailValidationTests(PostgreSQLTestCase):
     """Tests for email validation functions"""
 
     def test_isEmail_valid_formats(self):
@@ -78,7 +79,7 @@ class EmailValidationTests(TestCase):
         self.assertIn('too_many_chars', [e['type'] for e in result])
 
 
-class PasswordValidationTests(TestCase):
+class PasswordValidationTests(PostgreSQLTestCase):
     """Tests for password validation - SECURITY CRITICAL"""
 
     def test_isPasswordValid_meets_all_requirements(self):
@@ -167,7 +168,7 @@ class PasswordValidationTests(TestCase):
         self.assertFalse(validator.containsSpecialCharacter(''))
 
 
-class UsernameValidationTests(TestCase):
+class UsernameValidationTests(PostgreSQLTestCase):
     """Tests for username validation"""
 
     def setUp(self):
@@ -257,7 +258,7 @@ class UsernameValidationTests(TestCase):
                 self.assertFalse(validator.isAlphaNumericUnderscoreHyphen(string))
 
 
-class NameValidationTests(TestCase):
+class NameValidationTests(PostgreSQLTestCase):
     """Tests for name field validation"""
 
     def test_isNameValid_valid_name(self):
@@ -335,7 +336,7 @@ class NameValidationTests(TestCase):
                 self.assertFalse(validator.isAlphaNumericSpaceAmpersand(string))
 
 
-class IntegerRangeValidationTests(TestCase):
+class IntegerRangeValidationTests(PostgreSQLTestCase):
     """Tests for integer range validation"""
 
     def test_isIntegerInRange_valid_integers(self):
@@ -366,7 +367,7 @@ class IntegerRangeValidationTests(TestCase):
         self.assertEqual(result[0]['type'], 'not_an_int')
 
 
-class SkuQuantityValidationTests(TestCase):
+class SkuQuantityValidationTests(PostgreSQLTestCase):
     """Tests for SKU quantity validation"""
 
     def test_validateSkuQuantity_valid(self):
@@ -395,7 +396,7 @@ class SkuQuantityValidationTests(TestCase):
         self.assertIsInstance(result, list)
 
 
-class ChatMessageValidationTests(TestCase):
+class ChatMessageValidationTests(PostgreSQLTestCase):
     """Tests for chat message validation"""
 
     def test_isChatMessageValid_valid_message(self):
@@ -417,7 +418,7 @@ class ChatMessageValidationTests(TestCase):
         self.assertIn('too_many_chars', [e['type'] for e in result])
 
 
-class HowExcitedValidationTests(TestCase):
+class HowExcitedValidationTests(PostgreSQLTestCase):
     """Tests for excitement rating validation"""
 
     def test_isHowExcitedValid_valid_ratings(self):
@@ -450,7 +451,7 @@ class HowExcitedValidationTests(TestCase):
         self.assertIn('out_of_range', [e['type'] for e in result])
 
 
-class ErrorMessageTests(TestCase):
+class ErrorMessageTests(PostgreSQLTestCase):
     """Tests to verify error message structure and content"""
 
     def test_error_messages_have_required_fields(self):

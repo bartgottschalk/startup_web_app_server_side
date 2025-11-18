@@ -3,6 +3,7 @@
 
 
 from django.test import TestCase
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group
 from django.db import IntegrityError
@@ -14,7 +15,7 @@ from user.models import (
 )
 
 
-class MemberModelTest(TestCase):
+class MemberModelTest(PostgreSQLTestCase):
     """Test Member model creation, fields, and relationships"""
 
     def setUp(self):
@@ -109,7 +110,7 @@ class MemberModelTest(TestCase):
         self.assertEqual(member.stripe_customer_token, 'cus_test123')
 
 
-class ProspectModelTest(TestCase):
+class ProspectModelTest(PostgreSQLTestCase):
     """Test Prospect model creation, fields, and uniqueness"""
 
     def test_prospect_creation(self):
@@ -201,7 +202,7 @@ class ProspectModelTest(TestCase):
         self.assertIsNotNone(prospect.converted_date_time)
 
 
-class TermsofuseModelTest(TestCase):
+class TermsofuseModelTest(PostgreSQLTestCase):
     """Test Termsofuse model creation and versioning"""
 
     def test_termsofuse_creation(self):
@@ -254,7 +255,7 @@ class TermsofuseModelTest(TestCase):
         self.assertNotEqual(tos1.id, tos2.id)
 
 
-class MembertermsofuseversionagreedModelTest(TestCase):
+class MembertermsofuseversionagreedModelTest(PostgreSQLTestCase):
     """Test Membertermsofuseversionagreed model and unique constraint"""
 
     def setUp(self):
@@ -331,7 +332,7 @@ class MembertermsofuseversionagreedModelTest(TestCase):
         self.assertFalse(Membertermsofuseversionagreed.objects.filter(id=agreement_id).exists())
 
 
-class EmailunsubscribereasonsModelTest(TestCase):
+class EmailunsubscribereasonsModelTest(PostgreSQLTestCase):
     """Test Emailunsubscribereasons model creation and relationships"""
 
     def setUp(self):
@@ -442,7 +443,7 @@ class EmailunsubscribereasonsModelTest(TestCase):
         self.assertFalse(Emailunsubscribereasons.objects.filter(id=reasons_id).exists())
 
 
-class ChatmessageModelTest(TestCase):
+class ChatmessageModelTest(PostgreSQLTestCase):
     """Test Chatmessage model creation and relationships"""
 
     def setUp(self):
@@ -558,7 +559,7 @@ class ChatmessageModelTest(TestCase):
         self.assertFalse(Chatmessage.objects.filter(id=message_id).exists())
 
 
-class DefaultshippingaddressModelTest(TestCase):
+class DefaultshippingaddressModelTest(PostgreSQLTestCase):
     """Test Defaultshippingaddress model"""
 
     def test_defaultshippingaddress_creation(self):
@@ -611,7 +612,7 @@ class DefaultshippingaddressModelTest(TestCase):
         self.assertIsNone(address.country_code)
 
 
-class EmailModelsTest(TestCase):
+class EmailModelsTest(PostgreSQLTestCase):
     """Test Email-related models (Emailtype, Emailstatus, Email, Emailsent)"""
 
     def setUp(self):

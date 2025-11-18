@@ -11,6 +11,7 @@
 
 from decimal import Decimal
 from django.test import TestCase
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.contrib.auth.models import User
 
@@ -21,7 +22,7 @@ from order.models import (
 from user.models import Member
 
 
-class DecimalFieldPrecisionTest(TestCase):
+class DecimalFieldPrecisionTest(PostgreSQLTestCase):
     """Test that all numeric fields in order models use DecimalField for precise calculations"""
 
     def test_orderconfiguration_float_value_is_decimal(self):
@@ -308,7 +309,7 @@ class DecimalFieldPrecisionTest(TestCase):
         self.assertEqual(calculated_total, Decimal('106.19'))
 
 
-class DecimalFieldPrecisionCalculationsTest(TestCase):
+class DecimalFieldPrecisionCalculationsTest(PostgreSQLTestCase):
     """Test that decimal fields prevent common floating point errors"""
 
     def test_no_floating_point_error_in_price_calculations(self):

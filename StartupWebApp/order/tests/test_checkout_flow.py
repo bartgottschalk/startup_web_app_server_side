@@ -3,6 +3,7 @@
 import json
 
 from django.test import TestCase
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group
 from django.conf import settings
@@ -18,7 +19,7 @@ from user.models import Member, Defaultshippingaddress, Termsofuse
 from StartupWebApp.utilities import unittest_utilities
 
 
-class CheckoutAllowedEndpointTest(TestCase):
+class CheckoutAllowedEndpointTest(PostgreSQLTestCase):
     """Test the checkout_allowed endpoint"""
 
     def setUp(self):
@@ -104,7 +105,7 @@ class CheckoutAllowedEndpointTest(TestCase):
         self.assertTrue(data['checkout_allowed'])
 
 
-class ConfirmItemsEndpointTest(TestCase):
+class ConfirmItemsEndpointTest(PostgreSQLTestCase):
     """Test the confirm_items endpoint"""
 
     def setUp(self):
@@ -210,7 +211,7 @@ class ConfirmItemsEndpointTest(TestCase):
         self.assertEqual(len(item_data), 1)
 
 
-class ConfirmShippingMethodEndpointTest(TestCase):
+class ConfirmShippingMethodEndpointTest(PostgreSQLTestCase):
     """Test the confirm_shipping_method endpoint"""
 
     def setUp(self):
@@ -290,7 +291,7 @@ class ConfirmShippingMethodEndpointTest(TestCase):
         self.assertEqual(shipping_method['shipping_cost'], '5.00')
 
 
-class ConfirmDiscountCodesEndpointTest(TestCase):
+class ConfirmDiscountCodesEndpointTest(PostgreSQLTestCase):
     """Test the confirm_discount_codes endpoint"""
 
     def setUp(self):
@@ -354,7 +355,7 @@ class ConfirmDiscountCodesEndpointTest(TestCase):
         self.assertIn('discount_code_data', data)
 
 
-class ConfirmTotalsEndpointTest(TestCase):
+class ConfirmTotalsEndpointTest(PostgreSQLTestCase):
     """Test the confirm_totals endpoint"""
 
     def setUp(self):
@@ -424,7 +425,7 @@ class ConfirmTotalsEndpointTest(TestCase):
         self.assertIn('cart_total', totals)
 
 
-class ConfirmPaymentDataEndpointTest(TestCase):
+class ConfirmPaymentDataEndpointTest(PostgreSQLTestCase):
     """Test the confirm_payment_data endpoint"""
 
     def setUp(self):

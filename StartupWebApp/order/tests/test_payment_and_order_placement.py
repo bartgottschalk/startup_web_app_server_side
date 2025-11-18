@@ -3,6 +3,7 @@
 import json
 
 from django.test import TestCase
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group
 
@@ -17,7 +18,7 @@ from user.models import Member, Prospect, Termsofuse
 from StartupWebApp.utilities import unittest_utilities
 
 
-class AnonymousEmailAddressPaymentLookupEndpointTest(TestCase):
+class AnonymousEmailAddressPaymentLookupEndpointTest(PostgreSQLTestCase):
     """Test the anonymous_email_address_payment_lookup endpoint"""
 
     def setUp(self):
@@ -127,7 +128,7 @@ class AnonymousEmailAddressPaymentLookupEndpointTest(TestCase):
         self.assertIsNotNone(prospect.email_unsubscribe_string)
 
 
-class ChangeConfirmationEmailAddressEndpointTest(TestCase):
+class ChangeConfirmationEmailAddressEndpointTest(PostgreSQLTestCase):
     """Test the change_confirmation_email_address endpoint"""
 
     def setUp(self):
@@ -214,7 +215,7 @@ class ChangeConfirmationEmailAddressEndpointTest(TestCase):
         self.assertIsNone(self.cart.shipping_address)
 
 
-class ProcessStripePaymentTokenEndpointTest(TestCase):
+class ProcessStripePaymentTokenEndpointTest(PostgreSQLTestCase):
     """Test the process_stripe_payment_token endpoint (simplified - no Stripe API mocking)"""
 
     def setUp(self):
@@ -527,7 +528,7 @@ class ProcessStripePaymentTokenEndpointTest(TestCase):
             self.assertEqual(data['errors']['error'], 'error-creating-stripe-customer')
 
 
-class ConfirmPlaceOrderEndpointTest(TestCase):
+class ConfirmPlaceOrderEndpointTest(PostgreSQLTestCase):
     """Test the confirm_place_order endpoint (simplified - no actual order creation)"""
 
     def setUp(self):

@@ -3,6 +3,7 @@
 import json
 
 from django.test import TestCase
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group
 
@@ -15,7 +16,7 @@ from user.models import Member, Termsofuse
 from StartupWebApp.utilities import unittest_utilities
 
 
-class CartShippingMethodsEndpointTest(TestCase):
+class CartShippingMethodsEndpointTest(PostgreSQLTestCase):
     """Test the cart_shipping_methods endpoint"""
 
     def setUp(self):
@@ -154,7 +155,7 @@ class CartShippingMethodsEndpointTest(TestCase):
                          'https://tools.usps.com/track')
 
 
-class CartUpdateShippingMethodEndpointTest(TestCase):
+class CartUpdateShippingMethodEndpointTest(PostgreSQLTestCase):
     """Test the cart_update_shipping_method endpoint"""
 
     def setUp(self):
@@ -294,7 +295,7 @@ class CartUpdateShippingMethodEndpointTest(TestCase):
         self.assertIn('discount_code_data', data)
 
 
-class CartDiscountCodesEndpointTest(TestCase):
+class CartDiscountCodesEndpointTest(PostgreSQLTestCase):
     """Test the cart_discount_codes endpoint"""
 
     def setUp(self):
@@ -387,7 +388,7 @@ class CartDiscountCodesEndpointTest(TestCase):
         self.assertEqual(discount_data['discount_amount'], '10.00')
 
 
-class CartApplyDiscountCodeEndpointTest(TestCase):
+class CartApplyDiscountCodeEndpointTest(PostgreSQLTestCase):
     """Test the cart_apply_discount_code endpoint"""
 
     def setUp(self):
@@ -581,7 +582,7 @@ class CartApplyDiscountCodeEndpointTest(TestCase):
         self.assertIn('cart_totals_data', data)
 
 
-class CartRemoveDiscountCodeEndpointTest(TestCase):
+class CartRemoveDiscountCodeEndpointTest(PostgreSQLTestCase):
     """Test the cart_remove_discount_code endpoint"""
 
     def setUp(self):

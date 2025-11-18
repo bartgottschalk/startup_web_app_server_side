@@ -2,6 +2,7 @@
 
 
 from django.test import TestCase
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group
 
@@ -9,7 +10,7 @@ from clientevent.models import Configuration, Pageview, AJAXError, Buttonclick, 
 from user.models import Member, Prospect, Email, Emailtype, Emailstatus, Ad, Adtype, Adstatus, Termsofuse
 
 
-class ConfigurationModelTest(TestCase):
+class ConfigurationModelTest(PostgreSQLTestCase):
     """Test Configuration model creation and behavior"""
 
     def test_configuration_creation(self):
@@ -46,7 +47,7 @@ class ConfigurationModelTest(TestCase):
         self.assertEqual(config._meta.db_table, 'clientevent_configuration')
 
 
-class PageviewModelTest(TestCase):
+class PageviewModelTest(PostgreSQLTestCase):
     """Test Pageview model creation and relationships"""
 
     def setUp(self):
@@ -126,7 +127,7 @@ class PageviewModelTest(TestCase):
                         'Pageview should not be deleted')
 
 
-class AJAXErrorModelTest(TestCase):
+class AJAXErrorModelTest(PostgreSQLTestCase):
     """Test AJAXError model creation and relationships"""
 
     def setUp(self):
@@ -206,7 +207,7 @@ class AJAXErrorModelTest(TestCase):
                         'AJAXError should not be deleted')
 
 
-class ButtonclickModelTest(TestCase):
+class ButtonclickModelTest(PostgreSQLTestCase):
     """Test Buttonclick model creation and relationships"""
 
     def setUp(self):
@@ -286,7 +287,7 @@ class ButtonclickModelTest(TestCase):
                         'Buttonclick should not be deleted')
 
 
-class LinkeventModelTest(TestCase):
+class LinkeventModelTest(PostgreSQLTestCase):
     """Test Linkevent model creation and relationships"""
 
     def setUp(self):

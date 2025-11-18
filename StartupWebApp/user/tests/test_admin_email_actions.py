@@ -1,4 +1,5 @@
 from django.test import TestCase
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth.models import User
 from django.test import RequestFactory
@@ -12,7 +13,7 @@ from user.models import (
 from user.admin import EmailAdmin
 
 
-class AdminEmailActionsTestCase(TestCase):
+class AdminEmailActionsTestCase(PostgreSQLTestCase):
     """Test Django admin custom actions for email sending with SMTP error handling"""
 
     def setUp(self):

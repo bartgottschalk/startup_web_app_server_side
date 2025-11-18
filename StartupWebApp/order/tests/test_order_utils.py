@@ -2,6 +2,7 @@
 
 
 from django.test import TestCase
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from datetime import timedelta
 from django.contrib.auth.models import User, Group
@@ -16,7 +17,7 @@ from user.models import Member, Termsofuse
 from order.utilities import order_utils
 
 
-class CalculateCartItemDiscountTest(TestCase):
+class CalculateCartItemDiscountTest(PostgreSQLTestCase):
     """Test the calculate_cart_item_discount utility function"""
 
     def setUp(self):
@@ -154,7 +155,7 @@ class CalculateCartItemDiscountTest(TestCase):
         self.assertEqual(discount, 20.0)
 
 
-class CalculateShippingDiscountTest(TestCase):
+class CalculateShippingDiscountTest(PostgreSQLTestCase):
     """Test the calculate_shipping_discount utility function"""
 
     def setUp(self):
@@ -302,7 +303,7 @@ class CalculateShippingDiscountTest(TestCase):
         self.assertEqual(discount, 10.0)
 
 
-class GetOrderDiscountCodesTest(TestCase):
+class GetOrderDiscountCodesTest(PostgreSQLTestCase):
     """Test the get_order_discount_codes utility function"""
 
     def setUp(self):
@@ -428,7 +429,7 @@ class GetOrderDiscountCodesTest(TestCase):
         self.assertEqual(discount_dict[discount_code2.id]['discount_applied'], False)
 
 
-class GetConfirmationEmailDiscountCodeTextFormatTest(TestCase):
+class GetConfirmationEmailDiscountCodeTextFormatTest(PostgreSQLTestCase):
     """Test the get_confirmation_email_discount_code_text_format utility function"""
 
     def test_empty_dict_returns_none(self):
@@ -499,7 +500,7 @@ class GetConfirmationEmailDiscountCodeTextFormatTest(TestCase):
         self.assertIn('\r\n', result)  # Line breaks between codes
 
 
-class GetStripeCustomerPaymentDataTest(TestCase):
+class GetStripeCustomerPaymentDataTest(PostgreSQLTestCase):
     """Test the get_stripe_customer_payment_data utility function"""
 
     def test_with_shipping_address_provided(self):
@@ -641,7 +642,7 @@ class GetStripeCustomerPaymentDataTest(TestCase):
         self.assertEqual(result['args']['shipping_name'], 'Default Card')
 
 
-class LookUpMemberCartTest(TestCase):
+class LookUpMemberCartTest(PostgreSQLTestCase):
     """Test the look_up_member_cart utility function"""
 
     def setUp(self):
@@ -698,7 +699,7 @@ class LookUpMemberCartTest(TestCase):
         self.assertIsNone(result)
 
 
-class LookUpAnonymousCartTest(TestCase):
+class LookUpAnonymousCartTest(PostgreSQLTestCase):
     """Test the look_up_anonymous_cart utility function"""
 
     def test_returns_anonymous_cart_when_exists(self):
@@ -759,7 +760,7 @@ class LookUpAnonymousCartTest(TestCase):
         self.assertIsNone(result)
 
 
-class StripeUtilityFunctionsErrorHandlingTest(TestCase):
+class StripeUtilityFunctionsErrorHandlingTest(PostgreSQLTestCase):
     """Test error handling in Stripe utility functions"""
 
     def test_create_stripe_customer_handles_invalid_request_error(self):
