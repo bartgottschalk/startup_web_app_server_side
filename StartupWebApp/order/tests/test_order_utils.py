@@ -1,7 +1,6 @@
 # Unit tests for order utility functions
 
 
-from django.test import TestCase
 from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from datetime import timedelta

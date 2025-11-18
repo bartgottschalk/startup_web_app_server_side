@@ -1,7 +1,6 @@
 # Database constraint tests for user app models
 # Focus on unique constraints, foreign key behavior, null/blank validation, and field limits
 
-from django.test import TestCase
 from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group

@@ -1,6 +1,5 @@
 # Model constraint tests for Order app - Django migration readiness
 
-from django.test import TestCase
 from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.db import IntegrityError

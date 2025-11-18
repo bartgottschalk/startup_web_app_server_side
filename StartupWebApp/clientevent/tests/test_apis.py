@@ -1,8 +1,6 @@
 # Unit tests from the perspective of the programmer
 
 
-from django.test import TestCase
-
 from clientevent.models import Configuration as ClientEventConfiguration
 from clientevent.models import Linkevent
 

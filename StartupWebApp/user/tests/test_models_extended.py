@@ -2,7 +2,6 @@
 # Focus on model instance creation, __str__ methods, field behavior, and relationships
 
 
-from django.test import TestCase
 from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group

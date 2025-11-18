@@ -10,7 +10,6 @@
 # All 12 FloatField instances in order/models.py will be converted to DecimalField
 
 from decimal import Decimal
-from django.test import TestCase
 from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.contrib.auth.models import User

@@ -19,7 +19,7 @@ Usage:
             pass
 """
 
-from django.test import TestCase, TransactionTestCase
+from django.test import TransactionTestCase
 
 
 class PostgreSQLTestCase(TransactionTestCase):

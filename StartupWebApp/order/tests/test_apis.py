@@ -1,7 +1,6 @@
 # Unit tests from the perspective of the programmer
 
 
-from django.test import TestCase
 from django.utils import timezone
 
 from order.models import Skutype, Skuinventory, Product, Sku, Skuprice, Productsku

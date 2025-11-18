@@ -1,7 +1,6 @@
 # Database constraint tests for clientevent models
 # Focus on null/blank validation, max_length, and required fields
 
-from django.test import TestCase
 from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group

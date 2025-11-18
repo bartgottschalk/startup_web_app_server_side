@@ -4,7 +4,6 @@ import json
 
 from django.core import mail
 
-from django.test import TestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group
 

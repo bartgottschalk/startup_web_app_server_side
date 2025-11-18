@@ -1,4 +1,3 @@
-from django.test import TestCase
 from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth.models import User

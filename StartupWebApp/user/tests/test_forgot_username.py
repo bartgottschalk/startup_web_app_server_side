@@ -1,7 +1,6 @@
 # Unit tests for forgot username endpoint
 
 
-from django.test import TestCase
 from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.contrib.auth.models import Group

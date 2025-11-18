@@ -1,7 +1,6 @@
 # Unit tests for form validators
 # Tests validation functions used throughout the application
 
-from django.test import TestCase
 from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.contrib.auth.models import User
 
