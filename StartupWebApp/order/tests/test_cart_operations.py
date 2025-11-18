@@ -14,9 +14,10 @@ from order.models import (
 from user.models import Member, Termsofuse
 
 from StartupWebApp.utilities import unittest_utilities
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 
 
-class CartItemsEndpointTest(TestCase):
+class CartItemsEndpointTest(PostgreSQLTestCase):
     """Test the cart_items endpoint"""
 
     def setUp(self):

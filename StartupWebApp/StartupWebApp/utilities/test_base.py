@@ -19,15 +19,20 @@ Usage:
             pass
 """
 
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 
 
-class PostgreSQLTestCase(TestCase):
+class PostgreSQLTestCase(TransactionTestCase):
     """
     Base test case for all StartupWebApp tests.
 
-    This class configures Django's TestCase for PostgreSQL compatibility
+    This class configures Django's TransactionTestCase for PostgreSQL compatibility
     and provides a foundation for future test infrastructure improvements.
+
+    IMPORTANT: Uses TransactionTestCase instead of TestCase
+    - TestCase doesn't support reset_sequences (Django limitation)
+    - TransactionTestCase is slightly slower but necessary for PostgreSQL sequence management
+    - Each test runs in its own transaction (no transaction wrapping)
 
     Key Features:
     - reset_sequences=True: Resets database sequences after each test
@@ -39,6 +44,11 @@ class PostgreSQLTestCase(TestCase):
     - PostgreSQL's auto-increment sequences don't advance when explicit IDs are used
     - Without reset_sequences, subsequent tests fail with "duplicate key" errors
     - With reset_sequences, Django resets sequences to max(id)+1 after each test
+
+    Performance Note:
+    - TransactionTestCase is slower than TestCase (no transaction shortcuts)
+    - But necessary for PostgreSQL multi-tenant architecture
+    - Test suite may run 20-30% slower, but ensures correctness
 
     Future Enhancements:
     - Multi-database routing for fork-specific test databases

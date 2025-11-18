@@ -9,9 +9,10 @@ from clientevent.models import Linkevent
 from user.models import Ad, Adtype, Adstatus
 
 from StartupWebApp.utilities import unittest_utilities
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 
 
-class UserAPITest(TestCase):
+class UserAPITest(PostgreSQLTestCase):
 
     def setUp(self):
         # Setup necessary DB Objects

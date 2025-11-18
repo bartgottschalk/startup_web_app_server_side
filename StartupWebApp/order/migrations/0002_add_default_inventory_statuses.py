@@ -17,9 +17,10 @@ def create_default_inventory_statuses(apps, schema_editor):
     """
     # Skip this migration during test runs
     # Test databases use in-memory SQLite (contains 'memory' in NAME)
-    # Development uses file-based SQLite (NAME = 'rg_unittest')
+    # PostgreSQL test databases start with 'test_' (e.g., test_startupwebapp_dev)
+    # Development uses file-based SQLite (NAME = 'rg_unittest' or 'startupwebapp_dev')
     db_name = schema_editor.connection.settings_dict.get('NAME', '')
-    if 'memory' in db_name.lower():
+    if 'memory' in db_name.lower() or db_name.startswith('test_'):
         return
 
     Skuinventory = apps.get_model('order', 'Skuinventory')
