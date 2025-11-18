@@ -1,9 +1,10 @@
-from django.test import TestCase
 
 # Create your tests here.
 
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 
-class SmokeTest(TestCase):
+
+class SmokeTest(PostgreSQLTestCase):
 
     def test_bad_maths(self):
         self.assertEqual(1 + 2, 3)

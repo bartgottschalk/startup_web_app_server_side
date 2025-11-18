@@ -2,7 +2,7 @@
 
 import json
 
-from django.test import TestCase
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group
 
@@ -11,7 +11,7 @@ from user.models import Member, Termsofuse, Defaultshippingaddress
 from StartupWebApp.utilities import unittest_utilities
 
 
-class ProcessStripePaymentTokenEndpointTest(TestCase):
+class ProcessStripePaymentTokenEndpointTest(PostgreSQLTestCase):
     """Test the process_stripe_payment_token endpoint for saving member defaults"""
 
     def setUp(self):

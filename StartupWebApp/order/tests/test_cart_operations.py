@@ -2,7 +2,6 @@
 
 import json
 
-from django.test import TestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group
 
@@ -14,9 +13,10 @@ from order.models import (
 from user.models import Member, Termsofuse
 
 from StartupWebApp.utilities import unittest_utilities
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 
 
-class CartItemsEndpointTest(TestCase):
+class CartItemsEndpointTest(PostgreSQLTestCase):
     """Test the cart_items endpoint"""
 
     def setUp(self):
@@ -118,7 +118,7 @@ class CartItemsEndpointTest(TestCase):
         self.assertFalse(data['cart_found'])
 
 
-class CartAddProductSkuEndpointTest(TestCase):
+class CartAddProductSkuEndpointTest(PostgreSQLTestCase):
     """Test the cart_add_product_sku endpoint"""
 
     def setUp(self):
@@ -298,7 +298,7 @@ class CartAddProductSkuEndpointTest(TestCase):
         self.assertEqual(cart.member, member)
 
 
-class CartUpdateSkuQuantityEndpointTest(TestCase):
+class CartUpdateSkuQuantityEndpointTest(PostgreSQLTestCase):
     """Test the cart_update_sku_quantity endpoint"""
 
     def setUp(self):
@@ -444,7 +444,7 @@ class CartUpdateSkuQuantityEndpointTest(TestCase):
         self.assertIn('discount_code_data', data)
 
 
-class CartRemoveSkuEndpointTest(TestCase):
+class CartRemoveSkuEndpointTest(PostgreSQLTestCase):
     """Test the cart_remove_sku endpoint"""
 
     def setUp(self):
@@ -667,7 +667,7 @@ class CartRemoveSkuEndpointTest(TestCase):
         self.assertEqual(cart_shipping_methods['1']['shipping_cost'], '5.00')
 
 
-class CartDeleteCartEndpointTest(TestCase):
+class CartDeleteCartEndpointTest(PostgreSQLTestCase):
     """Test the cart_delete_cart endpoint"""
 
     def setUp(self):
@@ -766,7 +766,7 @@ class CartDeleteCartEndpointTest(TestCase):
         self.assertEqual(Cartsku.objects.count(), 0)
 
 
-class CartTotalsEndpointTest(TestCase):
+class CartTotalsEndpointTest(PostgreSQLTestCase):
     """Test the cart_totals endpoint"""
 
     def setUp(self):

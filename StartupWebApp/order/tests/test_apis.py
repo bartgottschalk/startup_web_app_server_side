@@ -1,15 +1,15 @@
 # Unit tests from the perspective of the programmer
 
 
-from django.test import TestCase
 from django.utils import timezone
 
 from order.models import Skutype, Skuinventory, Product, Sku, Skuprice, Productsku
 
 from StartupWebApp.utilities import unittest_utilities
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 
 
-class OrderAPITest(TestCase):
+class OrderAPITest(PostgreSQLTestCase):
 
     def setUp(self):
         # Setup necessary DB Objects

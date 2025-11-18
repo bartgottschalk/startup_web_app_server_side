@@ -1,7 +1,7 @@
 # Unit tests for linkevent endpoint
 
 
-from django.test import TestCase
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group
 
@@ -11,7 +11,7 @@ from user.models import Member, Prospect, Email, Emailtype, Emailstatus, Ad, Adt
 from StartupWebApp.utilities import unittest_utilities
 
 
-class LinkeventAPITest(TestCase):
+class LinkeventAPITest(PostgreSQLTestCase):
 
     def setUp(self):
         # Setup necessary DB Objects

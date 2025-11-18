@@ -7,7 +7,8 @@ A Django REST API backend for an e-commerce startup, featuring comprehensive tes
 
 ## Current Status (November 2025)
 
-✅ **721 Tests Passing** - Comprehensive test coverage (693 unit + 28 functional)
+✅ **740 Tests Passing** - Comprehensive test coverage (712 unit + 28 functional) with PostgreSQL
+✅ **PostgreSQL 16** - Production-ready database with multi-tenant architecture
 ✅ **Python 3.12 Compatible** - Fully modernized for latest Python
 ✅ **Docker Containerized** - Easy setup with Docker Compose
 ✅ **Django 4.2.16 LTS** - Modern Django with security support until April 2026
@@ -71,11 +72,16 @@ git clone https://github.com/bartgottschalk/startup_web_app_server_side.git
 cd startup_web_app_server_side
 ```
 
-2. **Build and start the Docker container**
+2. **Build and start the Docker containers** (PostgreSQL + Backend + Frontend)
 ```bash
 docker-compose build
 docker-compose up -d
 ```
+
+This starts three services:
+- **PostgreSQL 16**: Database server with multi-tenant support (3 databases created automatically)
+- **Backend**: Django REST API
+- **Frontend**: Nginx serving static files
 
 3. **Configure local domain names** (Required for full-stack development)
 
@@ -93,13 +99,19 @@ echo "127.0.0.1    localapi.startupwebapp.com" | sudo tee -a /etc/hosts
 - Both domains share the `.startupwebapp.com` suffix, allowing CSRF cookies to work across subdomains
 - Without this, you'll get CSRF and CORS errors when the frontend tries to call the backend
 
-4. **Initialize the database**
+4. **Initialize the PostgreSQL database**
 ```bash
 docker-compose exec backend python manage.py migrate
 docker-compose exec backend python manage.py load_sample_data
 ```
 
-The migrations automatically create required reference data (Skuinventory records). The `load_sample_data` command populates the database with sample products, SKUs, and configuration data for development/testing.
+**What happens during initialization:**
+- PostgreSQL automatically creates 3 databases: `startupwebapp_dev`, `healthtech_dev`, `fintech_dev`
+- Django migrations create 57 tables in the `startupwebapp_dev` database
+- Migrations automatically create required reference data (Skuinventory records)
+- `load_sample_data` command populates sample products, SKUs, and configuration data
+
+**Multi-tenant architecture**: The setup supports multiple "forks" (experimental variants) by changing the `DATABASE_NAME` environment variable in `docker-compose.yml`. Each fork uses its own isolated database on the shared PostgreSQL instance.
 
 5. **Access the application**
 - **Frontend**: http://localhost.startupwebapp.com:8080
@@ -108,10 +120,12 @@ The migrations automatically create required reference data (Skuinventory record
 
 ### Run Tests
 
-**Run all unit tests** (689 tests):
+**Run all unit tests** (712 tests with PostgreSQL):
 ```bash
-docker-compose exec backend python manage.py test order.tests user.tests clientevent.tests StartupWebApp.tests
+docker-compose exec backend python manage.py test order.tests user.tests clientevent.tests StartupWebApp.tests --parallel=4
 ```
+
+**Note**: Tests use PostgreSQLTestCase (TransactionTestCase with `reset_sequences=True`) to handle PostgreSQL's sequence management correctly.
 
 **Run functional tests** (28 tests):
 ```bash
@@ -145,7 +159,45 @@ docker-compose exec backend python manage.py createsuperuser
 # Access at http://localapi.startupwebapp.com:8000/admin/
 ```
 
-### Stop the container
+### PostgreSQL Configuration
+
+**Connection Details:**
+- Host: `localhost` (from host machine) or `db` (from within Docker)
+- Port: `5432`
+- Default Database: `startupwebapp_dev`
+- User: `django_app`
+- Password: `dev_password_change_in_prod` (change for production!)
+
+**Multi-Tenant Setup:**
+To switch between forks (experimental variants), change the `DATABASE_NAME` environment variable in `docker-compose.yml`:
+```yaml
+backend:
+  environment:
+    DATABASE_NAME: healthtech_dev  # or fintech_dev
+```
+
+**Database Access:**
+```bash
+# Connect to PostgreSQL via psql
+docker-compose exec db psql -U django_app -d startupwebapp_dev
+
+# List all databases
+docker-compose exec db psql -U django_app -d postgres -c "\l"
+
+# View database tables
+docker-compose exec db psql -U django_app -d startupwebapp_dev -c "\dt"
+```
+
+**Data Persistence:**
+PostgreSQL data is stored in a Docker volume (`postgres_data`). To completely reset:
+```bash
+docker-compose down -v  # Remove volumes
+docker-compose up -d    # Recreate with fresh data
+docker-compose exec backend python manage.py migrate
+docker-compose exec backend python manage.py load_sample_data
+```
+
+### Stop the containers
 ```bash
 docker-compose down
 ```
@@ -194,9 +246,12 @@ The backend and frontend can be run together using Docker Compose for a complete
 
 ### Architecture
 
-The `docker-compose.yml` orchestrates two services:
+The `docker-compose.yml` orchestrates three services:
+- **db**: PostgreSQL 16-alpine database with multi-tenant support
 - **backend**: Django REST API (Python 3.12)
 - **frontend**: Nginx serving static HTML/CSS/JavaScript
+
+**Database**: PostgreSQL 16 with three pre-configured databases (`startupwebapp_dev`, `healthtech_dev`, `fintech_dev`) for multi-tenant experimentation. Connection pooling enabled (`CONN_MAX_AGE=600`).
 
 **Docker Networking**: Services communicate via a custom bridge network (`startupwebapp`), enabling:
 - Browser → Frontend (localhost.startupwebapp.com:8080)
@@ -305,15 +360,17 @@ docker-compose exec -e HEADLESS=TRUE backend python manage.py test functional_te
 <details>
 <summary>Click to expand manual installation instructions (legacy method)</summary>
 
+**⚠️ Note**: The Docker setup (above) is strongly recommended. Manual installation requires PostgreSQL configuration and is primarily for advanced use cases.
+
 ### Prerequisites
 
 You will need the following python packages and tools installed:
 
 #### For the Server application to function
 - [Python 3.12](https://www.python.org/downloads/)
-- A database to use with Django. [MySQL](https://dev.mysql.com/doc/refman/8.0/en/installing.html), [Postgres](https://www.postgresql.org/docs/11/tutorial-install.html), [SQLite](https://sqlite.org/download.html) or other of your choice.
+- [PostgreSQL 16.x](https://www.postgresql.org/download/) - **Required** (application is configured for PostgreSQL)
 - [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-- Python packages: see `requirements.txt`
+- Python packages: see `requirements.txt` (includes `psycopg2-binary==2.9.9`)
 
 #### For the Selenium functional tests
 - [SQLite](https://sqlite.org/download.html)
@@ -369,12 +426,33 @@ edit values in setting_secret.py to match your environment, database and 3rd par
 review and edit values in settings.py to match your environment and 3rd party integrations
 
 #### Database Setup
-1. Create local DB (Note: Commands are for MySQL)
+1. Create local PostgreSQL database:
+```sql
+-- Connect to PostgreSQL as superuser
+psql -U postgres
+
+-- Create database and user
+CREATE DATABASE startupwebapp_dev;
+CREATE USER django_app WITH PASSWORD 'dev_password_change_in_prod';
+GRANT ALL PRIVILEGES ON DATABASE startupwebapp_dev TO django_app;
 ```
-CREATE DATABASE swa CHARACTER SET latin1 COLLATE latin1_swedish_ci;
-GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER ON `swa`.* TO 'django_super'@'localhost';
+
+2. Configure environment variables in `settings_secret.py`:
+```python
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'startupwebapp_dev',
+        'USER': 'django_app',
+        'PASSWORD': 'dev_password_change_in_prod',
+        'HOST': 'localhost',
+        'PORT': '5432',
+        'CONN_MAX_AGE': 600,
+    }
+}
 ```
-2. Run Migrations
+
+3. Run Migrations
 ```
 cd ~/StartupWebApp/startup_web_app_server_side/StartupWebApp
 python3 manage.py migrate

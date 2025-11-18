@@ -1,7 +1,7 @@
 # Database constraint tests for user app models
 # Focus on unique constraints, foreign key behavior, null/blank validation, and field limits
 
-from django.test import TestCase
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group
 from django.db import IntegrityError
@@ -12,7 +12,7 @@ from user.models import (
 )
 
 
-class MemberUniqueConstraintTest(TestCase):
+class MemberUniqueConstraintTest(PostgreSQLTestCase):
     """Test unique constraints on Member model"""
 
     def setUp(self):
@@ -86,7 +86,7 @@ class MemberUniqueConstraintTest(TestCase):
         self.assertIsNone(member3.email_unsubscribe_string)
 
 
-class ProspectUniqueConstraintTest(TestCase):
+class ProspectUniqueConstraintTest(PostgreSQLTestCase):
     """Test unique constraints on Prospect model"""
 
     def test_email_must_be_unique(self):
@@ -172,7 +172,7 @@ class ProspectUniqueConstraintTest(TestCase):
         self.assertIsNone(prospect2.email_unsubscribe_string)
 
 
-class MembertermsofuseversionagreedUniqueTogetherTest(TestCase):
+class MembertermsofuseversionagreedUniqueTogetherTest(PostgreSQLTestCase):
     """Test unique_together constraint on Membertermsofuseversionagreed"""
 
     def setUp(self):
@@ -250,7 +250,7 @@ class MembertermsofuseversionagreedUniqueTogetherTest(TestCase):
                 termsofuseversion=self.tos_v1).count(), 2)
 
 
-class EmailUniqueConstraintTest(TestCase):
+class EmailUniqueConstraintTest(PostgreSQLTestCase):
     """Test unique constraints on Email model"""
 
     def setUp(self):
@@ -310,7 +310,7 @@ class EmailUniqueConstraintTest(TestCase):
         self.assertIsNone(email2.em_cd)
 
 
-class ForeignKeyCascadeTest(TestCase):
+class ForeignKeyCascadeTest(PostgreSQLTestCase):
     """Test foreign key CASCADE behavior"""
 
     def setUp(self):
@@ -381,7 +381,7 @@ class ForeignKeyCascadeTest(TestCase):
         self.assertFalse(Membertermsofuseversionagreed.objects.filter(id=agreement_id).exists())
 
 
-class NullBlankFieldTest(TestCase):
+class NullBlankFieldTest(PostgreSQLTestCase):
     """Test null and blank field behavior"""
 
     def setUp(self):
@@ -473,7 +473,7 @@ class NullBlankFieldTest(TestCase):
         self.assertIsNone(tos.version_note)
 
 
-class MaxLengthFieldTest(TestCase):
+class MaxLengthFieldTest(PostgreSQLTestCase):
     """Test field max_length constraints"""
 
     def setUp(self):
@@ -547,7 +547,7 @@ class MaxLengthFieldTest(TestCase):
         self.assertEqual(len(tos.version_note), 1000)
 
 
-class RequiredFieldTest(TestCase):
+class RequiredFieldTest(PostgreSQLTestCase):
     """Test required fields (cannot be null or blank)"""
 
     def setUp(self):

@@ -24,8 +24,17 @@ services:
       - DEBUG=True
       - PYTHONUNBUFFERED=1
       - DOCKER_ENV=true  # Flag to indicate running in Docker for functional tests
+      # PostgreSQL multi-tenant configuration
+      - DATABASE_NAME=startupwebapp_dev
+      - DATABASE_USER=django_app
+      - DATABASE_PASSWORD=dev_password_change_in_prod
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
     networks:
       - startupwebapp
+    depends_on:
+      db:
+        condition: service_healthy
     # Keep container running without starting server (allows functional tests to use port 60767)
     # Commented out to enable normal development - Django starts via Dockerfile CMD
     # command: tail -f /dev/null
@@ -47,8 +56,33 @@ services:
     depends_on:
       - backend
 
+  db:
+    image: postgres:16-alpine
+    container_name: startupwebapp-db-dev
+    environment:
+      POSTGRES_USER: django_app
+      POSTGRES_PASSWORD: dev_password_change_in_prod
+      # Multi-database support: Creates multiple databases for different forks
+      POSTGRES_MULTIPLE_DATABASES: startupwebapp_dev,healthtech_dev,fintech_dev
+    volumes:
+      # Persist PostgreSQL data between restarts
+      - postgres_data:/var/lib/postgresql/data
+      # Multi-database initialization script
+      - ./scripts/init-multi-db.sh:/docker-entrypoint-initdb.d/init-multi-db.sh
+    ports:
+      - "5432:5432"  # PostgreSQL port accessible from host
+    networks:
+      - startupwebapp
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U django_app"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   sqlite_data:
+    driver: local
+  postgres_data:
     driver: local
 
 networks:

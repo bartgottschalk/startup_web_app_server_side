@@ -1,7 +1,7 @@
 # Unit tests for pageview endpoint
 
 
-from django.test import TestCase
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.contrib.auth.models import User
 
@@ -10,7 +10,7 @@ from clientevent.models import Configuration as ClientEventConfiguration, Pagevi
 from StartupWebApp.utilities import unittest_utilities
 
 
-class PageviewAPITest(TestCase):
+class PageviewAPITest(PostgreSQLTestCase):
 
     def setUp(self):
         # Setup necessary DB Objects

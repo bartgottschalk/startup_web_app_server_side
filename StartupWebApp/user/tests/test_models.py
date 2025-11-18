@@ -1,7 +1,7 @@
 # Unit tests from the perspective of the programmer
 
 
-from django.test import TestCase
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.db.utils import IntegrityError
 from django.contrib.auth.models import User
@@ -11,7 +11,7 @@ from user.models import Member, Prospect
 from StartupWebApp.utilities import identifier
 
 
-class MemberModelTests(TestCase):
+class MemberModelTests(PostgreSQLTestCase):
 
     def setUp(self):
         # Setup necessary DB Objects

@@ -4,7 +4,6 @@ import json
 
 from django.core import mail
 
-from django.test import TestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group
 
@@ -14,9 +13,10 @@ from order.models import Skutype, Skuinventory, Product, Sku, Skuprice, Products
 from user.models import Member, Termsofuse, Prospect, Chatmessage
 
 from StartupWebApp.utilities import unittest_utilities
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 
 
-class UserAPITest(TestCase):
+class UserAPITest(PostgreSQLTestCase):
 
     def setUp(self):
         # Setup necessary DB Objects

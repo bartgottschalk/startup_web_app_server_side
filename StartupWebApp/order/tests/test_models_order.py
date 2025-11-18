@@ -1,7 +1,7 @@
 # Unit tests for Order app models
 
 
-from django.test import TestCase
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.contrib.auth.models import User, Group
 from django.db import IntegrityError
@@ -14,7 +14,7 @@ from order.models import (
 from user.models import Member, Prospect, Termsofuse
 
 
-class OrderconfigurationModelTest(TestCase):
+class OrderconfigurationModelTest(PostgreSQLTestCase):
     """Test Orderconfiguration model"""
 
     def test_orderconfiguration_creation_with_float_value(self):
@@ -62,7 +62,7 @@ class OrderconfigurationModelTest(TestCase):
         self.assertEqual(config._meta.db_table, 'order_configuration')
 
 
-class CartShippingAddressModelTest(TestCase):
+class CartShippingAddressModelTest(PostgreSQLTestCase):
     """Test Cartshippingaddress model"""
 
     def test_cartshippingaddress_creation(self):
@@ -109,7 +109,7 @@ class CartShippingAddressModelTest(TestCase):
         self.assertEqual(address._meta.db_table, 'order_cart_shipping_address')
 
 
-class CartPaymentModelTest(TestCase):
+class CartPaymentModelTest(PostgreSQLTestCase):
     """Test Cartpayment model"""
 
     def test_cartpayment_creation(self):
@@ -143,7 +143,7 @@ class CartPaymentModelTest(TestCase):
         self.assertEqual(payment._meta.db_table, 'order_cart_payment')
 
 
-class CartModelTest(TestCase):
+class CartModelTest(PostgreSQLTestCase):
     """Test Cart model"""
 
     def setUp(self):
@@ -197,7 +197,7 @@ class CartModelTest(TestCase):
         self.assertEqual(cart._meta.db_table, 'order_cart')
 
 
-class SkutypeModelTest(TestCase):
+class SkutypeModelTest(PostgreSQLTestCase):
     """Test Skutype model"""
 
     def test_skutype_creation(self):
@@ -219,7 +219,7 @@ class SkutypeModelTest(TestCase):
         self.assertEqual(skutype._meta.db_table, 'order_sku_type')
 
 
-class SkuinventoryModelTest(TestCase):
+class SkuinventoryModelTest(PostgreSQLTestCase):
     """Test Skuinventory model"""
 
     def test_skuinventory_creation(self):
@@ -265,7 +265,7 @@ class SkuinventoryModelTest(TestCase):
         self.assertEqual(inventory._meta.db_table, 'order_sku_inventory')
 
 
-class SkuModelTest(TestCase):
+class SkuModelTest(PostgreSQLTestCase):
     """Test Sku model"""
 
     def setUp(self):
@@ -325,7 +325,7 @@ class SkuModelTest(TestCase):
         self.assertEqual(sku._meta.db_table, 'order_sku')
 
 
-class SkupriceModelTest(TestCase):
+class SkupriceModelTest(PostgreSQLTestCase):
     """Test Skuprice model"""
 
     def setUp(self):
@@ -385,7 +385,7 @@ class SkupriceModelTest(TestCase):
         self.assertEqual(price._meta.db_table, 'order_sku_price')
 
 
-class ProductModelTest(TestCase):
+class ProductModelTest(PostgreSQLTestCase):
     """Test Product model"""
 
     def test_product_creation(self):
@@ -438,7 +438,7 @@ class ProductModelTest(TestCase):
         self.assertEqual(product._meta.db_table, 'order_product')
 
 
-class ShippingmethodModelTest(TestCase):
+class ShippingmethodModelTest(PostgreSQLTestCase):
     """Test Shippingmethod model"""
 
     def test_shippingmethod_creation(self):
@@ -480,7 +480,7 @@ class ShippingmethodModelTest(TestCase):
         self.assertEqual(method._meta.db_table, 'order_shipping_method')
 
 
-class OrderModelTest(TestCase):
+class OrderModelTest(PostgreSQLTestCase):
     """Test Order model"""
 
     def setUp(self):
@@ -593,7 +593,7 @@ class OrderModelTest(TestCase):
         self.assertEqual(order._meta.db_table, 'order_order')
 
 
-class StatusModelTest(TestCase):
+class StatusModelTest(PostgreSQLTestCase):
     """Test Status model"""
 
     def test_status_creation(self):

@@ -1,6 +1,6 @@
 # Model constraint tests for Order app - Django migration readiness
 
-from django.test import TestCase
+from StartupWebApp.utilities.test_base import PostgreSQLTestCase
 from django.utils import timezone
 from django.db import IntegrityError
 
@@ -14,7 +14,7 @@ from order.models import (
 )
 
 
-class OrderconfigurationConstraintsTest(TestCase):
+class OrderconfigurationConstraintsTest(PostgreSQLTestCase):
     """Test Orderconfiguration model constraints"""
 
     def test_orderconfiguration_key_max_length(self):
@@ -42,7 +42,7 @@ class OrderconfigurationConstraintsTest(TestCase):
         self.assertIsNone(config.string_value)
 
 
-class CartshippingaddressConstraintsTest(TestCase):
+class CartshippingaddressConstraintsTest(PostgreSQLTestCase):
     """Test Cartshippingaddress model constraints"""
 
     def test_cartshippingaddress_name_max_length(self):
@@ -97,7 +97,7 @@ class CartshippingaddressConstraintsTest(TestCase):
         self.assertIsNone(address.zip)
 
 
-class CartpaymentConstraintsTest(TestCase):
+class CartpaymentConstraintsTest(PostgreSQLTestCase):
     """Test Cartpayment model constraints"""
 
     def test_cartpayment_stripe_customer_token_max_length(self):
@@ -126,7 +126,7 @@ class CartpaymentConstraintsTest(TestCase):
         self.assertIsNone(payment.email)
 
 
-class CartConstraintsTest(TestCase):
+class CartConstraintsTest(PostgreSQLTestCase):
     """Test Cart model constraints"""
 
     def test_cart_anonymous_cart_id_max_length(self):
@@ -146,7 +146,7 @@ class CartConstraintsTest(TestCase):
         self.assertIsNone(cart.anonymous_cart_id)
 
 
-class SkutypeConstraintsTest(TestCase):
+class SkutypeConstraintsTest(PostgreSQLTestCase):
     """Test Skutype model constraints"""
 
     def test_skutype_title_max_length(self):
@@ -156,7 +156,7 @@ class SkutypeConstraintsTest(TestCase):
         self.assertEqual(len(skutype.title), 100)
 
 
-class SkuinventoryConstraintsTest(TestCase):
+class SkuinventoryConstraintsTest(PostgreSQLTestCase):
     """Test Skuinventory model constraints"""
 
     def test_skuinventory_title_max_length(self):
@@ -200,7 +200,7 @@ class SkuinventoryConstraintsTest(TestCase):
         self.assertEqual(len(inventory.description), 500)
 
 
-class SkuConstraintsTest(TestCase):
+class SkuConstraintsTest(PostgreSQLTestCase):
     """Test Sku model constraints"""
 
     def setUp(self):
@@ -251,7 +251,7 @@ class SkuConstraintsTest(TestCase):
         self.assertIsNone(sku.description)
 
 
-class SkupriceConstraintsTest(TestCase):
+class SkupriceConstraintsTest(PostgreSQLTestCase):
     """Test Skuprice model constraints"""
 
     def setUp(self):
@@ -279,7 +279,7 @@ class SkupriceConstraintsTest(TestCase):
             Skuprice.objects.create(sku=self.sku)
 
 
-class SkuimageConstraintsTest(TestCase):
+class SkuimageConstraintsTest(PostgreSQLTestCase):
     """Test Skuimage model constraints"""
 
     def setUp(self):
@@ -321,7 +321,7 @@ class SkuimageConstraintsTest(TestCase):
         self.assertEqual(len(image.caption), 500)
 
 
-class ProductConstraintsTest(TestCase):
+class ProductConstraintsTest(PostgreSQLTestCase):
     """Test Product model constraints"""
 
     def test_product_title_max_length(self):
@@ -402,7 +402,7 @@ class ProductConstraintsTest(TestCase):
         self.assertEqual(len(product.description_part_2), 5000)
 
 
-class ProductimageConstraintsTest(TestCase):
+class ProductimageConstraintsTest(PostgreSQLTestCase):
     """Test Productimage model constraints"""
 
     def setUp(self):
@@ -440,7 +440,7 @@ class ProductimageConstraintsTest(TestCase):
         self.assertEqual(len(image.caption), 500)
 
 
-class ProductvideoConstraintsTest(TestCase):
+class ProductvideoConstraintsTest(PostgreSQLTestCase):
     """Test Productvideo model constraints"""
 
     def setUp(self):
@@ -482,7 +482,7 @@ class ProductvideoConstraintsTest(TestCase):
         self.assertEqual(len(video.caption), 500)
 
 
-class DiscounttypeConstraintsTest(TestCase):
+class DiscounttypeConstraintsTest(PostgreSQLTestCase):
     """Test Discounttype model constraints"""
 
     def test_discounttype_title_max_length(self):
@@ -530,7 +530,7 @@ class DiscounttypeConstraintsTest(TestCase):
         self.assertEqual(len(dtype.action), 100)
 
 
-class DiscountcodeConstraintsTest(TestCase):
+class DiscountcodeConstraintsTest(PostgreSQLTestCase):
     """Test Discountcode model constraints"""
 
     def setUp(self):
@@ -604,7 +604,7 @@ class DiscountcodeConstraintsTest(TestCase):
         self.assertEqual(discount.order_minimum, 0)
 
 
-class ShippingmethodConstraintsTest(TestCase):
+class ShippingmethodConstraintsTest(PostgreSQLTestCase):
     """Test Shippingmethod model constraints"""
 
     def test_shippingmethod_identifier_max_length(self):
@@ -651,7 +651,7 @@ class ShippingmethodConstraintsTest(TestCase):
         self.assertTrue(method.active)
 
 
-class OrderpaymentConstraintsTest(TestCase):
+class OrderpaymentConstraintsTest(PostgreSQLTestCase):
     """Test Orderpayment model constraints"""
 
     def test_orderpayment_email_max_length(self):
@@ -700,7 +700,7 @@ class OrderpaymentConstraintsTest(TestCase):
         self.assertEqual(len(payment.card_zip), 10)
 
 
-class OrdershippingaddressConstraintsTest(TestCase):
+class OrdershippingaddressConstraintsTest(PostgreSQLTestCase):
     """Test Ordershippingaddress model constraints"""
 
     def test_ordershippingaddress_name_max_length(self):
@@ -734,7 +734,7 @@ class OrdershippingaddressConstraintsTest(TestCase):
         self.assertEqual(len(address.zip), 10)
 
 
-class OrderbillingaddressConstraintsTest(TestCase):
+class OrderbillingaddressConstraintsTest(PostgreSQLTestCase):
     """Test Orderbillingaddress model constraints"""
 
     def test_orderbillingaddress_name_max_length(self):
@@ -768,7 +768,7 @@ class OrderbillingaddressConstraintsTest(TestCase):
         self.assertEqual(len(address.zip), 10)
 
 
-class OrderConstraintsTest(TestCase):
+class OrderConstraintsTest(PostgreSQLTestCase):
     """Test Order model constraints"""
 
     def test_order_identifier_max_length(self):
@@ -837,7 +837,7 @@ class OrderConstraintsTest(TestCase):
             )
 
 
-class OrderskuConstraintsTest(TestCase):
+class OrderskuConstraintsTest(PostgreSQLTestCase):
     """Test Ordersku model constraints"""
 
     def setUp(self):
@@ -887,7 +887,7 @@ class OrderskuConstraintsTest(TestCase):
             )
 
 
-class StatusConstraintsTest(TestCase):
+class StatusConstraintsTest(PostgreSQLTestCase):
     """Test Status model constraints"""
 
     def test_status_identifier_max_length(self):
@@ -921,7 +921,7 @@ class StatusConstraintsTest(TestCase):
         self.assertEqual(len(status.description), 500)
 
 
-class OrderstatusConstraintsTest(TestCase):
+class OrderstatusConstraintsTest(PostgreSQLTestCase):
     """Test Orderstatus model constraints"""
 
     def setUp(self):
@@ -960,7 +960,7 @@ class OrderstatusConstraintsTest(TestCase):
             )
 
 
-class OrdershippingmethodConstraintsTest(TestCase):
+class OrdershippingmethodConstraintsTest(PostgreSQLTestCase):
     """Test Ordershippingmethod model constraints"""
 
     def setUp(self):
