@@ -43,6 +43,7 @@ This directory contains bash scripts to provision and manage AWS infrastructure 
 scripts/infra/
 ├── README.md                     # This file
 ├── aws-resources.env             # Resource IDs (auto-generated)
+├── status.sh                     # Deployment progress and next steps
 ├── show-resources.sh             # Display all resources
 │
 ├── create-vpc.sh                 # Create VPC and networking
@@ -64,6 +65,24 @@ scripts/infra/
 ```
 
 ## Deployment Order
+
+### Check Deployment Status
+
+At any time, check your deployment progress and see what's next:
+
+```bash
+./scripts/infra/status.sh
+```
+
+This script shows:
+- What infrastructure has been created (✓)
+- What's blocked or not started (✗)
+- Exact command to run next
+- Current progress (X/7 steps complete)
+- Estimated monthly cost for created resources
+- Live RDS status (if applicable)
+
+**Tip:** Run `status.sh` after each script to see your progress and get the next command.
 
 ### Full Infrastructure Deployment
 
