@@ -116,9 +116,11 @@ echo ""
 # Cost Estimate
 echo -e "${GREEN}Estimated Monthly Cost:${NC}"
 TOTAL_COST=0
-if [ -n "$VPC_ID" ]; then
+if [ -n "${NAT_GATEWAY_ID:-}" ]; then
     echo -e "  NAT Gateway:          ~\$32/month"
     TOTAL_COST=$((TOTAL_COST + 32))
+else
+    echo -e "  NAT Gateway:          \$0 (not created)"
 fi
 if [ -n "${RDS_ENDPOINT:-}" ]; then
     echo -e "  RDS db.t4g.small:     ~\$26/month"
