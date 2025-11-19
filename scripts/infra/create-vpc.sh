@@ -65,6 +65,38 @@ if [ -n "${VPC_ID:-}" ]; then
     exit 0
 fi
 
+# Ask about NAT Gateway (default: no)
+echo -e "${YELLOW}========================================${NC}"
+echo -e "${YELLOW}NAT Gateway Configuration${NC}"
+echo -e "${YELLOW}========================================${NC}"
+echo ""
+echo -e "${YELLOW}Do you need a NAT Gateway?${NC}"
+echo ""
+echo -e "A NAT Gateway allows private subnets to access the internet."
+echo -e "Cost: ~\$32/month"
+echo ""
+echo -e "${GREEN}You NEED a NAT Gateway if:${NC}"
+echo -e "  - Backend services will be in private subnets AND need internet access"
+echo -e "  - Lambda functions in private subnets need internet access"
+echo ""
+echo -e "${GREEN}You DON'T need a NAT Gateway if:${NC}"
+echo -e "  - Backend services will be in public subnets (most common)"
+echo -e "  - RDS only (databases don't need outbound internet access)"
+echo -e "  - You want to minimize costs"
+echo ""
+read -p "Create NAT Gateway? (yes/no) [default: no]: " create_nat
+create_nat=${create_nat:-no}
+
+if [ "$create_nat" != "yes" ]; then
+    echo -e "${GREEN}Skipping NAT Gateway (saves ~\$32/month)${NC}"
+    echo -e "${YELLOW}Note: Deploy backend services to public subnets for internet access${NC}"
+    CREATE_NAT=false
+else
+    echo -e "${YELLOW}NAT Gateway will be created${NC}"
+    CREATE_NAT=true
+fi
+echo ""
+
 # Create VPC
 echo -e "${YELLOW}Creating VPC (${VPC_CIDR})...${NC}"
 VPC_ID=$(aws ec2 create-vpc \
@@ -195,39 +227,7 @@ aws ec2 associate-route-table --route-table-id "$PUBLIC_RT_ID" --subnet-id "$PUB
 aws ec2 associate-route-table --route-table-id "$PUBLIC_RT_ID" --subnet-id "$PUBLIC_SUBNET_2_ID"
 echo -e "${GREEN}✓ Public subnets associated${NC}"
 
-# Allocate Elastic IP for NAT Gateway
-echo -e "${YELLOW}Allocating Elastic IP for NAT Gateway...${NC}"
-ELASTIC_IP_ALLOC=$(aws ec2 allocate-address \
-    --domain vpc \
-    --tag-specifications "ResourceType=elastic-ip,Tags=[
-        {Key=Name,Value=${PROJECT_NAME}-nat-eip},
-        {Key=Environment,Value=${ENVIRONMENT}},
-        {Key=Application,Value=StartupWebApp}
-    ]")
-ELASTIC_IP_ID=$(echo "$ELASTIC_IP_ALLOC" | jq -r '.AllocationId')
-ELASTIC_IP=$(echo "$ELASTIC_IP_ALLOC" | jq -r '.PublicIp')
-echo -e "${GREEN}✓ Elastic IP allocated: ${ELASTIC_IP} (${ELASTIC_IP_ID})${NC}"
-
-# Create NAT Gateway (in Public Subnet 1)
-echo -e "${YELLOW}Creating NAT Gateway (this takes ~2-3 minutes)...${NC}"
-NAT_GATEWAY_ID=$(aws ec2 create-nat-gateway \
-    --subnet-id "$PUBLIC_SUBNET_1_ID" \
-    --allocation-id "$ELASTIC_IP_ID" \
-    --tag-specifications "ResourceType=natgateway,Tags=[
-        {Key=Name,Value=${PROJECT_NAME}-nat-gw},
-        {Key=Environment,Value=${ENVIRONMENT}},
-        {Key=Application,Value=StartupWebApp}
-    ]" \
-    --query 'NatGateway.NatGatewayId' \
-    --output text)
-echo -e "${GREEN}✓ NAT Gateway created: ${NAT_GATEWAY_ID}${NC}"
-
-# Wait for NAT Gateway to become available
-echo -e "${YELLOW}Waiting for NAT Gateway to become available...${NC}"
-aws ec2 wait nat-gateway-available --nat-gateway-ids "$NAT_GATEWAY_ID"
-echo -e "${GREEN}✓ NAT Gateway is available${NC}"
-
-# Create Private Route Table
+# Create Private Route Table (always needed for RDS in private subnets)
 echo -e "${YELLOW}Creating Private Route Table...${NC}"
 PRIVATE_RT_ID=$(aws ec2 create-route-table \
     --vpc-id "$VPC_ID" \
@@ -241,13 +241,54 @@ PRIVATE_RT_ID=$(aws ec2 create-route-table \
     --output text)
 echo -e "${GREEN}✓ Private Route Table created: ${PRIVATE_RT_ID}${NC}"
 
-# Add route to NAT Gateway in private route table
-echo -e "${YELLOW}Adding route to NAT Gateway...${NC}"
-aws ec2 create-route \
-    --route-table-id "$PRIVATE_RT_ID" \
-    --destination-cidr-block "0.0.0.0/0" \
-    --nat-gateway-id "$NAT_GATEWAY_ID"
-echo -e "${GREEN}✓ Route to NAT Gateway added${NC}"
+# NAT Gateway setup (optional)
+if [ "$CREATE_NAT" = true ]; then
+    # Allocate Elastic IP for NAT Gateway
+    echo -e "${YELLOW}Allocating Elastic IP for NAT Gateway...${NC}"
+    ELASTIC_IP_ALLOC=$(aws ec2 allocate-address \
+        --domain vpc \
+        --tag-specifications "ResourceType=elastic-ip,Tags=[
+            {Key=Name,Value=${PROJECT_NAME}-nat-eip},
+            {Key=Environment,Value=${ENVIRONMENT}},
+            {Key=Application,Value=StartupWebApp}
+        ]")
+    ELASTIC_IP_ID=$(echo "$ELASTIC_IP_ALLOC" | jq -r '.AllocationId')
+    ELASTIC_IP=$(echo "$ELASTIC_IP_ALLOC" | jq -r '.PublicIp')
+    echo -e "${GREEN}✓ Elastic IP allocated: ${ELASTIC_IP} (${ELASTIC_IP_ID})${NC}"
+
+    # Create NAT Gateway (in Public Subnet 1)
+    echo -e "${YELLOW}Creating NAT Gateway (this takes ~2-3 minutes)...${NC}"
+    NAT_GATEWAY_ID=$(aws ec2 create-nat-gateway \
+        --subnet-id "$PUBLIC_SUBNET_1_ID" \
+        --allocation-id "$ELASTIC_IP_ID" \
+        --tag-specifications "ResourceType=natgateway,Tags=[
+            {Key=Name,Value=${PROJECT_NAME}-nat-gw},
+            {Key=Environment,Value=${ENVIRONMENT}},
+            {Key=Application,Value=StartupWebApp}
+        ]" \
+        --query 'NatGateway.NatGatewayId' \
+        --output text)
+    echo -e "${GREEN}✓ NAT Gateway created: ${NAT_GATEWAY_ID}${NC}"
+
+    # Wait for NAT Gateway to become available
+    echo -e "${YELLOW}Waiting for NAT Gateway to become available...${NC}"
+    aws ec2 wait nat-gateway-available --nat-gateway-ids "$NAT_GATEWAY_ID"
+    echo -e "${GREEN}✓ NAT Gateway is available${NC}"
+
+    # Add route to NAT Gateway in private route table
+    echo -e "${YELLOW}Adding route to NAT Gateway in private route table...${NC}"
+    aws ec2 create-route \
+        --route-table-id "$PRIVATE_RT_ID" \
+        --destination-cidr-block "0.0.0.0/0" \
+        --nat-gateway-id "$NAT_GATEWAY_ID"
+    echo -e "${GREEN}✓ Route to NAT Gateway added${NC}"
+else
+    # No NAT Gateway - private subnets have no internet access (RDS doesn't need it)
+    echo -e "${YELLOW}Skipping NAT Gateway creation${NC}"
+    echo -e "${GREEN}✓ Private subnets will have no internet access (suitable for RDS)${NC}"
+    ELASTIC_IP_ID=""
+    NAT_GATEWAY_ID=""
+fi
 
 # Associate Private Subnets with Private Route Table
 echo -e "${YELLOW}Associating private subnets with private route table...${NC}"
@@ -295,15 +336,27 @@ echo -e "${GREEN}Summary:${NC}"
 echo -e "  VPC ID:                ${VPC_ID}"
 echo -e "  VPC CIDR:              ${VPC_CIDR}"
 echo -e "  Internet Gateway:      ${IGW_ID}"
-echo -e "  NAT Gateway:           ${NAT_GATEWAY_ID}"
-echo -e "  Elastic IP:            ${ELASTIC_IP}"
+if [ "$CREATE_NAT" = true ]; then
+    echo -e "  NAT Gateway:           ${NAT_GATEWAY_ID}"
+    echo -e "  Elastic IP:            ${ELASTIC_IP}"
+else
+    echo -e "  NAT Gateway:           Not created (saves ~\$32/month)"
+fi
 echo -e "  Public Subnet 1:       ${PUBLIC_SUBNET_1_ID} (${AZ_1})"
 echo -e "  Public Subnet 2:       ${PUBLIC_SUBNET_2_ID} (${AZ_2})"
 echo -e "  Private Subnet 1:      ${PRIVATE_SUBNET_1_ID} (${AZ_1})"
 echo -e "  Private Subnet 2:      ${PRIVATE_SUBNET_2_ID} (${AZ_2})"
 echo -e "  DB Subnet Group:       ${DB_SUBNET_GROUP_NAME}"
 echo ""
+if [ "$CREATE_NAT" = false ]; then
+    echo -e "${YELLOW}Important: No NAT Gateway created${NC}"
+    echo -e "  - Private subnets (RDS) have no internet access (this is fine for databases)"
+    echo -e "  - Deploy backend services to public subnets for internet access"
+    echo -e "  - To add NAT Gateway later: destroy and recreate VPC, or manually add via AWS Console"
+    echo ""
+fi
 echo -e "${GREEN}Next steps:${NC}"
 echo -e "  1. Run: ./scripts/infra/create-security-groups.sh"
-echo -e "  2. Run: ./scripts/infra/create-rds.sh"
+echo -e "  2. Run: ./scripts/infra/create-secrets.sh"
+echo -e "  3. Run: ./scripts/infra/create-rds.sh"
 echo ""

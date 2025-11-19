@@ -23,12 +23,18 @@ This directory contains bash scripts to provision and manage AWS infrastructure 
 - Security groups for RDS, bastion, and backend services
 - AWS Secrets Manager for credential storage
 - CloudWatch monitoring with alarms and dashboard
+- NAT Gateway: **Optional** (default: not created, saves $32/month)
 
-**Estimated Monthly Cost:** ~$61/month
-- NAT Gateway: $32/month
-- RDS db.t4g.small: $26/month
-- Enhanced Monitoring: $2/month
-- CloudWatch/SNS: $1/month
+**Estimated Monthly Cost:**
+- **Without NAT Gateway (default):** ~$29/month
+  - RDS db.t4g.small: $26/month
+  - Enhanced Monitoring: $2/month
+  - CloudWatch/SNS: $1/month
+- **With NAT Gateway (optional):** ~$61/month
+  - NAT Gateway: $32/month (additional)
+  - RDS db.t4g.small: $26/month
+  - Enhanced Monitoring: $2/month
+  - CloudWatch/SNS: $1/month
 
 ## Prerequisites
 
@@ -145,11 +151,28 @@ Creates complete VPC infrastructure:
 - 2 public subnets (10.0.1.0/24, 10.0.2.0/24) in us-east-1a, us-east-1b
 - 2 private subnets (10.0.10.0/24, 10.0.11.0/24) in us-east-1a, us-east-1b
 - Internet Gateway
-- NAT Gateway (with Elastic IP)
+- NAT Gateway (with Elastic IP) - **OPTIONAL** (default: no)
 - Route tables (public and private)
 - DB Subnet Group (for RDS)
 
-**Time:** 10-15 minutes (mostly NAT Gateway provisioning)
+**NAT Gateway Decision:**
+The script will prompt: "Create NAT Gateway? (yes/no) [default: no]"
+
+- **Choose NO (default, recommended for cost savings):**
+  - Saves $32/month (~52% cost reduction)
+  - Private subnets (RDS) have no internet access (fine for databases)
+  - Deploy backend services to **public subnets** for internet access (Stripe API, email, etc.)
+  - Total monthly cost: ~$29
+
+- **Choose YES (for private subnet backend):**
+  - Adds $32/month
+  - Private subnets can access internet via NAT Gateway
+  - Deploy backend services to **private subnets** (more secure, enterprise pattern)
+  - Total monthly cost: ~$61
+
+**Time:**
+- Without NAT Gateway: ~5-7 minutes
+- With NAT Gateway: ~10-15 minutes (NAT Gateway provisioning)
 
 ### create-security-groups.sh
 
@@ -252,18 +275,21 @@ All creation scripts are idempotent:
 
 ## Cost Management
 
-**Daily Cost Breakdown:**
-- NAT Gateway: ~$1.07/day ($32/month)
+**Daily Cost Breakdown (without NAT Gateway - default):**
 - RDS db.t4g.small: ~$0.87/day ($26/month)
 - Enhanced Monitoring: ~$0.07/day ($2/month)
 - CloudWatch/SNS: ~$0.03/day ($1/month)
 
-**Total:** ~$2.04/day or ~$61/month
+**Total (default):** ~$0.97/day or ~$29/month
+
+**With optional NAT Gateway:**
+- Add NAT Gateway: ~$1.07/day ($32/month)
+- **Total with NAT:** ~$2.04/day or ~$61/month
 
 **Cost Optimization:**
-1. **Stop RDS during inactivity:** Save $26/month when not in use
-2. **Use Reserved Instances:** Save 30-60% on RDS with 1-3 year commitment
-3. **Delete NAT Gateway if not needed:** Save $32/month (use bastion only for admin access)
+1. **Skip NAT Gateway (default):** Save $32/month (52% savings) - deploy backend to public subnets
+2. **Stop RDS during inactivity:** Save $26/month when not in use
+3. **Use Reserved Instances:** Save 30-60% on RDS with 1-3 year commitment
 4. **Scale down:** Use db.t4g.micro ($13/month) for very low traffic
 
 ## Multi-Tenant Architecture
@@ -286,6 +312,81 @@ export DATABASE_NAME=startupwebapp_prod
 export DATABASE_NAME=healthtech_experiment
 export DATABASE_NAME=fintech_experiment
 ```
+
+## Backend Deployment Architecture
+
+This infrastructure supports two common AWS deployment patterns for your Django backend:
+
+### Option A: Backend in Public Subnets (Recommended - Default)
+
+**When NAT Gateway is NOT created (default):**
+
+```
+Internet → ALB (public subnet) → Backend (public subnet) → RDS (private subnet)
+                                          ↓
+                                    Internet (Stripe API, email, etc.)
+```
+
+**Characteristics:**
+- Backend EC2/ECS instances in **public subnets** with public IPs
+- Backend can directly access internet for outbound calls (Stripe API, SMTP, package updates)
+- RDS remains in private subnets (not directly accessible from internet)
+- Security groups restrict backend access (only ALB can reach backend)
+- **Cost:** ~$29/month (no NAT Gateway)
+- **Use case:** Most common for small-to-medium deployments
+
+**Configuration:**
+- Deploy backend to: Public Subnet 1 (10.0.1.0/24) or Public Subnet 2 (10.0.2.0/24)
+- Backend security group: Allow inbound from ALB security group only
+- RDS security group: Allow inbound from backend security group (port 5432)
+
+### Option B: Backend in Private Subnets (Enterprise Pattern)
+
+**When NAT Gateway IS created (optional):**
+
+```
+Internet → ALB (public subnet) → Backend (private subnet) → RDS (private subnet)
+                                          ↓
+                                    NAT Gateway → Internet (Stripe API, etc.)
+```
+
+**Characteristics:**
+- Backend EC2/ECS instances in **private subnets** with no public IPs
+- Backend accesses internet via NAT Gateway for outbound calls
+- Backend not directly accessible from internet (more secure)
+- **Cost:** ~$61/month (includes NAT Gateway $32/month)
+- **Use case:** Enterprise deployments, compliance requirements (PCI DSS, HIPAA)
+
+**Configuration:**
+- Deploy backend to: Private Subnet 1 (10.0.10.0/24) or Private Subnet 2 (10.0.11.0/24)
+- NAT Gateway provides outbound internet access
+- RDS security group: Allow inbound from backend security group (port 5432)
+
+### Adding NAT Gateway Later
+
+If you initially chose Option A (no NAT Gateway) and later need Option B:
+
+**Option 1: Recreate VPC (clean approach)**
+```bash
+./scripts/infra/destroy-vpc.sh
+./scripts/infra/create-vpc.sh  # Choose "yes" for NAT Gateway this time
+```
+
+**Option 2: Manually add via AWS Console**
+1. Create Elastic IP
+2. Create NAT Gateway in Public Subnet 1
+3. Add route in Private Route Table: 0.0.0.0/0 → NAT Gateway
+4. Update `scripts/infra/aws-resources.env` with NAT_GATEWAY_ID and ELASTIC_IP_ID
+
+**Note:** Option 1 requires RDS recreation (downtime). Option 2 has no downtime.
+
+### Future: Application Load Balancer (ALB)
+
+Both patterns work with ALB (not included in these scripts):
+- ALB always in **public subnets** (receives internet traffic)
+- ALB forwards to backend (public or private subnets based on your choice)
+- ALB handles SSL/TLS termination
+- ALB performs health checks on backend instances
 
 ## Security Best Practices
 
