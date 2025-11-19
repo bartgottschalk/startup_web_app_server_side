@@ -218,15 +218,21 @@ Generates SQL script to create:
 - Database: fintech_experiment
 
 **Important:** This script cannot automatically execute SQL. You must:
-1. Connect via bastion host, SSH tunnel, or Cloud9
+1. Connect via **AWS Systems Manager Session Manager** (recommended, free, no bastion needed)
 2. Execute the generated SQL script manually
 3. Verify databases created
+
+**Connection method:** AWS Systems Manager Session Manager
+- No bastion host required
+- No SSH keys needed
+- Free service
+- IAM-based access control
 
 ### create-monitoring.sh
 
 Creates CloudWatch monitoring:
 - SNS topic for alerts
-- Email subscription (requires confirmation)
+- Email subscription: `bart@mosaicmeshai.com` (requires confirmation)
 - 4 CloudWatch alarms:
   - CPU > 70% for 10 minutes
   - Connections > 80 for 10 minutes
@@ -472,20 +478,40 @@ PostgreSQL logs exported to CloudWatch Logs:
 
 ## Database Connection
 
-### From Bastion Host
+### Via AWS Systems Manager Session Manager (Recommended)
+
+**This is the recommended approach - no bastion host needed, no SSH keys, free service.**
+
+This will be covered in detail when you reach Step 5 (create-databases.sh). The general approach:
+
+1. Launch a temporary EC2 instance in a public subnet with Systems Manager enabled
+2. Use Session Manager to connect (browser-based or AWS CLI)
+3. Install PostgreSQL client on the EC2 instance
+4. Connect to RDS from the EC2 instance
+5. Execute SQL scripts
+6. Terminate EC2 instance when done
+
+**Benefits:**
+- No SSH key management
+- No bastion host to maintain
+- IAM-based access control
+- Session logging for audit
+- Free service (only pay for temporary EC2 time)
+
+### Alternative: From Bastion Host (if you have one)
 
 ```bash
-# SSH to bastion (must be created separately)
+# SSH to bastion
 ssh -i key.pem ec2-user@bastion-host
 
 # Connect to RDS
 psql -h <RDS_ENDPOINT> -U django_app -d startupwebapp_prod
 ```
 
-### Via SSH Tunnel (from local machine)
+### Alternative: Via SSH Tunnel (from local machine)
 
 ```bash
-# Create SSH tunnel
+# Create SSH tunnel through bastion
 ssh -i key.pem -L 5432:<RDS_ENDPOINT>:5432 ec2-user@bastion-host
 
 # Connect via localhost (in another terminal)
@@ -611,19 +637,22 @@ aws rds restore-db-instance-from-db-snapshot \
 
 ## Next Steps After Infrastructure Deployment
 
-1. **Create Bastion Host** (if needed for database access)
-2. **Connect to RDS and verify databases created**
-3. **Run Django migrations:**
+1. **Connect to RDS via AWS Systems Manager Session Manager** (no bastion needed)
+2. **Verify databases created** (startupwebapp_prod, healthtech_experiment, fintech_experiment)
+3. **Update Django settings with production configuration:**
+   - RDS credentials from Secrets Manager
+   - `ALLOWED_HOSTS = ['www.mosaicmeshai.com']`
+   - All apps serve from `https://www.mosaicmeshai.com/projects/<app_name>`
+4. **Run Django migrations:**
    ```bash
    export DATABASE_NAME=startupwebapp_prod
    python manage.py migrate
    ```
-4. **Create superuser:**
+5. **Create superuser:**
    ```bash
    python manage.py createsuperuser
    ```
-5. **Deploy backend application** (ECS, EC2, or other)
-6. **Update Django settings** with production RDS credentials
+6. **Deploy backend application** to AWS (ECS, EC2, or other)
 7. **Set up CI/CD pipeline** for automated deployments
 
 ## References

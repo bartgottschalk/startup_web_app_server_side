@@ -11,7 +11,7 @@
 This document outlines Phase 7 of the PostgreSQL migration: deploying a production-ready PostgreSQL 16.x instance on AWS RDS with multi-tenant architecture. This will enable multiple forked applications to share a single RDS instance cost-effectively.
 
 **Objective**: Deploy AWS RDS PostgreSQL 16.x with multi-tenant support
-**Cost**: $26/month (db.t4g.small for 3-5 experimental forks)
+**Cost**: ~$29/month (RDS: $26, Monitoring: $2, CloudWatch/SNS: $1) - NAT Gateway skipped, saves $32/month
 **Timeline**: 4-6 hours (includes setup, testing, documentation)
 **Risk**: Low (local PostgreSQL already validated, all 740 tests passing)
 
@@ -43,12 +43,16 @@ This document outlines Phase 7 of the PostgreSQL migration: deploying a producti
 
 **Pre-Deployment Questions Answered:**
 1. ✅ **AWS Account Access**: Yes, have Console access. Created IAM user `startupwebapp-admin`. AWS CLI configured.
-2. ✅ **VPC Selection**: Create new VPC (`startupwebapp-vpc`) with proper subnet isolation
-3. ⏳ **Bastion Host**: TBD - Do you have a bastion host for database access? Or should we use Cloud9/EC2?
-4. ⏳ **Domain Names**: TBD - What domains will each fork use? (for ALLOWED_HOSTS)
-5. ⏳ **Email Address**: TBD - What email should receive CloudWatch alerts?
-6. ⏳ **Budget Approval**: TBD - Confirmed $26/month for db.t4g.small + ~$3-4 monitoring costs?
-7. ⏳ **Timeline**: TBD - Ready to proceed with deployment now?
+2. ✅ **VPC Selection**: Create new VPC (`startupwebapp-vpc`) with proper subnet isolation. NAT Gateway optional (default: no, saves $32/month).
+3. ✅ **Database Access**: AWS Systems Manager Session Manager (free, no bastion host needed)
+4. ✅ **Domain Names**: All apps run from `https://www.mosaicmeshai.com/projects/`
+   - StartUpWebApp: `https://www.mosaicmeshai.com/projects/startupwebapp`
+   - Healthtech: `https://www.mosaicmeshai.com/projects/healthtech`
+   - Fintech: `https://www.mosaicmeshai.com/projects/fintech`
+   - Django ALLOWED_HOSTS: `['www.mosaicmeshai.com']`
+5. ✅ **Email Address**: `bart@mosaicmeshai.com` (CloudWatch alerts)
+6. ✅ **Budget Approval**: Approved at ~$29/month (RDS $26 + Monitoring $2 + CloudWatch $1)
+7. ✅ **Timeline**: Ready to deploy now. Using create→destroy→create pattern for each step to verify behavior.
 
 ## Current State
 
