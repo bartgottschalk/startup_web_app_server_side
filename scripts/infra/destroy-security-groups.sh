@@ -58,12 +58,67 @@ echo ""
 echo -e "${YELLOW}Starting destruction...${NC}"
 echo ""
 
-# Delete security groups (order matters for dependencies)
+# Step 1: Remove all ingress rules from RDS SG (break dependencies)
+if [ -n "$RDS_SECURITY_GROUP_ID" ]; then
+    echo -e "${YELLOW}Removing ingress rules from RDS Security Group...${NC}"
+
+    # Get all ingress rules
+    RULE_IDS=$(aws ec2 describe-security-group-rules \
+        --filters "Name=group-id,Values=${RDS_SECURITY_GROUP_ID}" \
+        --query 'SecurityGroupRules[?!IsEgress].SecurityGroupRuleId' \
+        --output text 2>/dev/null || true)
+
+    if [ -n "$RULE_IDS" ]; then
+        for rule_id in $RULE_IDS; do
+            aws ec2 revoke-security-group-ingress \
+                --group-id "$RDS_SECURITY_GROUP_ID" \
+                --security-group-rule-ids "$rule_id" 2>/dev/null || true
+        done
+        echo -e "${GREEN}✓ Ingress rules removed${NC}"
+    fi
+fi
+
+# Step 2: Remove all ingress rules from Bastion SG
+if [ -n "$BASTION_SECURITY_GROUP_ID" ]; then
+    echo -e "${YELLOW}Removing ingress rules from Bastion Security Group...${NC}"
+
+    RULE_IDS=$(aws ec2 describe-security-group-rules \
+        --filters "Name=group-id,Values=${BASTION_SECURITY_GROUP_ID}" \
+        --query 'SecurityGroupRules[?!IsEgress].SecurityGroupRuleId' \
+        --output text 2>/dev/null || true)
+
+    if [ -n "$RULE_IDS" ]; then
+        for rule_id in $RULE_IDS; do
+            aws ec2 revoke-security-group-ingress \
+                --group-id "$BASTION_SECURITY_GROUP_ID" \
+                --security-group-rule-ids "$rule_id" 2>/dev/null || true
+        done
+        echo -e "${GREEN}✓ Ingress rules removed${NC}"
+    fi
+fi
+
+# Wait for rule deletions to propagate
+sleep 2
+
+# Step 3: Delete security groups (now that rules are removed)
 for sg_id in "$BACKEND_SECURITY_GROUP_ID" "$BASTION_SECURITY_GROUP_ID" "$RDS_SECURITY_GROUP_ID"; do
     if [ -n "$sg_id" ]; then
         echo -e "${YELLOW}Deleting Security Group: ${sg_id}...${NC}"
-        aws ec2 delete-security-group --group-id "$sg_id" 2>/dev/null || true
-        echo -e "${GREEN}✓ Security Group deleted${NC}"
+
+        # Retry deletion up to 3 times if it fails
+        for i in {1..3}; do
+            if aws ec2 delete-security-group --group-id "$sg_id" 2>/dev/null; then
+                echo -e "${GREEN}✓ Security Group deleted${NC}"
+                break
+            else
+                if [ $i -lt 3 ]; then
+                    echo -e "${YELLOW}  Retry $i/3...${NC}"
+                    sleep 2
+                else
+                    echo -e "${RED}✗ Failed to delete ${sg_id} after 3 attempts${NC}"
+                fi
+            fi
+        done
     fi
 done
 
