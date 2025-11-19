@@ -278,11 +278,11 @@ if [ $COMPLETED_STEPS -gt 0 ]; then
     fi
     if [ -n "${RDS_ENDPOINT:-}" ]; then
         echo -e "  RDS db.t4g.small:     ~\$26/month"
-        echo -e "  Enhanced Monitoring:  ~\\$2/month"
+        echo -e "  Enhanced Monitoring:  ~\$2/month"
         TOTAL_COST=$((TOTAL_COST + 28))
     fi
     if [ -n "${SNS_TOPIC_ARN:-}" ]; then
-        echo -e "  CloudWatch/SNS:       ~\\$1/month"
+        echo -e "  CloudWatch/SNS:       ~\$1/month"
         TOTAL_COST=$((TOTAL_COST + 1))
     fi
     echo -e "  ${CYAN}────────────────────────────${NC}"
