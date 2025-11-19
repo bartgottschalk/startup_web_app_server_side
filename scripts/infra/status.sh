@@ -143,7 +143,7 @@ echo -e "${CYAN}Step 4/7: RDS PostgreSQL Instance${NC}"
 if [ -n "${RDS_ENDPOINT:-}" ]; then
     # Check RDS status
     RDS_STATUS=$(aws rds describe-db-instances \
-        --db-instance-identifier "$RDS_INSTANCE_ID" \
+        --db-instance-identifier "${RDS_INSTANCE_ID}" \
         --query 'DBInstances[0].DBInstanceStatus' \
         --output text 2>/dev/null || echo "unknown")
 
@@ -158,7 +158,7 @@ elif [ -n "${DB_SECRET_ARN:-}" ] && [ -n "${RDS_SECURITY_GROUP_ID:-}" ]; then
     echo -e "  ${RED}✗ NOT STARTED${NC}"
     echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-rds.sh${NC}"
     echo -e "  ${YELLOW}   Time: ~10-15 minutes${NC}"
-    echo -e "  ${YELLOW}   Cost: ~$28/month (RDS + monitoring)${NC}"
+    echo -e "  ${YELLOW}   Cost: ~\$28/month (RDS + monitoring)${NC}"
 else
     echo -e "  ${RED}✗ BLOCKED${NC} - Requires Steps 1-3 complete"
 fi
@@ -168,7 +168,7 @@ echo ""
 echo -e "${CYAN}Step 5/7: Multi-Tenant Databases${NC}"
 if [ -n "${RDS_ENDPOINT:-}" ]; then
     RDS_STATUS=$(aws rds describe-db-instances \
-        --db-instance-identifier "$RDS_INSTANCE_ID" \
+        --db-instance-identifier "${RDS_INSTANCE_ID}" \
         --query 'DBInstances[0].DBInstanceStatus' \
         --output text 2>/dev/null || echo "unknown")
 
@@ -203,7 +203,7 @@ elif [ -n "${RDS_ENDPOINT:-}" ]; then
     echo -e "  ${RED}✗ NOT STARTED${NC}"
     echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-monitoring.sh <your-email@domain.com>${NC}"
     echo -e "  ${YELLOW}   Time: ~2 minutes${NC}"
-    echo -e "  ${YELLOW}   Cost: ~$1/month${NC}"
+    echo -e "  ${YELLOW}   Cost: ~\$1/month${NC}"
     echo -e "  ${YELLOW}   Note: You'll need to confirm email subscription${NC}"
 else
     echo -e "  ${RED}✗ BLOCKED${NC} - Requires RDS (Step 4)"
@@ -278,11 +278,11 @@ if [ $COMPLETED_STEPS -gt 0 ]; then
     fi
     if [ -n "${RDS_ENDPOINT:-}" ]; then
         echo -e "  RDS db.t4g.small:     ~\$26/month"
-        echo -e "  Enhanced Monitoring:  ~\$2/month"
+        echo -e "  Enhanced Monitoring:  ~\\$2/month"
         TOTAL_COST=$((TOTAL_COST + 28))
     fi
     if [ -n "${SNS_TOPIC_ARN:-}" ]; then
-        echo -e "  CloudWatch/SNS:       ~\$1/month"
+        echo -e "  CloudWatch/SNS:       ~\\$1/month"
         TOTAL_COST=$((TOTAL_COST + 1))
     fi
     echo -e "  ${CYAN}────────────────────────────${NC}"
