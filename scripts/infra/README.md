@@ -47,28 +47,35 @@ This directory contains bash scripts to provision and manage AWS infrastructure 
 
 ```
 scripts/infra/
-├── README.md                     # This file
-├── aws-resources.env             # Resource IDs (auto-generated)
-├── status.sh                     # Deployment progress and next steps
-├── show-resources.sh             # Display all resources
+├── README.md                        # This file
+├── init-env.sh                      # Common initialization (sourced by all scripts)
+├── aws-resources.env.template       # Template for resource IDs (committed to git)
+├── aws-resources.env                # Resource IDs (gitignored, auto-created from template)
+├── status.sh                        # Deployment progress and next steps
+├── show-resources.sh                # Display all resources
 │
-├── create-vpc.sh                 # Create VPC and networking
-├── destroy-vpc.sh                # Delete VPC and networking
+├── create-vpc.sh                    # Create VPC and networking
+├── destroy-vpc.sh                   # Delete VPC and networking
 │
-├── create-security-groups.sh     # Create security groups
-├── destroy-security-groups.sh    # Delete security groups
+├── create-security-groups.sh        # Create security groups
+├── destroy-security-groups.sh       # Delete security groups
 │
-├── create-secrets.sh             # Create Secrets Manager secret
-├── destroy-secrets.sh            # Delete secret (30-day recovery)
+├── create-secrets.sh                # Create Secrets Manager secret
+├── destroy-secrets.sh               # Delete secret (30-day recovery)
 │
-├── create-rds.sh                 # Create RDS PostgreSQL instance
-├── destroy-rds.sh                # Delete RDS instance
+├── create-rds.sh                    # Create RDS PostgreSQL instance
+├── destroy-rds.sh                   # Delete RDS instance
 │
-├── create-databases.sh           # Create multi-tenant databases
+├── create-databases.sh              # Create multi-tenant databases
 │
-├── create-monitoring.sh          # Create CloudWatch monitoring
-└── destroy-monitoring.sh         # Delete monitoring
+├── create-monitoring.sh             # Create CloudWatch monitoring
+└── destroy-monitoring.sh            # Delete monitoring
 ```
+
+**Security Pattern:**
+- `aws-resources.env.template` - Empty template committed to git (like `settings_secret.py.template`)
+- `aws-resources.env` - Populated during deployment, gitignored (like `settings_secret.py`)
+- `init-env.sh` - Creates `aws-resources.env` from template on first run
 
 ## Deployment Order
 
@@ -268,9 +275,15 @@ Displays all created resources:
 
 ## Resource Tracking
 
-All created resource IDs are stored in `aws-resources.env`. This file is automatically updated by creation scripts and read by destruction scripts.
+All created resource IDs are stored in `aws-resources.env`. This file follows the same pattern as `settings_secret.py`:
 
-**Do not edit `aws-resources.env` manually.** Regenerate it by running `show-resources.sh`.
+- **`aws-resources.env.template`** - Empty template committed to git
+- **`aws-resources.env`** - Populated during deployment, gitignored
+- Created automatically from template on first script execution
+- Updated by creation scripts as resources are provisioned
+- Read by destruction scripts to know what to delete
+
+**Do not edit `aws-resources.env` manually.** It's auto-managed by the scripts.
 
 ## Idempotency
 

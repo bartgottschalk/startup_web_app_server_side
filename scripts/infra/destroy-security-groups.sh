@@ -22,6 +22,9 @@ NC='\033[0m' # No Color
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Initialize environment file
+source "${SCRIPT_DIR}/init-env.sh"
 ENV_FILE="${SCRIPT_DIR}/aws-resources.env"
 
 echo -e "${RED}========================================${NC}"

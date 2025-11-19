@@ -28,10 +28,12 @@ NC='\033[0m' # No Color
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="${SCRIPT_DIR}/aws-resources.env"
 PROJECT_NAME="startupwebapp"
 ENVIRONMENT="production"
 AWS_REGION="us-east-1"
+
+# Initialize environment file
+source "${SCRIPT_DIR}/init-env.sh"
 
 # VPC Configuration
 VPC_CIDR="10.0.0.0/16"
