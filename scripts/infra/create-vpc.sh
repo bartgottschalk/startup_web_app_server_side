@@ -103,12 +103,7 @@ echo ""
 echo -e "${YELLOW}Creating VPC (${VPC_CIDR})...${NC}"
 VPC_ID=$(aws ec2 create-vpc \
     --cidr-block "$VPC_CIDR" \
-    --tag-specifications "ResourceType=vpc,Tags=[
-        {Key=Name,Value=${PROJECT_NAME}-vpc},
-        {Key=Environment,Value=${ENVIRONMENT}},
-        {Key=Application,Value=StartupWebApp},
-        {Key=ManagedBy,Value=InfrastructureAsCode}
-    ]" \
+    --tag-specifications "ResourceType=vpc,Tags=[{Key=Name,Value=${PROJECT_NAME}-vpc},{Key=Environment,Value=${ENVIRONMENT}},{Key=Application,Value=StartupWebApp},{Key=ManagedBy,Value=InfrastructureAsCode}]" \
     --query 'Vpc.VpcId' \
     --output text)
 echo -e "${GREEN}✓ VPC created: ${VPC_ID}${NC}"
@@ -121,11 +116,7 @@ echo -e "${GREEN}✓ DNS hostnames enabled${NC}"
 # Create Internet Gateway
 echo -e "${YELLOW}Creating Internet Gateway...${NC}"
 IGW_ID=$(aws ec2 create-internet-gateway \
-    --tag-specifications "ResourceType=internet-gateway,Tags=[
-        {Key=Name,Value=${PROJECT_NAME}-igw},
-        {Key=Environment,Value=${ENVIRONMENT}},
-        {Key=Application,Value=StartupWebApp}
-    ]" \
+    --tag-specifications "ResourceType=internet-gateway,Tags=[{Key=Name,Value=${PROJECT_NAME}-igw},{Key=Environment,Value=${ENVIRONMENT}},{Key=Application,Value=StartupWebApp}]" \
     --query 'InternetGateway.InternetGatewayId' \
     --output text)
 echo -e "${GREEN}✓ Internet Gateway created: ${IGW_ID}${NC}"
@@ -141,12 +132,7 @@ PUBLIC_SUBNET_1_ID=$(aws ec2 create-subnet \
     --vpc-id "$VPC_ID" \
     --cidr-block "$PUBLIC_SUBNET_1_CIDR" \
     --availability-zone "$AZ_1" \
-    --tag-specifications "ResourceType=subnet,Tags=[
-        {Key=Name,Value=${PROJECT_NAME}-public-subnet-1},
-        {Key=Type,Value=Public},
-        {Key=Environment,Value=${ENVIRONMENT}},
-        {Key=Application,Value=StartupWebApp}
-    ]" \
+    --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=${PROJECT_NAME}-public-subnet-1},{Key=Type,Value=Public},{Key=Environment,Value=${ENVIRONMENT}},{Key=Application,Value=StartupWebApp}]" \
     --query 'Subnet.SubnetId' \
     --output text)
 echo -e "${GREEN}✓ Public Subnet 1 created: ${PUBLIC_SUBNET_1_ID}${NC}"
@@ -157,12 +143,7 @@ PUBLIC_SUBNET_2_ID=$(aws ec2 create-subnet \
     --vpc-id "$VPC_ID" \
     --cidr-block "$PUBLIC_SUBNET_2_CIDR" \
     --availability-zone "$AZ_2" \
-    --tag-specifications "ResourceType=subnet,Tags=[
-        {Key=Name,Value=${PROJECT_NAME}-public-subnet-2},
-        {Key=Type,Value=Public},
-        {Key=Environment,Value=${ENVIRONMENT}},
-        {Key=Application,Value=StartupWebApp}
-    ]" \
+    --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=${PROJECT_NAME}-public-subnet-2},{Key=Type,Value=Public},{Key=Environment,Value=${ENVIRONMENT}},{Key=Application,Value=StartupWebApp}]" \
     --query 'Subnet.SubnetId' \
     --output text)
 echo -e "${GREEN}✓ Public Subnet 2 created: ${PUBLIC_SUBNET_2_ID}${NC}"
@@ -173,13 +154,7 @@ PRIVATE_SUBNET_1_ID=$(aws ec2 create-subnet \
     --vpc-id "$VPC_ID" \
     --cidr-block "$PRIVATE_SUBNET_1_CIDR" \
     --availability-zone "$AZ_1" \
-    --tag-specifications "ResourceType=subnet,Tags=[
-        {Key=Name,Value=${PROJECT_NAME}-private-subnet-1},
-        {Key=Type,Value=Private},
-        {Key=Purpose,Value=RDS},
-        {Key=Environment,Value=${ENVIRONMENT}},
-        {Key=Application,Value=StartupWebApp}
-    ]" \
+    --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=${PROJECT_NAME}-private-subnet-1},{Key=Type,Value=Private},{Key=Purpose,Value=RDS},{Key=Environment,Value=${ENVIRONMENT}},{Key=Application,Value=StartupWebApp}]" \
     --query 'Subnet.SubnetId' \
     --output text)
 echo -e "${GREEN}✓ Private Subnet 1 created: ${PRIVATE_SUBNET_1_ID}${NC}"
@@ -190,13 +165,7 @@ PRIVATE_SUBNET_2_ID=$(aws ec2 create-subnet \
     --vpc-id "$VPC_ID" \
     --cidr-block "$PRIVATE_SUBNET_2_CIDR" \
     --availability-zone "$AZ_2" \
-    --tag-specifications "ResourceType=subnet,Tags=[
-        {Key=Name,Value=${PROJECT_NAME}-private-subnet-2},
-        {Key=Type,Value=Private},
-        {Key=Purpose,Value=RDS},
-        {Key=Environment,Value=${ENVIRONMENT}},
-        {Key=Application,Value=StartupWebApp}
-    ]" \
+    --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=${PROJECT_NAME}-private-subnet-2},{Key=Type,Value=Private},{Key=Purpose,Value=RDS},{Key=Environment,Value=${ENVIRONMENT}},{Key=Application,Value=StartupWebApp}]" \
     --query 'Subnet.SubnetId' \
     --output text)
 echo -e "${GREEN}✓ Private Subnet 2 created: ${PRIVATE_SUBNET_2_ID}${NC}"
@@ -205,12 +174,7 @@ echo -e "${GREEN}✓ Private Subnet 2 created: ${PRIVATE_SUBNET_2_ID}${NC}"
 echo -e "${YELLOW}Creating Public Route Table...${NC}"
 PUBLIC_RT_ID=$(aws ec2 create-route-table \
     --vpc-id "$VPC_ID" \
-    --tag-specifications "ResourceType=route-table,Tags=[
-        {Key=Name,Value=${PROJECT_NAME}-public-rt},
-        {Key=Type,Value=Public},
-        {Key=Environment,Value=${ENVIRONMENT}},
-        {Key=Application,Value=StartupWebApp}
-    ]" \
+    --tag-specifications "ResourceType=route-table,Tags=[{Key=Name,Value=${PROJECT_NAME}-public-rt},{Key=Type,Value=Public},{Key=Environment,Value=${ENVIRONMENT}},{Key=Application,Value=StartupWebApp}]" \
     --query 'RouteTable.RouteTableId' \
     --output text)
 echo -e "${GREEN}✓ Public Route Table created: ${PUBLIC_RT_ID}${NC}"
@@ -233,12 +197,7 @@ echo -e "${GREEN}✓ Public subnets associated${NC}"
 echo -e "${YELLOW}Creating Private Route Table...${NC}"
 PRIVATE_RT_ID=$(aws ec2 create-route-table \
     --vpc-id "$VPC_ID" \
-    --tag-specifications "ResourceType=route-table,Tags=[
-        {Key=Name,Value=${PROJECT_NAME}-private-rt},
-        {Key=Type,Value=Private},
-        {Key=Environment,Value=${ENVIRONMENT}},
-        {Key=Application,Value=StartupWebApp}
-    ]" \
+    --tag-specifications "ResourceType=route-table,Tags=[{Key=Name,Value=${PROJECT_NAME}-private-rt},{Key=Type,Value=Private},{Key=Environment,Value=${ENVIRONMENT}},{Key=Application,Value=StartupWebApp}]" \
     --query 'RouteTable.RouteTableId' \
     --output text)
 echo -e "${GREEN}✓ Private Route Table created: ${PRIVATE_RT_ID}${NC}"
@@ -249,11 +208,7 @@ if [ "$CREATE_NAT" = true ]; then
     echo -e "${YELLOW}Allocating Elastic IP for NAT Gateway...${NC}"
     ELASTIC_IP_ALLOC=$(aws ec2 allocate-address \
         --domain vpc \
-        --tag-specifications "ResourceType=elastic-ip,Tags=[
-            {Key=Name,Value=${PROJECT_NAME}-nat-eip},
-            {Key=Environment,Value=${ENVIRONMENT}},
-            {Key=Application,Value=StartupWebApp}
-        ]")
+        --tag-specifications "ResourceType=elastic-ip,Tags=[{Key=Name,Value=${PROJECT_NAME}-nat-eip},{Key=Environment,Value=${ENVIRONMENT}},{Key=Application,Value=StartupWebApp}]")
     ELASTIC_IP_ID=$(echo "$ELASTIC_IP_ALLOC" | jq -r '.AllocationId')
     ELASTIC_IP=$(echo "$ELASTIC_IP_ALLOC" | jq -r '.PublicIp')
     echo -e "${GREEN}✓ Elastic IP allocated: ${ELASTIC_IP} (${ELASTIC_IP_ID})${NC}"
@@ -263,11 +218,7 @@ if [ "$CREATE_NAT" = true ]; then
     NAT_GATEWAY_ID=$(aws ec2 create-nat-gateway \
         --subnet-id "$PUBLIC_SUBNET_1_ID" \
         --allocation-id "$ELASTIC_IP_ID" \
-        --tag-specifications "ResourceType=natgateway,Tags=[
-            {Key=Name,Value=${PROJECT_NAME}-nat-gw},
-            {Key=Environment,Value=${ENVIRONMENT}},
-            {Key=Application,Value=StartupWebApp}
-        ]" \
+        --tag-specifications "ResourceType=natgateway,Tags=[{Key=Name,Value=${PROJECT_NAME}-nat-gw},{Key=Environment,Value=${ENVIRONMENT}},{Key=Application,Value=StartupWebApp}]" \
         --query 'NatGateway.NatGatewayId' \
         --output text)
     echo -e "${GREEN}✓ NAT Gateway created: ${NAT_GATEWAY_ID}${NC}"

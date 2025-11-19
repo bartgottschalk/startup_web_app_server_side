@@ -68,12 +68,7 @@ RDS_SECURITY_GROUP_ID=$(aws ec2 create-security-group \
     --group-name "${PROJECT_NAME}-rds-sg" \
     --description "PostgreSQL access for StartupWebApp multi-tenant RDS" \
     --vpc-id "$VPC_ID" \
-    --tag-specifications "ResourceType=security-group,Tags=[
-        {Key=Name,Value=${PROJECT_NAME}-rds-sg},
-        {Key=Environment,Value=${ENVIRONMENT}},
-        {Key=Application,Value=StartupWebApp},
-        {Key=Purpose,Value=RDS}
-    ]" \
+    --tag-specifications "ResourceType=security-group,Tags=[{Key=Name,Value=${PROJECT_NAME}-rds-sg},{Key=Environment,Value=${ENVIRONMENT}},{Key=Application,Value=StartupWebApp},{Key=Purpose,Value=RDS}]" \
     --query 'GroupId' \
     --output text)
 echo -e "${GREEN}✓ RDS Security Group created: ${RDS_SECURITY_GROUP_ID}${NC}"
@@ -84,12 +79,7 @@ BASTION_SECURITY_GROUP_ID=$(aws ec2 create-security-group \
     --group-name "${PROJECT_NAME}-bastion-sg" \
     --description "SSH access for bastion host admin" \
     --vpc-id "$VPC_ID" \
-    --tag-specifications "ResourceType=security-group,Tags=[
-        {Key=Name,Value=${PROJECT_NAME}-bastion-sg},
-        {Key=Environment,Value=${ENVIRONMENT}},
-        {Key=Application,Value=StartupWebApp},
-        {Key=Purpose,Value=Bastion}
-    ]" \
+    --tag-specifications "ResourceType=security-group,Tags=[{Key=Name,Value=${PROJECT_NAME}-bastion-sg},{Key=Environment,Value=${ENVIRONMENT}},{Key=Application,Value=StartupWebApp},{Key=Purpose,Value=Bastion}]" \
     --query 'GroupId' \
     --output text)
 echo -e "${GREEN}✓ Bastion Security Group created: ${BASTION_SECURITY_GROUP_ID}${NC}"
@@ -100,12 +90,7 @@ BACKEND_SECURITY_GROUP_ID=$(aws ec2 create-security-group \
     --group-name "${PROJECT_NAME}-backend-sg" \
     --description "Backend services (ECS/EC2) for StartupWebApp" \
     --vpc-id "$VPC_ID" \
-    --tag-specifications "ResourceType=security-group,Tags=[
-        {Key=Name,Value=${PROJECT_NAME}-backend-sg},
-        {Key=Environment,Value=${ENVIRONMENT}},
-        {Key=Application,Value=StartupWebApp},
-        {Key=Purpose,Value=Backend}
-    ]" \
+    --tag-specifications "ResourceType=security-group,Tags=[{Key=Name,Value=${PROJECT_NAME}-backend-sg},{Key=Environment,Value=${ENVIRONMENT}},{Key=Application,Value=StartupWebApp},{Key=Purpose,Value=Backend}]" \
     --query 'GroupId' \
     --output text)
 echo -e "${GREEN}✓ Backend Security Group created: ${BACKEND_SECURITY_GROUP_ID}${NC}"
