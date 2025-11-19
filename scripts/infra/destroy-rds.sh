@@ -116,6 +116,34 @@ sed -i.bak \
 rm -f "${ENV_FILE}.bak"
 echo -e "${GREEN}✓ aws-resources.env cleared${NC}"
 
+# Ask about deleting the IAM monitoring role
+echo ""
+echo -e "${YELLOW}========================================${NC}"
+echo -e "${YELLOW}IAM Monitoring Role Cleanup${NC}"
+echo -e "${YELLOW}========================================${NC}"
+echo ""
+echo -e "${YELLOW}The RDS Enhanced Monitoring IAM role (rds-monitoring-role) still exists.${NC}"
+echo -e "${YELLOW}This role can be reused by future RDS instances at no cost.${NC}"
+echo ""
+read -p "Delete the IAM monitoring role? (yes/no) [default: no]: " delete_role
+delete_role=${delete_role:-no}
+
+if [ "$delete_role" == "yes" ]; then
+    echo -e "${YELLOW}Deleting IAM monitoring role...${NC}"
+
+    # Detach the managed policy first
+    aws iam detach-role-policy \
+        --role-name "rds-monitoring-role" \
+        --policy-arn "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole" 2>/dev/null || true
+
+    # Delete the role
+    aws iam delete-role --role-name "rds-monitoring-role" 2>/dev/null || true
+
+    echo -e "${GREEN}✓ IAM monitoring role deleted${NC}"
+else
+    echo -e "${GREEN}✓ IAM monitoring role retained for future use${NC}"
+fi
+
 echo ""
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}RDS Instance Destroyed!${NC}"

@@ -100,6 +100,55 @@ DB_PASSWORD=$(aws secretsmanager get-secret-value \
     --output text | jq -r '.password')
 echo -e "${GREEN}✓ Password retrieved${NC}"
 
+# Create IAM role for RDS Enhanced Monitoring (if it doesn't exist)
+echo -e "${YELLOW}Checking for RDS Enhanced Monitoring IAM role...${NC}"
+MONITORING_ROLE_NAME="rds-monitoring-role"
+MONITORING_ROLE_ARN=$(aws iam get-role \
+    --role-name "$MONITORING_ROLE_NAME" \
+    --query 'Role.Arn' \
+    --output text 2>/dev/null || echo "None")
+
+if [ "$MONITORING_ROLE_ARN" == "None" ]; then
+    echo -e "${YELLOW}Creating IAM role for RDS Enhanced Monitoring...${NC}"
+
+    # Create trust policy document
+    TRUST_POLICY=$(cat <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "monitoring.rds.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+)
+
+    # Create the role
+    MONITORING_ROLE_ARN=$(aws iam create-role \
+        --role-name "$MONITORING_ROLE_NAME" \
+        --assume-role-policy-document "$TRUST_POLICY" \
+        --description "IAM role for RDS Enhanced Monitoring" \
+        --query 'Role.Arn' \
+        --output text)
+
+    # Attach the AWS managed policy for RDS Enhanced Monitoring
+    aws iam attach-role-policy \
+        --role-name "$MONITORING_ROLE_NAME" \
+        --policy-arn "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
+
+    echo -e "${GREEN}✓ IAM role created: ${MONITORING_ROLE_ARN}${NC}"
+    echo -e "${YELLOW}Waiting 10 seconds for IAM role to propagate...${NC}"
+    sleep 10
+    echo -e "${GREEN}✓ IAM role ready${NC}"
+else
+    echo -e "${GREEN}✓ IAM role already exists: ${MONITORING_ROLE_ARN}${NC}"
+fi
+
 # Create RDS instance
 echo -e "${YELLOW}Creating RDS PostgreSQL instance...${NC}"
 echo -e "${YELLOW}Instance ID: ${RDS_INSTANCE_ID}${NC}"
@@ -127,6 +176,7 @@ aws rds create-db-instance \
     --preferred-maintenance-window "sun:04:00-sun:05:00" \
     --enable-cloudwatch-logs-exports "postgresql" \
     --monitoring-interval 60 \
+    --monitoring-role-arn "$MONITORING_ROLE_ARN" \
     --enable-performance-insights \
     --performance-insights-retention-period 7 \
     --no-publicly-accessible \
