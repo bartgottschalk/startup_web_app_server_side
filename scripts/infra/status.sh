@@ -47,11 +47,58 @@ source "$ENV_FILE"
 TOTAL_STEPS=7
 COMPLETED_STEPS=0
 
+# Helper function to get Name tag from a resource
+get_name_tag() {
+    local resource_type=$1
+    local resource_id=$2
+    local name=""
+
+    case $resource_type in
+        vpc|subnet|igw|route-table|nat-gateway)
+            name=$(aws ec2 describe-tags \
+                --filters "Name=resource-id,Values=${resource_id}" "Name=key,Values=Name" \
+                --query 'Tags[0].Value' \
+                --output text 2>/dev/null || echo "None")
+            ;;
+        security-group)
+            name=$(aws ec2 describe-security-groups \
+                --group-ids "${resource_id}" \
+                --query 'SecurityGroups[0].Tags[?Key==`Name`].Value' \
+                --output text 2>/dev/null || echo "None")
+            ;;
+        elastic-ip)
+            name=$(aws ec2 describe-addresses \
+                --allocation-ids "${resource_id}" \
+                --query 'Addresses[0].Tags[?Key==`Name`].Value' \
+                --output text 2>/dev/null || echo "None")
+            ;;
+    esac
+
+    if [ -z "$name" ] || [ "$name" = "None" ]; then
+        echo -e "${RED}NONE${NC}"
+    else
+        echo "$name"
+    fi
+}
+
 # Step 1: VPC
 echo -e "${CYAN}Step 1/7: VPC and Networking${NC}"
 if [ -n "${VPC_ID:-}" ]; then
-    echo -e "  ${GREEN}✓ COMPLETED${NC} - VPC created: ${VPC_ID}"
+    echo -e "  ${GREEN}✓ COMPLETED${NC} - VPC and networking created"
     COMPLETED_STEPS=$((COMPLETED_STEPS + 1))
+    echo ""
+    echo -e "  VPC:               ${VPC_ID} ($(get_name_tag vpc ${VPC_ID}))"
+    echo -e "  Internet Gateway:  ${IGW_ID} ($(get_name_tag igw ${IGW_ID}))"
+    echo -e "  Public Subnet 1:   ${PUBLIC_SUBNET_1_ID} ($(get_name_tag subnet ${PUBLIC_SUBNET_1_ID}))"
+    echo -e "  Public Subnet 2:   ${PUBLIC_SUBNET_2_ID} ($(get_name_tag subnet ${PUBLIC_SUBNET_2_ID}))"
+    echo -e "  Private Subnet 1:  ${PRIVATE_SUBNET_1_ID} ($(get_name_tag subnet ${PRIVATE_SUBNET_1_ID}))"
+    echo -e "  Private Subnet 2:  ${PRIVATE_SUBNET_2_ID} ($(get_name_tag subnet ${PRIVATE_SUBNET_2_ID}))"
+    echo -e "  Public Route Tbl:  ${PUBLIC_RT_ID} ($(get_name_tag route-table ${PUBLIC_RT_ID}))"
+    echo -e "  Private Route Tbl: ${PRIVATE_RT_ID} ($(get_name_tag route-table ${PRIVATE_RT_ID}))"
+    if [ -n "${NAT_GATEWAY_ID:-}" ]; then
+        echo -e "  NAT Gateway:       ${NAT_GATEWAY_ID} ($(get_name_tag nat-gateway ${NAT_GATEWAY_ID}))"
+        echo -e "  Elastic IP:        ${ELASTIC_IP_ID} ($(get_name_tag elastic-ip ${ELASTIC_IP_ID}))"
+    fi
 else
     echo -e "  ${RED}✗ NOT STARTED${NC}"
     echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-vpc.sh${NC}"
@@ -64,6 +111,10 @@ echo -e "${CYAN}Step 2/7: Security Groups${NC}"
 if [ -n "${RDS_SECURITY_GROUP_ID:-}" ]; then
     echo -e "  ${GREEN}✓ COMPLETED${NC} - Security groups created"
     COMPLETED_STEPS=$((COMPLETED_STEPS + 1))
+    echo ""
+    echo -e "  RDS SG:      ${RDS_SECURITY_GROUP_ID} ($(get_name_tag security-group ${RDS_SECURITY_GROUP_ID}))"
+    echo -e "  Bastion SG:  ${BASTION_SECURITY_GROUP_ID} ($(get_name_tag security-group ${BASTION_SECURITY_GROUP_ID}))"
+    echo -e "  Backend SG:  ${BACKEND_SECURITY_GROUP_ID} ($(get_name_tag security-group ${BACKEND_SECURITY_GROUP_ID}))"
 elif [ -n "${VPC_ID:-}" ]; then
     echo -e "  ${RED}✗ NOT STARTED${NC}"
     echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-security-groups.sh${NC}"
