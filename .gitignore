@@ -56,6 +56,9 @@ rg_unittest
 .env.local
 .env.*.local
 
+# AWS infrastructure resource IDs (populated during deployment)
+scripts/infra/aws-resources.env
+
 # Docker
 *.pid
 *.seed

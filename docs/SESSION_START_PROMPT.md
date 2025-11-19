@@ -190,6 +190,15 @@ Hi Claude. I want to continue working on these two repositories together:
   - Backend server: `docker-compose exec -d backend python manage.py runserver 0.0.0.0:8000`
   - Custom bridge network: "startupwebapp" (enables inter-service communication)
 
+  **AWS Infrastructure Management:**
+  - **CRITICAL WORKFLOW RULE**: All AWS infrastructure scripts (`scripts/infra/*.sh`) will be executed manually in separate terminal windows
+  - **DO NOT run infrastructure scripts within Claude Code chat sessions**
+  - Infrastructure scripts directory: `scripts/infra/`
+  - Scripts are idempotent and safe to run multiple times
+  - Naming convention: `create-*.sh` for provisioning, `destroy-*.sh` for teardown
+  - Resource IDs tracked in: `scripts/infra/aws-resources.env`
+  - AWS CLI configured (region: us-east-1, IAM user: startupwebapp-admin)
+
   **Documentation Requirements:**
   - Every commit MUST include updated documentation
   - Key doc files: `docs/PROJECT_HISTORY.md`, `README.md`
@@ -306,12 +315,12 @@ Hi Claude. I want to continue working on these two repositories together:
      - ✅ Environment-aware: DEBUG in dev, INFO in production
      - ✅ Production-ready: persistent logs, severity levels, full context
 
-  3. **✅ Migrate from SQLite to PostgreSQL** (Phases 1-6 Complete & Merged - November 19, 2025)
-     - **Status**: Phases 1-6 complete, merged to master via PR #32, ready for AWS RDS deployment (Phase 7)
+  3. **✅ Migrate from SQLite to PostgreSQL** (Phases 1-7 Complete - November 19, 2025)
+     - **Status**: Phases 1-7 complete, infrastructure deployed to AWS RDS, ready for database setup and Django deployment
      - **Decision**: AWS RDS PostgreSQL 16.x with multi-tenant architecture
-     - **Cost**: $26/month for up to 5 experimental forks (db.t4g.small)
+     - **Cost**: $29/month (RDS: $26, Monitoring: $2, CloudWatch: $1) - NAT Gateway skipped (saved $32/month)
      - **Architecture**: Separate databases per fork on shared RDS instance
-     - **Implementation Plan** (7 phases documented):
+     - **Implementation Plan** (8 phases documented):
        - ✅ Phase 1: FloatField→DecimalField conversion (COMPLETE - November 17, 2025)
          - Converted 12 currency fields to DecimalField (max_digits=10, decimal_places=2)
          - Created 19 TDD tests, all 740 tests passing
@@ -325,14 +334,26 @@ Hi Claude. I want to continue working on these two repositories together:
          - Fixed data migration to skip during test runs
          - Technical doc: docs/technical-notes/2025-11-18-postgresql-migration-phases-2-5-complete.md
        - ✅ Phase 6: Merged to master via PR #32 (COMPLETE - November 19, 2025)
-       - 🔮 Phase 7: Production AWS RDS setup (when ready)
-       - 🔮 Phase 8: Documentation & rollback planning (when deploying to production)
-     - **Database Naming**: Removed legacy `rg_` prefix → `startupwebapp_dev`
+       - ✅ Phase 7: AWS RDS Infrastructure Deployment (COMPLETE - November 19, 2025)
+         - Created 21 Infrastructure as Code bash scripts (14 create + 5 destroy + 2 status)
+         - Deployed VPC, Security Groups, Secrets Manager, RDS PostgreSQL 16.x, CloudWatch monitoring
+         - RDS Endpoint: startupwebapp-multi-tenant-prod.cqbgoe8omhyh.us-east-1.rds.amazonaws.com:5432
+         - Progress: 5/7 steps complete (71%) - RDS available, monitoring active
+         - Tested all destroy/create cycles - all validated successfully
+         - Monthly cost: $29 (saved $32/month by skipping NAT Gateway)
+         - Technical doc: docs/technical-notes/2025-11-19-aws-rds-deployment-plan.md
+       - ⏳ Phase 8: Database Setup & Django Deployment (next step)
+         - Set up multi-tenant databases via AWS Systems Manager Session Manager
+         - Update Django settings for AWS RDS connection
+         - Run migrations on AWS RDS PostgreSQL
+         - Deploy backend application to AWS
+     - **Database Naming**: Removed legacy `rg_` prefix → `startupwebapp_prod` (production)
      - **Local Setup**: 3 databases (startupwebapp_dev, healthtech_dev, fintech_dev)
+     - **Production Setup**: 3 databases (startupwebapp_prod, healthtech_experiment, fintech_experiment)
      - **Alternatives Evaluated**: Lightsail, DynamoDB, Aurora Serverless v2 (all rejected)
-     - **Timeline**: Completed in ~8 hours over 2 days
+     - **Timeline**: Phases 1-7 completed in ~15 hours over 3 days
      - **See**: docs/technical-notes/2025-11-17-database-migration-planning.md v2.2
-     - **Branch**: Merged to master (PR #32)
+     - **Branch**: Phases 1-6 merged to master (PR #32), Phase 7 on feature/aws-infrastructure-setup
 
   4. **Consider Stripe library upgrade (optional)**
      - Current: stripe==5.5.0
@@ -377,7 +398,7 @@ Hi Claude. I want to continue working on these two repositories together:
 
   Please review all documentation (especially `docs/PROJECT_HISTORY.md` and recent technical notes in `docs/technical-notes/`) and propose next steps based on the Planned Work Items above.
 
-  **Current Focus**: PostgreSQL Migration Merged - Ready for AWS Deployment
+  **Current Focus**: PostgreSQL Migration Phase 7 Complete - AWS RDS Infrastructure Deployed
   1. ✅ Completed Backend Phase 1: High priority (272 issues fixed)
   2. ✅ Completed Backend Phase 2: Style/formatting (1,179 issues fixed)
   3. ✅ Completed Backend Phase 3: Critical issues (85 issues fixed)
@@ -386,7 +407,7 @@ Hi Claude. I want to continue working on these two repositories together:
   6. ✅ Completed Backend Phase 4-6: Zero linting errors (2,286 → 0, 100% reduction)
   7. ✅ Completed CSRF Token Bug Fix: 100% test pass rate (26 instances fixed, 20 files)
   8. ✅ Completed PostgreSQL Migration Planning (v2.2 - comprehensive analysis, all decisions made)
-  9. ✅ **COMPLETED & MERGED: PostgreSQL Migration Phases 1-5 (Planned Work Item #3)**
+  9. ✅ **COMPLETED & MERGED: PostgreSQL Migration Phases 1-6 (Planned Work Item #3)**
      - **Status**: Merged to master (PR #32) - November 19, 2025
      - **Branch**: Fully merged and cleaned up
      - **Test Results**: All 740 tests passing (712 unit + 28 functional) with PostgreSQL
@@ -398,11 +419,26 @@ Hi Claude. I want to continue working on these two repositories together:
        - ✅ Phase 5: Fixed PostgreSQL sequence issues - 138 test classes updated (November 18, 2025)
        - ✅ Phase 6: Merged to master via PR #32 (November 19, 2025)
      - **Architecture**: 3 local databases (startupwebapp_dev, healthtech_dev, fintech_dev)
-     - **Cost Savings**: 75% reduction on AWS RDS ($26/month vs $104/month)
-     - **Timeline**: Completed in ~8 hours over 2 days
      - **Documentation**:
        - Planning: docs/technical-notes/2025-11-17-database-migration-planning.md v2.2
        - Phase 1: docs/technical-notes/2025-11-17-floatfield-to-decimalfield-conversion.md
        - Phases 2-5: docs/technical-notes/2025-11-18-postgresql-migration-phases-2-5-complete.md
-     - **Next**: Phase 7 (AWS RDS deployment when ready)
-  10. ⏳ Future: Expand test coverage (3/19 JavaScript files tested, 16% coverage)
+  10. ✅ **COMPLETED: PostgreSQL Migration Phase 7 - AWS RDS Infrastructure (Planned Work Item #3)**
+     - **Status**: Infrastructure deployed, RDS available, monitoring active
+     - **Branch**: feature/aws-infrastructure-setup (ready to merge)
+     - **Progress**: 5/7 steps complete (71%)
+     - **Achievements**:
+       - ✅ Created 21 Infrastructure as Code bash scripts
+       - ✅ Deployed VPC (10.0.0.0/16, 2 AZs, 4 subnets)
+       - ✅ Deployed Security Groups (RDS, Bastion, Backend)
+       - ✅ Deployed AWS Secrets Manager (32-char auto-generated password)
+       - ✅ Deployed RDS PostgreSQL 16.x (db.t4g.small, 20 GB gp3)
+       - ✅ Deployed CloudWatch monitoring (4 alarms, email confirmed)
+       - ✅ Tested all destroy/create cycles - all validated
+     - **RDS Endpoint**: startupwebapp-multi-tenant-prod.cqbgoe8omhyh.us-east-1.rds.amazonaws.com:5432
+     - **Monthly Cost**: $29 (RDS: $26, Monitoring: $2, CloudWatch: $1)
+     - **Cost Savings**: Skipped NAT Gateway (saved $32/month, 52% reduction)
+     - **Timeline**: Completed in ~7 hours
+     - **Documentation**: docs/technical-notes/2025-11-19-aws-rds-deployment-plan.md
+     - **Next**: Phase 8 (Database setup and Django deployment)
+  11. ⏳ Future: Expand test coverage (3/19 JavaScript files tested, 16% coverage)
