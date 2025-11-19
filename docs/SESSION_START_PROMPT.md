@@ -190,6 +190,15 @@ Hi Claude. I want to continue working on these two repositories together:
   - Backend server: `docker-compose exec -d backend python manage.py runserver 0.0.0.0:8000`
   - Custom bridge network: "startupwebapp" (enables inter-service communication)
 
+  **AWS Infrastructure Management:**
+  - **CRITICAL WORKFLOW RULE**: All AWS infrastructure scripts (`scripts/infra/*.sh`) will be executed manually in separate terminal windows
+  - **DO NOT run infrastructure scripts within Claude Code chat sessions**
+  - Infrastructure scripts directory: `scripts/infra/`
+  - Scripts are idempotent and safe to run multiple times
+  - Naming convention: `create-*.sh` for provisioning, `destroy-*.sh` for teardown
+  - Resource IDs tracked in: `scripts/infra/aws-resources.env`
+  - AWS CLI configured (region: us-east-1, IAM user: startupwebapp-admin)
+
   **Documentation Requirements:**
   - Every commit MUST include updated documentation
   - Key doc files: `docs/PROJECT_HISTORY.md`, `README.md`
