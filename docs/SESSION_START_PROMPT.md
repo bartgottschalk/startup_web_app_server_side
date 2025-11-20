@@ -33,12 +33,34 @@ Hi Claude. I want to continue working on these two repositories together:
   - CSRF token bug fix: ✅ Completed - 100% test pass rate - November 16, 2025
   - PostgreSQL migration Phase 1: ✅ Completed - FloatField→DecimalField conversion - November 17, 2025
   - PostgreSQL migration Phases 2-5: ✅ Completed - Multi-tenant Docker setup - November 18, 2025
+  - AWS RDS Infrastructure Phase 7: ✅ Completed - VPC, RDS, Secrets Manager, CloudWatch - November 19, 2025
+  - AWS RDS Django Integration Phase 8: ✅ Completed - Production settings with Secrets Manager - November 20, 2025
   - Test suite: 740/740 tests passing (712 unit + 28 functional) with PostgreSQL - 100% pass rate
+  - AWS Infrastructure: Deployed (71% complete, 5/7 steps) - $29/month
   - PostgreSQL migration fully merged to master (PR #32) - November 19, 2025
   - Master branch is clean, all feature branches merged and cleaned up
   - Both repositories cloned to: ~/Projects/WebApps/StartUpWebApp/startup_web_app_server_side and ~/Projects/WebApps/StartUpWebApp/startup_web_app_client_side
 
   **Recent Completed Work:**
+  - **AWS RDS Django Integration Phase 8 (November 20, 2025)**: Production Settings with Secrets Manager
+    - Created settings_production.py: Retrieves ALL secrets from AWS Secrets Manager
+    - Database credentials + Django SECRET_KEY + Stripe keys + Email SMTP
+    - Updated create-secrets.sh: Auto-generates Django SECRET_KEY (50 chars)
+    - Updated destroy-secrets.sh: Enhanced warnings for expanded secret structure
+    - Created test-rds-connection.py: AWS RDS connectivity validation
+    - Added boto3==1.35.76 for AWS SDK integration
+    - Infrastructure tested: Full destroy→create cycle successful
+    - All 712 unit tests passing, zero linting errors
+    - Security: Zero hardcoded credentials, all secrets in AWS Secrets Manager
+    - Technical documentation: docs/technical-notes/2025-11-20-aws-rds-django-integration.md
+  - **AWS RDS Infrastructure Phase 7 (November 19, 2025)**: Infrastructure as Code Complete
+    - Created 21 AWS infrastructure scripts for deployment automation
+    - VPC with public/private subnets, security groups, RDS PostgreSQL 16
+    - AWS Secrets Manager for credential management
+    - CloudWatch monitoring with 4 alarms + SNS email alerts
+    - Cost optimization: $29/month (saved $32/month by skipping NAT Gateway)
+    - Deployment status: 71% complete (5/7 steps), ready for database creation
+    - Technical documentation: docs/technical-notes/2025-11-19-aws-rds-deployment-plan.md
   - **PostgreSQL Migration Phases 2-5 (November 18, 2025)**: Multi-Tenant Docker Setup - Production Ready
     - Phase 2: Docker PostgreSQL 16-alpine with multi-database support (startupwebapp_dev, healthtech_dev, fintech_dev)
     - Phase 3: Environment-based database selection with connection pooling (CONN_MAX_AGE=600)
@@ -178,10 +200,11 @@ Hi Claude. I want to continue working on these two repositories together:
   - Coverage analysis: `coverage run --source='.' manage.py test && coverage report`
 
   **Code Quality (Linting) - Run before committing:**
-  - Backend Python linting:
+  - Backend Python linting (Django apps and StartupWebApp directory):
     ```bash
     docker-compose exec backend flake8 user order clientevent StartupWebApp --max-line-length=120 --statistics
     ```
+  - **Note**: Infrastructure scripts in `scripts/infra/` are NOT mounted in Docker and don't need linting (they're deployment tools, not app code)
   - Frontend JavaScript linting (requires Node.js on host):
     ```bash
     cd ~/Projects/WebApps/StartUpWebApp/startup_web_app_client_side
@@ -350,11 +373,19 @@ Hi Claude. I want to continue working on these two repositories together:
          - Tested all destroy/create cycles - all validated successfully
          - Monthly cost: $29 (saved $32/month by skipping NAT Gateway)
          - Technical doc: docs/technical-notes/2025-11-19-aws-rds-deployment-plan.md
-       - ⏳ Phase 8: Database Setup & Django Deployment (next step)
-         - Set up multi-tenant databases via AWS Systems Manager Session Manager
-         - Update Django settings for AWS RDS connection
-         - Run migrations on AWS RDS PostgreSQL
-         - Deploy backend application to AWS
+       - ✅ Phase 8: Django Production Settings (COMPLETE - November 20, 2025)
+         - Created settings_production.py with AWS Secrets Manager integration
+         - All secrets retrieved from Secrets Manager (DB, Django SECRET_KEY, Stripe, Email)
+         - Updated infrastructure scripts with expanded secret structure
+         - Added boto3==1.35.76 for AWS SDK
+         - All 712 tests passing, zero linting errors
+         - Technical doc: docs/technical-notes/2025-11-20-aws-rds-django-integration.md
+       - ⏳ Phase 9: Database Creation & Django Deployment (next step)
+         - Update Stripe and Email credentials in AWS Secrets Manager
+         - Create multi-tenant databases on AWS RDS (manual via bastion/tunnel)
+         - Run Django migrations on AWS RDS PostgreSQL
+         - Test full application against AWS RDS
+         - Deploy backend application to AWS (ECS or EC2)
      - **Database Naming**: Removed legacy `rg_` prefix → `startupwebapp_prod` (production)
      - **Local Setup**: 3 databases (startupwebapp_dev, healthtech_dev, fintech_dev)
      - **Production Setup**: 3 databases (startupwebapp_prod, healthtech_experiment, fintech_experiment)
