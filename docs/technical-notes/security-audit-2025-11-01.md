@@ -36,11 +36,13 @@ A comprehensive security audit was performed on the StartupWebApp backend. The a
 
 **Finding**:
 ```yaml
-EMAIL_HOST_USER = 'AKIAJOVIUIENKNYU56ZA'  # AWS IAM key
-EMAIL_HOST_PASSWORD = 'BBlkKh47UslsZxbarkx666TSC7wkpYMLCZXdsxwxsck4'
-STRIPE_SERVER_SECRET_KEY = 'sk_test_O9l7Y5jpB3OpYQrtinEwjYhB'
-STRIPE_PUBLISHABLE_SECRET_KEY = 'pk_test_9dMmGoPijqBpKLrIX4hq8XAG'
+EMAIL_HOST_USER = 'AKIA...[REDACTED]'  # AWS IAM key (dead credential)
+EMAIL_HOST_PASSWORD = '[REDACTED]'  # (dead credential)
+STRIPE_SERVER_SECRET_KEY = 'sk_test_...[REDACTED]'  # (dead credential)
+STRIPE_PUBLISHABLE_SECRET_KEY = 'pk_test_...[REDACTED]'  # (dead credential)
 ```
+
+**Note**: Credentials were confirmed dead on 2025-11-01 and have been redacted from documentation as of 2025-11-20.
 
 **Risk**: Low - Credentials confirmed dead and accounts deleted  
 **Impact**: Historical exposure only, no current security risk  
