@@ -178,7 +178,7 @@ Now that we have a verified "known working" baseline, we can proceed with upgrad
 To verify this baseline state in the future:
 
 ```bash
-cd /Users/bartgottschalk/Projects/startup_web_app_server_side
+cd /Users/bartgottschalk/Projects/WebApps/StartUpWebApp/startup_web_app_server_side
 source venv/bin/activate
 cd StartupWebApp
 python manage.py test user order clientevent

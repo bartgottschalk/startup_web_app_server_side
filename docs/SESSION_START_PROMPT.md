@@ -8,6 +8,14 @@ Hi Claude. I want to continue working on these two repositories together:
   - Backend: https://github.com/bartgottschalk/startup_web_app_server_side
   - Frontend: https://github.com/bartgottschalk/startup_web_app_client_side
 
+  ## Repository Location
+
+  - Projects directory: `~/Projects/WebApps/`
+  - This directory contains multiple projects:
+    - `StartUpWebApp/` - This project (startup_web_app_server_side and startup_web_app_client_side)
+    - `RefrigeratorGames/` - Separate project
+  - Current working directory: `~/Projects/WebApps/StartUpWebApp/startup_web_app_server_side`
+
   ## Repository Context
 
   **Tech Stack:**
@@ -28,7 +36,7 @@ Hi Claude. I want to continue working on these two repositories together:
   - Test suite: 740/740 tests passing (712 unit + 28 functional) with PostgreSQL - 100% pass rate
   - PostgreSQL migration fully merged to master (PR #32) - November 19, 2025
   - Master branch is clean, all feature branches merged and cleaned up
-  - Both repositories cloned to: ~/Projects/startup_web_app_server_side and ~/Projects/startup_web_app_client_side
+  - Both repositories cloned to: ~/Projects/WebApps/StartUpWebApp/startup_web_app_server_side and ~/Projects/WebApps/StartUpWebApp/startup_web_app_client_side
 
   **Recent Completed Work:**
   - **PostgreSQL Migration Phases 2-5 (November 18, 2025)**: Multi-Tenant Docker Setup - Production Ready
@@ -176,7 +184,7 @@ Hi Claude. I want to continue working on these two repositories together:
     ```
   - Frontend JavaScript linting (requires Node.js on host):
     ```bash
-    cd ~/Projects/startup_web_app_client_side
+    cd ~/Projects/WebApps/StartUpWebApp/startup_web_app_client_side
     npx eslint js/**/*.js --ignore-pattern "js/jquery/**"
     ```
   - IMPORTANT: Run linting alongside unit and functional tests to catch code quality issues early

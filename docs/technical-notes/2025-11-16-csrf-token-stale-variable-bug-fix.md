@@ -225,7 +225,7 @@ Result: 10/10 successful (100%)
 
 **ESLint**: ✅ 0 errors, 0 warnings
 ```bash
-cd ~/Projects/startup_web_app_client_side
+cd ~/Projects/WebApps/StartUpWebApp/startup_web_app_client_side
 npx eslint js/**/*.js --ignore-pattern "js/jquery/**"
 ```
 
