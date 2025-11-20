@@ -19,8 +19,8 @@ env:
 
       ENVIRONMENT_DOMAIN = 'http://localhost.startupwebapp.com'
 
-      EMAIL_HOST_USER = 'AKIAJOVIUIENKNYU56ZA'
-      EMAIL_HOST_PASSWORD = 'BBlkKh47UslsZxbarkx666TSC7wkpYMLCZXdsxwxsck4'
+      EMAIL_HOST_USER = 'REPLACE_WITH_TEST_EMAIL_USER'
+      EMAIL_HOST_PASSWORD = 'REPLACE_WITH_TEST_EMAIL_PASSWORD'
 
       DATABASES = {
           'default': {
@@ -32,8 +32,8 @@ env:
           }
       }
 
-      STRIPE_SERVER_SECRET_KEY = 'sk_test_O9l7Y5jpB3OpYQrtinEwjYhB'
-      STRIPE_PUBLISHABLE_SECRET_KEY = 'pk_test_9dMmGoPijqBpKLrIX4hq8XAG'
+      STRIPE_SERVER_SECRET_KEY = 'sk_test_REPLACE_WITH_TEST_KEY'
+      STRIPE_PUBLISHABLE_SECRET_KEY = 'pk_test_REPLACE_WITH_TEST_KEY'
       STRIPE_LOG_LEVEL = 'debug'
 
       # CORS Config
