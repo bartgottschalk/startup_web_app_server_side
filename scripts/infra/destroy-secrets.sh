@@ -1,9 +1,15 @@
 #!/bin/bash
 
 ##############################################################################
-# Destroy AWS Secrets Manager Secret for RDS Credentials
+# Destroy AWS Secrets Manager Secret for Production Application
 #
-# This script deletes the secret (with a 30-day recovery window)
+# This script deletes the secret containing ALL production credentials:
+# - Database credentials (username, password, host, port)
+# - Django SECRET_KEY
+# - Stripe API keys
+# - Email credentials
+#
+# The secret is scheduled for deletion with a 30-day recovery window.
 #
 # Usage: ./scripts/infra/destroy-secrets.sh
 #
@@ -41,8 +47,9 @@ fi
 source "$ENV_FILE"
 
 # Confirm destruction
-echo -e "${RED}WARNING: This will schedule the secret for deletion!${NC}"
+echo -e "${RED}WARNING: This will schedule ALL production secrets for deletion!${NC}"
 echo -e "${YELLOW}Secret: ${DB_SECRET_NAME}${NC}"
+echo -e "${YELLOW}Contains: Database, Django SECRET_KEY, Stripe, Email credentials${NC}"
 echo -e "${YELLOW}Recovery window: 30 days${NC}"
 echo ""
 read -p "Are you sure you want to continue? (type 'yes' to confirm): " confirm
