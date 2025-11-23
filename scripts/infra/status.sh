@@ -164,6 +164,34 @@ else
 fi
 echo ""
 
+# Optional: Bastion Host
+echo -e "${CYAN}Optional: Bastion Host (for database access)${NC}"
+if [ -n "${BASTION_INSTANCE_ID:-}" ]; then
+    BASTION_STATUS=$(aws ec2 describe-instances \
+        --instance-ids "$BASTION_INSTANCE_ID" \
+        --query 'Reservations[0].Instances[0].State.Name' \
+        --output text 2>/dev/null || echo "not-found")
+
+    if [ "$BASTION_STATUS" != "not-found" ]; then
+        echo -e "  ${GREEN}✓ CREATED${NC} - Bastion host ${BASTION_STATUS}"
+        echo -e "  ${YELLOW}   Instance ID: ${BASTION_INSTANCE_ID}${NC}"
+        echo -e "  ${YELLOW}   Connect: aws ssm start-session --target ${BASTION_INSTANCE_ID}${NC}"
+        echo -e "  ${YELLOW}   Cost: ~\$7/month running, ~\$1/month stopped${NC}"
+    else
+        echo -e "  ${YELLOW}⚠ Instance not found (may be terminated)${NC}"
+        echo -e "  ${YELLOW}   Create new: ./scripts/infra/create-bastion.sh${NC}"
+    fi
+elif [ -n "${RDS_ENDPOINT:-}" ]; then
+    echo -e "  ${YELLOW}⚠ NOT CREATED${NC} (optional but recommended)"
+    echo -e "  ${YELLOW}→ To create: ./scripts/infra/create-bastion.sh${NC}"
+    echo -e "  ${YELLOW}   Needed for: Direct database access (Step 5)${NC}"
+    echo -e "  ${YELLOW}   Cost: ~\$7/month running, ~\$1/month stopped${NC}"
+    echo -e "  ${YELLOW}   Alternative: SSH tunnel from EC2 or local machine${NC}"
+else
+    echo -e "  ${RED}✗ BLOCKED${NC} - Requires RDS (Step 4)"
+fi
+echo ""
+
 # Step 5: Multi-Tenant Databases
 echo -e "${CYAN}Step 5/7: Multi-Tenant Databases${NC}"
 if [ -n "${RDS_ENDPOINT:-}" ]; then
@@ -280,6 +308,19 @@ if [ $COMPLETED_STEPS -gt 0 ]; then
         echo -e "  RDS db.t4g.small:     ~\$26/month"
         echo -e "  Enhanced Monitoring:  ~\$2/month"
         TOTAL_COST=$((TOTAL_COST + 28))
+    fi
+    if [ -n "${BASTION_INSTANCE_ID:-}" ]; then
+        BASTION_STATUS=$(aws ec2 describe-instances \
+            --instance-ids "$BASTION_INSTANCE_ID" \
+            --query 'Reservations[0].Instances[0].State.Name' \
+            --output text 2>/dev/null || echo "not-found")
+        if [ "$BASTION_STATUS" == "running" ]; then
+            echo -e "  Bastion t3.micro:     ~\$7/month (stop when not in use)"
+            TOTAL_COST=$((TOTAL_COST + 7))
+        elif [ "$BASTION_STATUS" == "stopped" ]; then
+            echo -e "  Bastion (stopped):    ~\$1/month (EBS storage only)"
+            TOTAL_COST=$((TOTAL_COST + 1))
+        fi
     fi
     if [ -n "${SNS_TOPIC_ARN:-}" ]; then
         echo -e "  CloudWatch/SNS:       ~\$1/month"

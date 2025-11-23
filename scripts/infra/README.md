@@ -90,6 +90,9 @@ scripts/infra/
 ├── create-rds.sh                    # Create RDS PostgreSQL instance
 ├── destroy-rds.sh                   # Delete RDS instance
 │
+├── create-bastion.sh                # Create bastion host (optional, for database access)
+├── destroy-bastion.sh               # Delete bastion host
+│
 ├── create-databases.sh              # Create multi-tenant databases
 │
 ├── create-monitoring.sh             # Create CloudWatch monitoring
@@ -138,13 +141,16 @@ Execute scripts in this order:
 # 4. Create RDS PostgreSQL instance (10-15 minutes)
 ./scripts/infra/create-rds.sh
 
-# 5. Create multi-tenant databases (manual - requires bastion/tunnel)
+# 5. (Optional) Create bastion host for database access (5 minutes)
+./scripts/infra/create-bastion.sh
+
+# 6. Create multi-tenant databases (manual - requires bastion or SSM)
 ./scripts/infra/create-databases.sh
 
-# 6. Create CloudWatch monitoring (2 minutes)
+# 7. Create CloudWatch monitoring (2 minutes)
 ./scripts/infra/create-monitoring.sh your-email@domain.com
 
-# 7. Show all resources
+# 8. Show all resources
 ./scripts/infra/show-resources.sh
 ```
 
@@ -158,16 +164,19 @@ Execute scripts in reverse order:
 # 1. Destroy monitoring
 ./scripts/infra/destroy-monitoring.sh
 
-# 2. Destroy RDS instance (5-10 minutes)
+# 2. (Optional) Destroy bastion host
+./scripts/infra/destroy-bastion.sh
+
+# 3. Destroy RDS instance (5-10 minutes)
 ./scripts/infra/destroy-rds.sh
 
-# 3. Destroy secret (30-day recovery window)
+# 4. Destroy secret (30-day recovery window)
 ./scripts/infra/destroy-secrets.sh
 
-# 4. Destroy security groups
+# 5. Destroy security groups
 ./scripts/infra/destroy-security-groups.sh
 
-# 5. Destroy VPC (5-10 minutes)
+# 6. Destroy VPC (5-10 minutes)
 ./scripts/infra/destroy-vpc.sh
 ```
 
@@ -239,6 +248,33 @@ Creates RDS PostgreSQL instance:
 **Post-creation:**
 - Updates Secrets Manager with actual RDS endpoint
 - Outputs connection information
+
+### create-bastion.sh
+
+Creates a bastion host (EC2 instance) for secure database access:
+- Instance: t3.micro (1 vCPU, 1 GB RAM)
+- Location: Public subnet with public IP address
+- OS: Amazon Linux 2023 with PostgreSQL client pre-installed
+- Access: AWS Systems Manager Session Manager (no SSH keys required)
+- Security: IAM instance profile with SSM permissions
+- Tools: psql, jq, aws-cli pre-configured
+
+**Time:** ~5 minutes
+
+**Optional:** Only needed if you want a dedicated bastion host for database operations. Alternative approaches:
+- Launch temporary EC2 instance as needed
+- Use AWS CloudShell with port forwarding
+- Connect from your backend application
+
+**Cost:**
+- Running: ~$7/month (t3.micro 24/7)
+- Stopped: ~$1/month (EBS storage only)
+- **Tip:** Stop when not in use to save ~$6/month
+
+**Post-creation:**
+- Connect via: `aws ssm start-session --target <instance-id>`
+- Already configured with RDS endpoint and credentials access
+- Ready for database operations immediately
 
 ### create-databases.sh
 
@@ -515,11 +551,34 @@ PostgreSQL logs exported to CloudWatch Logs:
 
 ## Database Connection
 
-### Via AWS Systems Manager Session Manager (Recommended)
+### Option 1: Via Bastion Host (Recommended - Using create-bastion.sh)
 
-**This is the recommended approach - no bastion host needed, no SSH keys, free service.**
+**Use this approach if you've created a bastion host using `create-bastion.sh`:**
 
-This will be covered in detail when you reach Step 5 (create-databases.sh). The general approach:
+```bash
+# Connect to bastion via AWS Systems Manager Session Manager (no SSH keys needed)
+aws ssm start-session --target <BASTION_INSTANCE_ID>
+
+# Once connected, retrieve RDS password
+aws secretsmanager get-secret-value \
+  --secret-id rds/startupwebapp/multi-tenant/master \
+  --query 'SecretString' \
+  --output text | jq -r '.password'
+
+# Connect to RDS
+psql -h <RDS_ENDPOINT> -U postgres -d postgres
+```
+
+**Benefits:**
+- Persistent bastion host available whenever needed
+- Pre-configured with all necessary tools (psql, jq, aws-cli)
+- No SSH key management (uses AWS Systems Manager)
+- IAM-based access control
+- Can be stopped when not in use (~$1/month vs ~$7/month running)
+
+### Option 2: Via Temporary EC2 Instance
+
+**Use this approach if you don't want a persistent bastion host:**
 
 1. Launch a temporary EC2 instance in a public subnet with Systems Manager enabled
 2. Use Session Manager to connect (browser-based or AWS CLI)
@@ -529,23 +588,13 @@ This will be covered in detail when you reach Step 5 (create-databases.sh). The 
 6. Terminate EC2 instance when done
 
 **Benefits:**
-- No SSH key management
-- No bastion host to maintain
-- IAM-based access control
-- Session logging for audit
-- Free service (only pay for temporary EC2 time)
+- No persistent infrastructure to maintain
+- Only pay for temporary EC2 time (pennies per hour)
+- Same security benefits as bastion (no SSH keys, IAM-based)
 
-### Alternative: From Bastion Host (if you have one)
+### Option 3: Via SSH Tunnel from Local Machine
 
-```bash
-# SSH to bastion
-ssh -i key.pem ec2-user@bastion-host
-
-# Connect to RDS
-psql -h <RDS_ENDPOINT> -U django_app -d startupwebapp_prod
-```
-
-### Alternative: Via SSH Tunnel (from local machine)
+**Only available if you have SSH access configured to bastion:**
 
 ```bash
 # Create SSH tunnel through bastion
@@ -554,6 +603,8 @@ ssh -i key.pem -L 5432:<RDS_ENDPOINT>:5432 ec2-user@bastion-host
 # Connect via localhost (in another terminal)
 psql -h localhost -U django_app -d startupwebapp_prod
 ```
+
+**Note:** The bastion created by `create-bastion.sh` does NOT use SSH keys - it uses AWS Systems Manager Session Manager instead.
 
 ### Get Credentials
 

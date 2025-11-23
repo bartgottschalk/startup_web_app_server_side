@@ -253,6 +253,8 @@ DATABASES = {
     "engine": "postgresql",
     "host": "startupwebapp-multi-tenant-prod.xxxxxx.us-east-1.rds.amazonaws.com",
     "port": 5432,
+    "master_username": "postgres",
+    "master_password": "GENERATED_STRONG_PASSWORD_32_CHARS",
     "username": "django_app",
     "password": "GENERATED_STRONG_PASSWORD_32_CHARS",
     "dbClusterIdentifier": "startupwebapp-multi-tenant-prod"
@@ -264,6 +266,8 @@ DATABASES = {
   ]
 }
 ```
+
+**Note**: Separate passwords for master (postgres) and application (django_app) users following the principle of least privilege.
 
 **Secret Rotation:**
 - **Enable automatic rotation**: No initially
@@ -419,6 +423,7 @@ aws ec2 authorize-security-group-ingress \
 **Create Secret:**
 ```bash
 # Store RDS credentials in Secrets Manager
+# Note: Use ./scripts/infra/create-secrets.sh instead - it generates secure passwords
 aws secretsmanager create-secret \
   --name rds/startupwebapp/multi-tenant/master \
   --description "PostgreSQL credentials for multi-tenant RDS" \
@@ -426,8 +431,10 @@ aws secretsmanager create-secret \
     "engine": "postgresql",
     "host": "startupwebapp-multi-tenant-prod.xxxxxx.us-east-1.rds.amazonaws.com",
     "port": 5432,
+    "master_username": "postgres",
+    "master_password": "GENERATED_STRONG_PASSWORD_32_CHARS",
     "username": "django_app",
-    "password": "GENERATED_STRONG_PASSWORD"
+    "password": "GENERATED_STRONG_PASSWORD_32_CHARS"
   }' \
   --tags Key=Environment,Value=Production Key=Application,Value=StartupWebApp
 

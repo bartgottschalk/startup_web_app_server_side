@@ -4,7 +4,8 @@
 # Destroy AWS Secrets Manager Secret for Production Application
 #
 # This script deletes the secret containing ALL production credentials:
-# - Database credentials (username, password, host, port)
+# - Database Master credentials (postgres username, password)
+# - Database App credentials (django_app username, password)
 # - Django SECRET_KEY
 # - Stripe API keys
 # - Email credentials

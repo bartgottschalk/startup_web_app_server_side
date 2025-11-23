@@ -4,10 +4,14 @@
 # Create AWS Secrets Manager Secret for Production Application
 #
 # This script creates a secret to store ALL production credentials:
-# - Database: username, password, host, port
+# - Database Master: username (postgres), password (auto-generated 32 chars)
+# - Database App: username (django_app), password (auto-generated 32 chars)
 # - Django: SECRET_KEY (auto-generated 50 characters)
 # - Stripe: secret_key, publishable_key (placeholders - must update manually)
 # - Email: host, port, user, password (placeholders - must update manually)
+#
+# Security: Separate passwords for master (admin) and application users
+# following the principle of least privilege.
 #
 # Usage: ./scripts/infra/create-secrets.sh
 #
@@ -56,9 +60,11 @@ fi
 
 # Generate secure random credentials
 echo -e "${YELLOW}Generating secure credentials...${NC}"
-DB_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=' | head -c 32)
+MASTER_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=' | head -c 32)
+APP_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=' | head -c 32)
 DJANGO_SECRET_KEY=$(openssl rand -base64 64 | tr -d '/+=' | head -c 50)
-echo -e "${GREEN}✓ Database password generated (32 characters)${NC}"
+echo -e "${GREEN}✓ Master password generated (32 characters)${NC}"
+echo -e "${GREEN}✓ Application password generated (32 characters)${NC}"
 echo -e "${GREEN}✓ Django SECRET_KEY generated (50 characters)${NC}"
 
 # Create secret with ALL production credentials
@@ -70,8 +76,10 @@ DB_SECRET_ARN=$(aws secretsmanager create-secret \
         \"engine\": \"postgresql\",
         \"host\": \"PLACEHOLDER_WILL_BE_UPDATED_AFTER_RDS_CREATION\",
         \"port\": 5432,
+        \"master_username\": \"postgres\",
+        \"master_password\": \"${MASTER_PASSWORD}\",
         \"username\": \"django_app\",
-        \"password\": \"${DB_PASSWORD}\",
+        \"password\": \"${APP_PASSWORD}\",
         \"dbClusterIdentifier\": \"${RDS_INSTANCE_ID}\",
         \"django_secret_key\": \"${DJANGO_SECRET_KEY}\",
         \"stripe_secret_key\": \"sk_live_PLACEHOLDER_UPDATE_WITH_REAL_KEY\",
@@ -108,8 +116,10 @@ echo -e "  Secret Name:         ${DB_SECRET_NAME}"
 echo -e "  Secret ARN:          ${DB_SECRET_ARN}"
 echo ""
 echo -e "${GREEN}Auto-Generated (Secure):${NC}"
-echo -e "  DB Username:         django_app"
-echo -e "  DB Password:         [HIDDEN - 32 chars, stored in Secrets Manager]"
+echo -e "  Master Username:     postgres"
+echo -e "  Master Password:     [HIDDEN - 32 chars, stored in Secrets Manager]"
+echo -e "  App Username:        django_app"
+echo -e "  App Password:        [HIDDEN - 32 chars, stored in Secrets Manager]"
 echo -e "  Django SECRET_KEY:   [HIDDEN - 50 chars, stored in Secrets Manager]"
 echo ""
 echo -e "${YELLOW}Placeholders (Must Update Manually):${NC}"
