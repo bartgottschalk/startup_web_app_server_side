@@ -39,7 +39,7 @@ Hi Claude. I want to continue working on these two repositories together:
   - Test suite: 740/740 tests passing (712 unit + 28 functional) with PostgreSQL - 100% pass rate
   - AWS Infrastructure: Deployed (86% complete, 6/7 steps) - $36/month ($30 with bastion stopped)
   - PostgreSQL migration fully merged to master (PR #32) - November 19, 2025
-  - Branch: feature/phase-9-aws-rds-deployment (ready to merge after password rotation)
+  - Branch: feature/phase-9-aws-rds-deployment (security improvements in progress)
   - Both repositories cloned to: ~/Projects/WebApps/StartUpWebApp/startup_web_app_server_side and ~/Projects/WebApps/StartUpWebApp/startup_web_app_client_side
 
   **Recent Completed Work:**
@@ -53,18 +53,19 @@ Hi Claude. I want to continue working on these two repositories together:
     - Updated infrastructure scripts: status.sh and show-resources.sh with bastion support
     - Deployment progress: 6/7 steps complete (86%)
     - Cost: $36/month with bastion running, $30/month with bastion stopped
-    - Security note: Database password requires rotation (exposed during troubleshooting)
-    - Technical documentation: docs/technical-notes/2025-11-22-phase-9-bastion-troubleshooting.md (to be created)
+    - Security improvements: Implemented separate master and application database passwords (principle of least privilege)
+    - Technical documentation: docs/technical-notes/2025-11-22-phase-9-bastion-troubleshooting.md
   - **AWS RDS Django Integration Phase 8 (November 20, 2025)**: Production Settings with Secrets Manager
     - Created settings_production.py: Retrieves ALL secrets from AWS Secrets Manager
     - Database credentials + Django SECRET_KEY + Stripe keys + Email SMTP
-    - Updated create-secrets.sh: Auto-generates Django SECRET_KEY (50 chars)
+    - Updated create-secrets.sh: Auto-generates separate master and application passwords (32 chars each) + Django SECRET_KEY (50 chars)
+    - Security architecture: Separate passwords for master (postgres admin) and application (django_app) users
     - Updated destroy-secrets.sh: Enhanced warnings for expanded secret structure
     - Created test-rds-connection.py: AWS RDS connectivity validation
     - Added boto3==1.35.76 for AWS SDK integration
     - Infrastructure tested: Full destroy→create cycle successful
     - All 712 unit tests passing, zero linting errors
-    - Security: Zero hardcoded credentials, all secrets in AWS Secrets Manager
+    - Security: Zero hardcoded credentials, all secrets in AWS Secrets Manager, principle of least privilege
     - Technical documentation: docs/technical-notes/2025-11-20-aws-rds-django-integration.md
   - **AWS RDS Infrastructure Phase 7 (November 19, 2025)**: Infrastructure as Code Complete
     - Created 21 AWS infrastructure scripts for deployment automation
@@ -390,15 +391,19 @@ Hi Claude. I want to continue working on these two repositories together:
          - Created settings_production.py with AWS Secrets Manager integration
          - All secrets retrieved from Secrets Manager (DB, Django SECRET_KEY, Stripe, Email)
          - Updated infrastructure scripts with expanded secret structure
+         - Security: Separate master (postgres) and application (django_app) passwords
          - Added boto3==1.35.76 for AWS SDK
          - All 712 tests passing, zero linting errors
          - Technical doc: docs/technical-notes/2025-11-20-aws-rds-django-integration.md
-       - ⏳ Phase 9: Database Creation & Django Deployment (next step)
-         - Update Stripe and Email credentials in AWS Secrets Manager
-         - Create multi-tenant databases on AWS RDS (manual via bastion/tunnel)
-         - Run Django migrations on AWS RDS PostgreSQL
-         - Test full application against AWS RDS
-         - Deploy backend application to AWS (ECS or EC2)
+       - ⏳ Phase 9: Database Creation & Django Deployment (in progress - November 22, 2025)
+         - ✅ Created bastion host infrastructure scripts with SSM access
+         - ✅ Implemented separate master and application database passwords (security improvement)
+         - ⏳ Next: Destroy and recreate infrastructure with new password structure
+         - ⏳ Next: Create 3 multi-tenant databases on AWS RDS
+         - ⏳ Next: Update Stripe and Email credentials in AWS Secrets Manager
+         - ⏳ Next: Run Django migrations on AWS RDS PostgreSQL
+         - ⏳ Next: Test full application against AWS RDS
+         - ⏳ Next: Deploy backend application to AWS (ECS or EC2)
      - **Database Naming**: Removed legacy `rg_` prefix → `startupwebapp_prod` (production)
      - **Local Setup**: 3 databases (startupwebapp_dev, healthtech_dev, fintech_dev)
      - **Production Setup**: 3 databases (startupwebapp_prod, healthtech_experiment, fintech_experiment)
