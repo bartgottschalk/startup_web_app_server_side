@@ -92,13 +92,13 @@ if [ "$RDS_EXISTS" != "None" ]; then
     exit 0
 fi
 
-# Get database password from Secrets Manager
-echo -e "${YELLOW}Retrieving database password from Secrets Manager...${NC}"
+# Get database master password from Secrets Manager
+echo -e "${YELLOW}Retrieving master password from Secrets Manager...${NC}"
 DB_PASSWORD=$(aws secretsmanager get-secret-value \
     --secret-id "$DB_SECRET_NAME" \
     --query 'SecretString' \
-    --output text | jq -r '.password')
-echo -e "${GREEN}✓ Password retrieved${NC}"
+    --output text | jq -r '.master_password')
+echo -e "${GREEN}✓ Master password retrieved${NC}"
 
 # Create IAM role for RDS Enhanced Monitoring (if it doesn't exist)
 echo -e "${YELLOW}Checking for RDS Enhanced Monitoring IAM role...${NC}"
