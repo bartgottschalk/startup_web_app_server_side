@@ -35,25 +35,30 @@ Hi Claude. I want to continue working on these two repositories together:
   - PostgreSQL migration Phases 2-5: ✅ Completed - Multi-tenant Docker setup - November 18, 2025
   - AWS RDS Infrastructure Phase 7: ✅ Completed - VPC, RDS, Secrets Manager, CloudWatch - November 19, 2025
   - AWS RDS Django Integration Phase 8: ✅ Completed - Production settings with Secrets Manager - November 20, 2025
-  - AWS RDS Database Creation Phase 9: ✅ In Progress - Bastion host + multi-tenant databases - November 22, 2025
+  - AWS RDS Database Creation Phase 9: ✅ Completed - Bastion host + multi-tenant databases + bugfix - November 22, 2025
   - Test suite: 740/740 tests passing (712 unit + 28 functional) with PostgreSQL - 100% pass rate
-  - AWS Infrastructure: Deployed (86% complete, 6/7 steps) - $36/month ($30 with bastion stopped)
-  - PostgreSQL migration fully merged to master (PR #32) - November 19, 2025
-  - Branch: feature/phase-9-aws-rds-deployment (security improvements in progress)
+  - AWS Infrastructure: Fully Deployed (100% complete, 7/7 steps) - $36/month ($30 with bastion stopped)
+  - PostgreSQL migration fully merged to master (PR #32, #36, #37) - November 19-22, 2025
+  - Branch: master (all Phase 9 work merged)
   - Both repositories cloned to: ~/Projects/WebApps/StartUpWebApp/startup_web_app_server_side and ~/Projects/WebApps/StartUpWebApp/startup_web_app_client_side
 
   **Recent Completed Work:**
-  - **AWS RDS Database Creation Phase 9 (November 22, 2025)**: Bastion Host & Multi-Tenant Databases
+  - **AWS RDS Database Creation Phase 9 (November 22, 2025)**: Bastion Host & Multi-Tenant Databases - COMPLETE
     - Created bastion host infrastructure scripts (create-bastion.sh, destroy-bastion.sh)
     - Root caused SSM connection issue: Missing public IP address on bastion instance
     - Fixed create-bastion.sh: Added --associate-public-ip-address flag
     - Successfully deployed bastion host (i-0d8d746dd8059de2c) with SSM access
-    - Created 3 multi-tenant databases on AWS RDS: startupwebapp_prod, healthtech_experiment, fintech_experiment
-    - Verified django_app user can connect to all databases
-    - Updated infrastructure scripts: status.sh and show-resources.sh with bastion support
-    - Deployment progress: 6/7 steps complete (86%)
-    - Cost: $36/month with bastion running, $30/month with bastion stopped
     - Security improvements: Implemented separate master and application database passwords (principle of least privilege)
+    - Fixed critical bug in create-rds.sh: Was overwriting entire secret, losing master_password and other fields
+    - Updated create-rds.sh to use jq to preserve all secret fields when updating RDS endpoint
+    - Destroyed and recreated infrastructure with fixed scripts
+    - Created 3 multi-tenant databases on AWS RDS: startupwebapp_prod, healthtech_experiment, fintech_experiment
+    - Verified both postgres (master) and django_app (application) users can connect with separate passwords
+    - Recreated CloudWatch monitoring with alarms and SNS notifications
+    - Updated infrastructure scripts: status.sh and show-resources.sh with bastion support
+    - Deployment progress: 7/7 steps complete (100%)
+    - Cost: $36/month with bastion running, $30/month with bastion stopped
+    - PRs merged: #36 (Phase 9 initial), #37 (bugfix)
     - Technical documentation: docs/technical-notes/2025-11-22-phase-9-bastion-troubleshooting.md
   - **AWS RDS Django Integration Phase 8 (November 20, 2025)**: Production Settings with Secrets Manager
     - Created settings_production.py: Retrieves ALL secrets from AWS Secrets Manager

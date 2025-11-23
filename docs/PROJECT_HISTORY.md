@@ -263,7 +263,7 @@ This document tracks the complete development history and modernization effort f
 - ✅ **Security**: Zero hardcoded credentials, all secrets in AWS Secrets Manager
 - ✅ See [Technical Note](technical-notes/2025-11-20-aws-rds-django-integration.md) for deployment guide
 
-#### Phase 5.13: AWS RDS Database Creation & Bastion Host - Phase 9 (In Progress - 2025-11-22)
+#### Phase 5.13: AWS RDS Database Creation & Bastion Host - Phase 9 (Complete - 2025-11-22)
 - ✅ **Bastion Host Infrastructure Scripts Created**
   - Created `create-bastion.sh`: Deploys t3.micro EC2 instance with SSM access
   - Created `destroy-bastion.sh`: Clean teardown with proper dependency ordering
@@ -292,28 +292,39 @@ This document tracks the complete development history and modernization effort f
   - Updated `show-resources.sh`: Added bastion display with SSM connect command
   - Updated `aws-resources.env.template`: Added BASTION_INSTANCE_ID field
   - Generated `create-databases.sh`: SQL script generator for multi-tenant setup
-- ✅ **Deployment Progress**: 6/7 steps complete (86%)
+- ✅ **Security Improvements: Separate Master and Application Passwords**
+  - Implemented principle of least privilege for database access
+  - Updated `create-secrets.sh`: Generates separate MASTER_PASSWORD and APP_PASSWORD (32 chars each)
+  - Secret structure includes both `master_username/master_password` and `username/password`
+  - postgres (master) and django_app (application) now have different passwords
+- ✅ **Critical Bug Fix: RDS Secret Update**
+  - **Problem**: `create-rds.sh` was overwriting entire secret when updating RDS endpoint
+  - Lost fields: `master_password`, `django_secret_key`, Stripe keys, Email credentials
+  - **Solution**: Updated script to use `jq` to update only `host` field, preserving all others
+  - Fixed in PR #37, infrastructure destroyed and recreated with correct secrets
+- ✅ **Deployment Progress**: 7/7 steps complete (100%)
   - Step 1: VPC and Networking ✅
   - Step 2: Security Groups ✅
-  - Step 3: Secrets Manager ✅
-  - Step 4: RDS PostgreSQL ✅
-  - Step 5: Multi-Tenant Databases ✅ (completed this session)
-  - Optional: Bastion Host ✅ (completed this session)
-  - Step 6: CloudWatch Monitoring ✅ (needs SNS email confirmation)
-  - Step 7: Verification (ready)
+  - Step 3: Secrets Manager ✅ (with separate master/app passwords)
+  - Step 4: RDS PostgreSQL ✅ (using fixed create-rds.sh)
+  - Step 5: Multi-Tenant Databases ✅ (using separate passwords)
+  - Optional: Bastion Host ✅
+  - Step 6: CloudWatch Monitoring ✅ (SNS email confirmed)
+  - Step 7: Verification ✅
 - ✅ **Monthly Infrastructure Cost**: $36 ($29 base + $7 bastion running)
   - Can reduce to $30/month by stopping bastion when not in use
-- ⚠️ **Security Note**: Database password exposed in chat - requires rotation after session
-- ⏳ **Next Steps**:
-  - Rotate AWS Secrets Manager password (security)
-  - Run Django migrations on AWS RDS from local machine
+- ✅ **Pull Requests Merged**:
+  - PR #36: Phase 9 initial deployment (bastion host, separate passwords, documentation)
+  - PR #37: Bugfix for secret preservation in create-rds.sh
+- ✅ **Next Steps**:
+  - Run Django migrations on AWS RDS from local machine or bastion
   - Update production credentials (Stripe keys, Email SMTP)
   - Test full Django application against AWS RDS
 - ✅ See [Deployment Guide](technical-notes/2025-11-21-phase-9-deployment-guide.md) for step-by-step instructions
+- ✅ See [Bastion Troubleshooting](technical-notes/2025-11-22-phase-9-bastion-troubleshooting.md) for SSM connection fix
 
 #### Phase 5.14: Remaining Tasks
-- Complete Phase 9: Run Django migrations on AWS RDS
-- Rotate database credentials (security)
+- Run Django migrations on AWS RDS
 - Prepare containers for AWS deployment (Phase 10)
 - Setup CI/CD pipeline (Phase 11)
 
