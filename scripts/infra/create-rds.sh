@@ -212,16 +212,15 @@ echo -e "${GREEN}✓ RDS Endpoint: ${RDS_ENDPOINT}${NC}"
 
 # Update Secrets Manager with actual RDS endpoint
 echo -e "${YELLOW}Updating Secrets Manager with RDS endpoint...${NC}"
+# Get current secret and update only the host field
+CURRENT_SECRET=$(aws secretsmanager get-secret-value \
+    --secret-id "$DB_SECRET_NAME" \
+    --query 'SecretString' \
+    --output text)
+UPDATED_SECRET=$(echo "$CURRENT_SECRET" | jq --arg host "$RDS_ENDPOINT" '.host = $host')
 aws secretsmanager update-secret \
     --secret-id "$DB_SECRET_NAME" \
-    --secret-string "{
-        \"engine\": \"postgresql\",
-        \"host\": \"${RDS_ENDPOINT}\",
-        \"port\": 5432,
-        \"username\": \"django_app\",
-        \"password\": \"${DB_PASSWORD}\",
-        \"dbClusterIdentifier\": \"${RDS_INSTANCE_ID}\"
-    }" > /dev/null
+    --secret-string "$UPDATED_SECRET" > /dev/null
 echo -e "${GREEN}✓ Secrets Manager updated${NC}"
 
 # Update environment file
