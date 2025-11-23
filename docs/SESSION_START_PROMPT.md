@@ -237,4 +237,4 @@ Every commit MUST include documentation updates:
 
 ---
 
-**Ready to start?** Ask me what you'd like to work on, or I can propose starting Phase 10 (Django migrations on AWS RDS).
+**Ready to start?** Ask me what you'd like to work on, or I can propose continuing Phase 5.14 (ECS Infrastructure, CI/CD, and RDS Migrations).
