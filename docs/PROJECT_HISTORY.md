@@ -323,10 +323,47 @@ This document tracks the complete development history and modernization effort f
 - ✅ See [Deployment Guide](technical-notes/2025-11-21-phase-9-deployment-guide.md) for step-by-step instructions
 - ✅ See [Bastion Troubleshooting](technical-notes/2025-11-22-phase-9-bastion-troubleshooting.md) for SSM connection fix
 
-#### Phase 5.14: Remaining Tasks
-- Run Django migrations on AWS RDS
-- Prepare containers for AWS deployment (Phase 10)
-- Setup CI/CD pipeline (Phase 11)
+#### Phase 5.14: ECS Infrastructure, CI/CD, and RDS Migrations (In Progress - November 23, 2025)
+
+**Status**: 🚧 In Progress
+**Branch**: `feature/phase-5-14-ecs-cicd-migrations`
+**Objective**: Establish production deployment infrastructure with GitHub Actions CI/CD and run Django migrations on AWS RDS
+
+**Approach**: CI/CD-first strategy - validate deployment pipeline with low-risk database migrations before full application deployment
+
+**Key Components**:
+- Multi-stage Dockerfile (development + production targets)
+- AWS ECR for Docker image registry
+- AWS ECS Fargate cluster (serverless containers)
+- GitHub Actions workflow (test → build → push → deploy)
+- ECS task definitions for migrations
+- Automated migrations on all 3 RDS databases (startupwebapp_prod, healthtech_experiment, fintech_experiment)
+
+**Estimated Time**: 6-7 hours
+**Progress**: Documentation complete, ready for implementation
+
+**Decisions Made**:
+- ✅ Multi-stage Dockerfile over separate files
+- ✅ GitHub Actions over AWS CodePipeline
+- ✅ CI/CD setup in Phase 5.14 (not deferred to later phase)
+- ✅ Manual trigger for migrations (safety for database operations)
+- ✅ Automated testing (740 tests) in pipeline before any deployment
+
+See [Phase 5.14 Technical Note](technical-notes/2025-11-23-phase-5-14-ecs-cicd-migrations.md) for detailed implementation plan.
+
+---
+
+#### Phase 5.15: Full Production Deployment (Planned)
+- Deploy long-running ECS service (not just one-time tasks)
+- Application Load Balancer with HTTPS
+- Auto-scaling policies
+- Frontend deployment (S3 + CloudFront)
+- Enhanced monitoring and observability
+
+#### Phase 5.16: Production Hardening (Future)
+- AWS WAF for security
+- Load testing and performance optimization
+- Automated disaster recovery testing
 
 ## Documentation Structure
 
