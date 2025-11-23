@@ -181,7 +181,7 @@ Once you have created your Gmail App-Specific Password (from Step 2.2), create a
   "email_host": "smtp.gmail.com",
   "email_port": 587,
   "email_user": "your-email@mosaicmeshai.com",
-  "email_password": "abcdefghijklmnop"
+  "email_password": "REPLACE_WITH_GMAIL_APP_PASSWORD"
 }
 ```
 
