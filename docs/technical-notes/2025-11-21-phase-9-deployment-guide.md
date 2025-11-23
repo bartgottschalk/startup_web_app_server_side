@@ -43,6 +43,8 @@ aws secretsmanager get-secret-value \
   "engine": "postgresql",
   "host": "startupwebapp-multi-tenant-prod.cqbgoe8omhyh.us-east-1.rds.amazonaws.com",
   "port": 5432,
+  "master_username": "postgres",
+  "master_password": "AUTO_GENERATED_32_CHARS",
   "username": "django_app",
   "password": "AUTO_GENERATED_32_CHARS",
   "dbClusterIdentifier": "startupwebapp-multi-tenant-prod",
@@ -172,8 +174,10 @@ Once you have created your Gmail App-Specific Password (from Step 2.2), create a
   "engine": "postgresql",
   "host": "startupwebapp-multi-tenant-prod.cqbgoe8omhyh.us-east-1.rds.amazonaws.com",
   "port": 5432,
+  "master_username": "postgres",
+  "master_password": "PASTE_EXISTING_MASTER_PASSWORD_FROM_STEP_1",
   "username": "django_app",
-  "password": "PASTE_EXISTING_PASSWORD_FROM_STEP_1",
+  "password": "PASTE_EXISTING_APP_PASSWORD_FROM_STEP_1",
   "dbClusterIdentifier": "startupwebapp-multi-tenant-prod",
   "django_secret_key": "PASTE_EXISTING_SECRET_KEY_FROM_STEP_1",
   "stripe_secret_key": "sk_test_placeholder_no_stripe_account_yet",
@@ -186,7 +190,8 @@ Once you have created your Gmail App-Specific Password (from Step 2.2), create a
 ```
 
 **Important**:
-- Keep the existing `password` and `django_secret_key` values from Step 1 (don't change these!)
+- Keep BOTH existing passwords (`master_password` and `password`) and `django_secret_key` from Step 1
+- **Security**: master_password is for postgres admin, password is for django_app (different passwords!)
 - **Stripe keys**: Use placeholder test keys for now (we don't have a Stripe account yet)
 - **Email host**: `smtp.gmail.com` for Gmail
 - **Email port**: `587` for TLS
