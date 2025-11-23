@@ -540,11 +540,47 @@ chmod +x scripts/infra/destroy-ecr.sh
 
 *(Bastion can be stopped when not in use: $30/month)*
 
+## Progress Tracking
+
+### Step 1: Multi-Stage Dockerfile ✅ COMPLETE (November 23, 2025)
+
+**Completed Tasks:**
+- ✅ Added gunicorn==21.2.0 to requirements.txt
+- ✅ Created multi-stage Dockerfile (base → development → production)
+- ✅ Enhanced .dockerignore with AWS/infrastructure exclusions
+- ✅ Built and tested development image (1.69 GB)
+- ✅ Built and tested production image (692 MB, 59% smaller)
+- ✅ Verified development image has Firefox/geckodriver
+- ✅ Verified production image has gunicorn, no test tools
+
+**Test Results:**
+```
+Development Image: 1.69 GB
+- Python 3.12.12 ✓
+- Django 4.2.16 ✓
+- Firefox ESR ✓
+- Geckodriver ✓
+
+Production Image: 692 MB (59% reduction)
+- Python 3.12.12 ✓
+- Django 4.2.16 ✓
+- Gunicorn 21.2.0 ✓
+- No Firefox ✓
+- No Geckodriver ✓
+```
+
+**Files Modified:**
+- requirements.txt - Added gunicorn
+- Dockerfile - Multi-stage build created
+- .dockerignore - Enhanced exclusions
+
+---
+
 ## Success Criteria
 
 ### Must Have (Blocking) ✅
 
-- [ ] Multi-stage Dockerfile created and tested locally
+- [x] Multi-stage Dockerfile created and tested locally
 - [ ] ECR repository created and accessible
 - [ ] ECS cluster created (Fargate mode)
 - [ ] ECS task execution role created with Secrets Manager permissions

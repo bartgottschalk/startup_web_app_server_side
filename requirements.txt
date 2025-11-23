@@ -23,6 +23,9 @@ psycopg2-binary==2.9.9  # PostgreSQL adapter for Python (binary version for easi
 # AWS Integration (for production deployment)
 boto3==1.35.76  # AWS SDK for Python (Secrets Manager, S3, etc.)
 
+# Production Server
+gunicorn==21.2.0  # WSGI HTTP Server for production deployments
+
 # Testing (dev dependencies)
 coverage==6.2
 selenium==3.141.0  # Last 3.x version
