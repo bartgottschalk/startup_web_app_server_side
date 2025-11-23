@@ -84,6 +84,27 @@ else
 fi
 echo ""
 
+# Bastion Host
+echo -e "${GREEN}Bastion Host (EC2):${NC}"
+if [ -n "${BASTION_INSTANCE_ID:-}" ]; then
+    # Get bastion status
+    BASTION_STATUS=$(aws ec2 describe-instances \
+        --instance-ids "$BASTION_INSTANCE_ID" \
+        --query 'Reservations[0].Instances[0].State.Name' \
+        --output text 2>/dev/null || echo "not-found")
+
+    if [ "$BASTION_STATUS" != "not-found" ]; then
+        echo -e "  ${GREEN}✓${NC} Instance ID:          ${BASTION_INSTANCE_ID}"
+        echo -e "  ${GREEN}✓${NC} Status:               ${BASTION_STATUS}"
+        echo -e "  ${GREEN}✓${NC} Connect:              aws ssm start-session --target ${BASTION_INSTANCE_ID}"
+    else
+        echo -e "  ${YELLOW}⚠${NC} Instance not found (may be terminated)"
+    fi
+else
+    echo -e "  ${YELLOW}⚠${NC} Bastion not created (run: ./scripts/infra/create-bastion.sh)"
+fi
+echo ""
+
 # RDS Resources
 echo -e "${GREEN}RDS PostgreSQL:${NC}"
 if [ -n "${RDS_ENDPOINT:-}" ]; then
@@ -126,6 +147,19 @@ if [ -n "${RDS_ENDPOINT:-}" ]; then
     echo -e "  RDS db.t4g.small:     ~\$26/month"
     echo -e "  Enhanced Monitoring:  ~\$2/month"
     TOTAL_COST=$((TOTAL_COST + 28))
+fi
+if [ -n "${BASTION_INSTANCE_ID:-}" ]; then
+    BASTION_STATUS=$(aws ec2 describe-instances \
+        --instance-ids "$BASTION_INSTANCE_ID" \
+        --query 'Reservations[0].Instances[0].State.Name' \
+        --output text 2>/dev/null || echo "not-found")
+    if [ "$BASTION_STATUS" == "running" ]; then
+        echo -e "  Bastion t3.micro:     ~\$7/month (stop when not in use)"
+        TOTAL_COST=$((TOTAL_COST + 7))
+    elif [ "$BASTION_STATUS" == "stopped" ]; then
+        echo -e "  Bastion t3.micro:     \$0 (stopped - only EBS storage ~\$1/month)"
+        TOTAL_COST=$((TOTAL_COST + 1))
+    fi
 fi
 if [ -n "${SNS_TOPIC_ARN:-}" ]; then
     echo -e "  CloudWatch/SNS:       ~\$1/month"

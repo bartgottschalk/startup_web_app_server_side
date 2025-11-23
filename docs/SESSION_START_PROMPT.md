@@ -35,13 +35,26 @@ Hi Claude. I want to continue working on these two repositories together:
   - PostgreSQL migration Phases 2-5: ✅ Completed - Multi-tenant Docker setup - November 18, 2025
   - AWS RDS Infrastructure Phase 7: ✅ Completed - VPC, RDS, Secrets Manager, CloudWatch - November 19, 2025
   - AWS RDS Django Integration Phase 8: ✅ Completed - Production settings with Secrets Manager - November 20, 2025
+  - AWS RDS Database Creation Phase 9: ✅ In Progress - Bastion host + multi-tenant databases - November 22, 2025
   - Test suite: 740/740 tests passing (712 unit + 28 functional) with PostgreSQL - 100% pass rate
-  - AWS Infrastructure: Deployed (71% complete, 5/7 steps) - $29/month
+  - AWS Infrastructure: Deployed (86% complete, 6/7 steps) - $36/month ($30 with bastion stopped)
   - PostgreSQL migration fully merged to master (PR #32) - November 19, 2025
-  - Master branch is clean, all feature branches merged and cleaned up
+  - Branch: feature/phase-9-aws-rds-deployment (ready to merge after password rotation)
   - Both repositories cloned to: ~/Projects/WebApps/StartUpWebApp/startup_web_app_server_side and ~/Projects/WebApps/StartUpWebApp/startup_web_app_client_side
 
   **Recent Completed Work:**
+  - **AWS RDS Database Creation Phase 9 (November 22, 2025)**: Bastion Host & Multi-Tenant Databases
+    - Created bastion host infrastructure scripts (create-bastion.sh, destroy-bastion.sh)
+    - Root caused SSM connection issue: Missing public IP address on bastion instance
+    - Fixed create-bastion.sh: Added --associate-public-ip-address flag
+    - Successfully deployed bastion host (i-0d8d746dd8059de2c) with SSM access
+    - Created 3 multi-tenant databases on AWS RDS: startupwebapp_prod, healthtech_experiment, fintech_experiment
+    - Verified django_app user can connect to all databases
+    - Updated infrastructure scripts: status.sh and show-resources.sh with bastion support
+    - Deployment progress: 6/7 steps complete (86%)
+    - Cost: $36/month with bastion running, $30/month with bastion stopped
+    - Security note: Database password requires rotation (exposed during troubleshooting)
+    - Technical documentation: docs/technical-notes/2025-11-22-phase-9-bastion-troubleshooting.md (to be created)
   - **AWS RDS Django Integration Phase 8 (November 20, 2025)**: Production Settings with Secrets Manager
     - Created settings_production.py: Retrieves ALL secrets from AWS Secrets Manager
     - Database credentials + Django SECRET_KEY + Stripe keys + Email SMTP
