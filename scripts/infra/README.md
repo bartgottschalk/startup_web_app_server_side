@@ -4,10 +4,12 @@ Infrastructure as Code (IaC) scripts for deploying StartupWebApp to AWS.
 
 ## ✅ Deployment Status
 
-**Current Status: Phase 5.13 Complete, Phase 5.14 In Progress**
+**Current Status: Phase 5.14 In Progress - Step 2 Ready**
 
 - **Phase 5.13 Completed**: November 22, 2025 - RDS Infrastructure Deployed
-- **Phase 5.14 In Progress**: November 23, 2025 - ECS/CI/CD Setup
+- **Phase 5.14 In Progress**: November 24, 2025 - ECS/CI/CD Setup
+- **Phase 5.14 Step 1**: ✅ Multi-Stage Dockerfile (Complete - November 23, 2025)
+- **Phase 5.14 Step 2**: 🚧 AWS ECR Repository (Scripts Ready - November 24, 2025)
 - **RDS Status**: Available
 - **Monitoring**: Active (4 alarms, email confirmed)
 - **Monthly Cost**: $29 (RDS: $26, Monitoring: $2, CloudWatch: $1)
@@ -21,13 +23,14 @@ Infrastructure as Code (IaC) scripts for deploying StartupWebApp to AWS.
 - CloudWatch Dashboard: StartupWebApp-RDS-MultiTenant
 - SNS Topic: StartupWebApp-RDS-Alerts
 
-**Phase 5.14 Next Steps:**
-1. Create ECR repository for Docker images (`create-ecr.sh`)
-2. Create ECS Fargate cluster (`create-ecs-cluster.sh`)
-3. Create IAM roles for ECS tasks (`create-ecs-task-role.sh`)
-4. Create ECS task definition for migrations (`create-ecs-task-definition.sh`)
-5. Set up GitHub Actions CI/CD workflow
-6. Run automated migrations on all 3 RDS databases via pipeline
+**Phase 5.14 Progress:**
+1. ✅ Multi-Stage Dockerfile (development + production targets)
+2. 🚧 **Create ECR repository** (`create-ecr.sh`) - Ready to run
+3. Create ECS Fargate cluster (`create-ecs-cluster.sh`)
+4. Create IAM roles for ECS tasks (`create-ecs-task-role.sh`)
+5. Create ECS task definition for migrations (`create-ecs-task-definition.sh`)
+6. Set up GitHub Actions CI/CD workflow
+7. Run automated migrations on all 3 RDS databases via pipeline
 
 **After Phase 5.14:**
 - Phase 5.15: Full production deployment (ECS service, ALB, auto-scaling)
@@ -103,7 +106,10 @@ scripts/infra/
 ├── create-databases.sh              # Create multi-tenant databases
 │
 ├── create-monitoring.sh             # Create CloudWatch monitoring
-└── destroy-monitoring.sh            # Delete monitoring
+├── destroy-monitoring.sh            # Delete monitoring
+│
+├── create-ecr.sh                    # Create ECR repository (Phase 5.14)
+└── destroy-ecr.sh                   # Delete ECR repository
 ```
 
 **Security Pattern:**
@@ -135,6 +141,8 @@ This script shows:
 
 Execute scripts in this order:
 
+**Phase 5.13: RDS Infrastructure (Steps 1-7)**
+
 ```bash
 # 1. Create VPC and networking (10-15 minutes)
 ./scripts/infra/create-vpc.sh
@@ -161,11 +169,47 @@ Execute scripts in this order:
 ./scripts/infra/show-resources.sh
 ```
 
-**Total Time:** ~30-40 minutes (mostly AWS provisioning time)
+**Phase 5.13 Total Time:** ~30-40 minutes (mostly AWS provisioning time)
+
+**Phase 5.14: ECS/CI/CD Infrastructure**
+
+```bash
+# 1. Multi-stage Dockerfile (already complete - see Dockerfile)
+
+# 2. Create ECR repository for Docker images (2 minutes)
+./scripts/infra/create-ecr.sh
+
+# 3. (Future) Create ECS cluster
+./scripts/infra/create-ecs-cluster.sh
+
+# 4. (Future) Create IAM roles for ECS tasks
+./scripts/infra/create-ecs-task-role.sh
+
+# 5. (Future) Create ECS task definition for migrations
+./scripts/infra/create-ecs-task-definition.sh
+
+# Check status
+./scripts/infra/status.sh
+```
 
 ### Teardown Order
 
 Execute scripts in reverse order:
+
+**Phase 5.14: ECS/CI/CD Infrastructure**
+
+```bash
+# 1. (Future) Destroy ECS task definition
+./scripts/infra/destroy-ecs-task-definition.sh
+
+# 2. (Future) Destroy ECS cluster
+./scripts/infra/destroy-ecs-cluster.sh
+
+# 3. Destroy ECR repository (deletes all images)
+./scripts/infra/destroy-ecr.sh
+```
+
+**Phase 5.13: RDS Infrastructure**
 
 ```bash
 # 1. Destroy monitoring
@@ -323,6 +367,41 @@ Creates CloudWatch monitoring:
 
 **Important:** Check your email and confirm the SNS subscription!
 
+### create-ecr.sh (Phase 5.14)
+
+Creates AWS ECR (Elastic Container Registry) repository:
+- Repository: `startupwebapp-backend`
+- Image scanning: Enabled (scan on push)
+- Encryption: AES256 at rest
+- Lifecycle policy: Keep last 10 images
+- Tags for organization and cost tracking
+
+**Usage:**
+```bash
+./scripts/infra/create-ecr.sh
+```
+
+**Time:** ~2 minutes
+
+**After Creation:**
+
+```bash
+# Build production image
+docker build --target production -t startupwebapp-backend:latest .
+
+# Login to ECR
+aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin <REPOSITORY_URI>
+
+# Tag image
+docker tag startupwebapp-backend:latest <REPOSITORY_URI>:latest
+
+# Push image
+docker push <REPOSITORY_URI>:latest
+```
+
+**Cost:** ~$0.10/GB/month storage (~$0.10-$0.20/month for 1-2 images)
+
 ### show-resources.sh
 
 Displays all created resources:
@@ -331,7 +410,9 @@ Displays all created resources:
 - Security groups
 - Secrets Manager
 - RDS instance (with live status)
+- Bastion host (if created)
 - CloudWatch monitoring
+- ECR repository (Phase 5.14)
 - Cost estimate
 - Quick links to AWS Console
 
@@ -365,18 +446,25 @@ All creation scripts are idempotent:
 - RDS db.t4g.small: ~$0.87/day ($26/month)
 - Enhanced Monitoring: ~$0.07/day ($2/month)
 - CloudWatch/SNS: ~$0.03/day ($1/month)
+- ECR Storage (Phase 5.14): ~$0.01/day ($0.10-$0.20/month for 1-2 images)
 
-**Total (default):** ~$0.97/day or ~$29/month
+**Total (default):** ~$0.98/day or ~$29-30/month
 
 **With optional NAT Gateway:**
 - Add NAT Gateway: ~$1.07/day ($32/month)
-- **Total with NAT:** ~$2.04/day or ~$61/month
+- **Total with NAT:** ~$2.05/day or ~$61-62/month
+
+**With optional Bastion Host:**
+- Bastion running: ~$0.23/day ($7/month)
+- Bastion stopped: ~$0.03/day ($1/month, EBS storage only)
 
 **Cost Optimization:**
 1. **Skip NAT Gateway (default):** Save $32/month (52% savings) - deploy backend to public subnets
-2. **Stop RDS during inactivity:** Save $26/month when not in use
-3. **Use Reserved Instances:** Save 30-60% on RDS with 1-3 year commitment
-4. **Scale down:** Use db.t4g.micro ($13/month) for very low traffic
+2. **Stop bastion when not in use:** Save $6/month ($7 running → $1 stopped)
+3. **Stop RDS during inactivity:** Save $26/month when not in use
+4. **Use Reserved Instances:** Save 30-60% on RDS with 1-3 year commitment
+5. **Scale down:** Use db.t4g.micro ($13/month) for very low traffic
+6. **ECR lifecycle policy:** Automatically keeps only last 10 images (already configured)
 
 ## Multi-Tenant Architecture
 
@@ -732,47 +820,81 @@ aws rds restore-db-instance-from-db-snapshot \
 
 ## Next Steps After Infrastructure Deployment
 
-**Status**: Infrastructure deployment complete (5/7 steps). Ready for database setup and Django deployment.
+**Status**: Phase 5.13 complete (RDS infrastructure). Phase 5.14 in progress (ECS/CI/CD).
 
-### Immediate Next Steps (Phase 8):
-
-1. **Connect to RDS via AWS Systems Manager Session Manager** (no bastion needed)
-   - Launch temporary EC2 instance with SSM enabled
-   - Install PostgreSQL client
-   - Execute SQL from `create-databases.sh`
-
-2. **Verify databases created** (startupwebapp_prod, healthtech_experiment, fintech_experiment)
-
-3. **Update Django settings with production configuration:**
-   - RDS credentials from Secrets Manager
-   - `ALLOWED_HOSTS = ['www.mosaicmeshai.com']`
-   - All apps serve from `https://www.mosaicmeshai.com/projects/<app_name>`
-
-4. **Run Django migrations:**
-   ```bash
-   export DATABASE_NAME=startupwebapp_prod
-   python manage.py migrate
-   ```
-
-5. **Create superuser:**
-   ```bash
-   python manage.py createsuperuser
-   ```
-
-6. **Deploy backend application** to AWS (ECS, EC2, or other)
-
-7. **Set up CI/CD pipeline** for automated deployments
-
-### Testing Complete
+### Phase 5.13 Complete - RDS Infrastructure (7/7 steps)
 
 All infrastructure destroy/create cycles have been validated:
 - ✅ VPC: create → destroy → create (tested)
 - ✅ Security Groups: create → destroy → create (tested)
 - ✅ Secrets Manager: create → destroy → create (tested)
 - ✅ RDS: create → destroy → create (tested)
+- ✅ Bastion: create → destroy → create (tested)
+- ✅ Databases: 3 multi-tenant databases created
 - ✅ Monitoring: create → destroy → create (tested)
 
-**Time Investment**: ~7 hours total for Phase 7 infrastructure deployment
+**Time Investment**: ~7 hours total for Phase 5.13 infrastructure deployment
+
+### Phase 5.14 In Progress - ECS/CI/CD Infrastructure
+
+**Completed:**
+1. ✅ **Step 1: Multi-Stage Dockerfile** (November 23, 2025)
+   - Development image: 1.69 GB with test dependencies
+   - Production image: 692 MB (59% smaller)
+   - See `Dockerfile` in repository root
+
+2. 🚧 **Step 2: AWS ECR Repository** (Scripts ready - November 24, 2025)
+   - Run: `./scripts/infra/create-ecr.sh`
+   - Creates Docker image registry in AWS
+   - ~2 minutes, ~$0.10-$0.20/month
+
+**Remaining Steps:**
+3. Create ECS Fargate cluster
+4. Create IAM roles for ECS tasks
+5. Create ECS task definition for migrations
+6. Set up GitHub Actions CI/CD workflow
+7. Configure GitHub secrets (AWS credentials)
+8. Run migrations via pipeline on all 3 databases
+9. Verification and documentation
+
+**Estimated Time Remaining**: ~5-6 hours
+
+### Manual Steps After Phase 5.14
+
+Once Phase 5.14 is complete, you can:
+
+1. **Test migrations locally against RDS:**
+   ```bash
+   export DATABASE_NAME=startupwebapp_prod
+   python manage.py migrate
+   ```
+
+2. **Create superuser:**
+   ```bash
+   python manage.py createsuperuser
+   ```
+
+3. **Build and push Docker images:**
+   ```bash
+   docker build --target production -t startupwebapp-backend:latest .
+   docker push <ECR_REPOSITORY_URI>:latest
+   ```
+
+4. **Trigger GitHub Actions workflow** to run migrations via ECS
+
+### After Phase 5.14
+
+**Phase 5.15: Full Production Deployment**
+- Long-running ECS service (not just migration tasks)
+- Application Load Balancer with HTTPS
+- Auto-scaling policies (2-10 tasks)
+- Frontend deployment (S3 + CloudFront)
+- Blue-green deployments
+
+**Phase 5.16: Production Hardening**
+- AWS WAF for security
+- Load testing and performance optimization
+- Automated disaster recovery testing
 
 ## References
 

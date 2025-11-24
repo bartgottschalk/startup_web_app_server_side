@@ -259,6 +259,62 @@ else
 fi
 echo ""
 
+# Additional Infrastructure: ECR Repository (Phase 5.14 - ECS/CI/CD)
+echo -e "${CYAN}════════════════════════════════════════${NC}"
+echo -e "${CYAN}Phase 5.14: ECS/CI/CD Infrastructure${NC}"
+echo -e "${CYAN}════════════════════════════════════════${NC}"
+echo ""
+echo -e "${CYAN}ECR Repository (Docker Registry)${NC}"
+if [ -n "${ECR_REPOSITORY_URI:-}" ]; then
+    # Check if repository actually exists
+    ECR_EXISTS=$(aws ecr describe-repositories \
+        --repository-names "${ECR_REPOSITORY_NAME:-startupwebapp-backend}" \
+        --region "${AWS_REGION}" \
+        --query 'repositories[0].repositoryUri' \
+        --output text 2>/dev/null || echo "")
+
+    if [ -n "$ECR_EXISTS" ]; then
+        echo -e "  ${GREEN}✓ COMPLETED${NC} - ECR repository created"
+        echo ""
+        echo -e "  Repository URI:  ${ECR_REPOSITORY_URI}"
+        echo -e "  Repository Name: ${ECR_REPOSITORY_NAME:-startupwebapp-backend}"
+        echo ""
+        echo -e "${YELLOW}Phase 5.14 Progress:${NC}"
+        echo -e "  ✓ Step 1: Multi-Stage Dockerfile"
+        echo -e "  ✓ Step 2: ECR Repository"
+        echo -e "  → Step 3: Create ECS cluster (./scripts/infra/create-ecs-cluster.sh)"
+        echo -e "  → Step 4: Create IAM roles (./scripts/infra/create-ecs-task-role.sh)"
+        echo -e "  → Step 5: Create ECS task definition"
+        echo -e "  → Step 6-9: GitHub Actions CI/CD and migrations"
+    else
+        echo -e "  ${YELLOW}⚠ URI in env file but repository not found in AWS${NC}"
+        echo -e "  ${YELLOW}→ Recreate: ./scripts/infra/create-ecr.sh${NC}"
+    fi
+elif [ -n "${RDS_ENDPOINT:-}" ]; then
+    echo -e "  ${RED}✗ NOT STARTED${NC}"
+    echo ""
+    echo -e "  ${YELLOW}Phase 5.14 builds on Phase 5.13 (RDS Infrastructure)${NC}"
+    echo -e "  ${YELLOW}Purpose: Container orchestration and CI/CD for deployments${NC}"
+    echo ""
+    echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-ecr.sh${NC}"
+    echo -e "  ${YELLOW}   Time: ~2 minutes${NC}"
+    echo -e "  ${YELLOW}   Cost: ~\$0.10-\$0.20/month (ECR storage)${NC}"
+    echo ""
+    echo -e "${YELLOW}Phase 5.14 Overview (9 steps):${NC}"
+    echo -e "  ✓ Step 1: Multi-Stage Dockerfile (complete)"
+    echo -e "  → Step 2: ECR Repository (ready to create)"
+    echo -e "  → Step 3: ECS Cluster"
+    echo -e "  → Step 4: IAM Roles for ECS"
+    echo -e "  → Step 5: ECS Task Definition"
+    echo -e "  → Step 6: GitHub Actions Workflow"
+    echo -e "  → Step 7: Configure GitHub Secrets"
+    echo -e "  → Step 8: Run Migrations via Pipeline"
+    echo -e "  → Step 9: Verification & Documentation"
+else
+    echo -e "  ${RED}✗ BLOCKED${NC} - Requires RDS deployment complete (Steps 1-7 above)"
+fi
+echo ""
+
 # Progress summary
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}Progress Summary${NC}"
@@ -325,6 +381,10 @@ if [ $COMPLETED_STEPS -gt 0 ]; then
     if [ -n "${SNS_TOPIC_ARN:-}" ]; then
         echo -e "  CloudWatch/SNS:       ~\$1/month"
         TOTAL_COST=$((TOTAL_COST + 1))
+    fi
+    if [ -n "${ECR_REPOSITORY_URI:-}" ]; then
+        echo -e "  ECR Storage:          ~\$0.10/month (1-2 images)"
+        # ECR cost is negligible, don't add to total
     fi
     echo -e "  ${CYAN}────────────────────────────${NC}"
     echo -e "  ${CYAN}Total:                ~\$${TOTAL_COST}/month${NC}"

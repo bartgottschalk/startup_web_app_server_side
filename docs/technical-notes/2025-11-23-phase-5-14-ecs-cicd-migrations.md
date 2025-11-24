@@ -576,12 +576,63 @@ Production Image: 692 MB (59% reduction)
 
 ---
 
+### Step 2: AWS ECR Repository ✅ COMPLETE (November 24, 2025)
+
+**Completed Tasks:**
+- ✅ Created infrastructure scripts following established patterns
+  - `scripts/infra/create-ecr.sh` - ECR creation script (idempotent)
+  - `scripts/infra/destroy-ecr.sh` - ECR destruction script (with confirmation)
+- ✅ ECR repository created: `startupwebapp-backend`
+- ✅ Repository URI: `853463362083.dkr.ecr.us-east-1.amazonaws.com/startupwebapp-backend`
+- ✅ Image scanning enabled (scan on push for vulnerabilities)
+- ✅ Lifecycle policy configured (keep last 10 images automatically)
+- ✅ AES256 encryption at rest
+- ✅ Resource tracking in aws-resources.env
+- ✅ Full create → destroy → recreate test cycle validated
+- ✅ Updated status.sh with Phase 5.14 section and ECR status checking
+- ✅ Updated show-resources.sh to display ECR repository details
+- ✅ Updated scripts/infra/README.md with comprehensive ECR documentation
+
+**Test Results:**
+```
+Create Test:
+- Repository created successfully ✓
+- Image scanning enabled ✓
+- Lifecycle policy applied ✓
+- aws-resources.env updated ✓
+
+Destroy Test:
+- Confirmation prompt required ✓
+- Repository deleted from AWS ✓
+- aws-resources.env cleared ✓
+
+Recreate Test:
+- Repository recreated successfully ✓
+- All settings properly configured ✓
+- status.sh shows COMPLETED ✓
+- show-resources.sh displays details ✓
+```
+
+**Files Created:**
+- scripts/infra/create-ecr.sh - ECR creation script
+- scripts/infra/destroy-ecr.sh - ECR destruction script
+
+**Files Modified:**
+- scripts/infra/aws-resources.env.template - Added ECR fields
+- scripts/infra/status.sh - Added Phase 5.14 section with visual separator
+- scripts/infra/show-resources.sh - Added ECR display with image count
+- scripts/infra/README.md - Added comprehensive ECR documentation
+
+**Cost:** ~$0.10-$0.20/month for ECR storage (1-2 images)
+
+---
+
 ## Success Criteria
 
 ### Must Have (Blocking) ✅
 
 - [x] Multi-stage Dockerfile created and tested locally
-- [ ] ECR repository created and accessible
+- [x] ECR repository created and accessible
 - [ ] ECS cluster created (Fargate mode)
 - [ ] ECS task execution role created with Secrets Manager permissions
 - [ ] ECS task definition created for migrations
@@ -591,16 +642,16 @@ Production Image: 692 MB (59% reduction)
 - [ ] All 740 tests pass in CI pipeline
 - [ ] Migrations run successfully on all 3 databases via CI/CD
 - [ ] 57 tables verified in each RDS database
-- [ ] All infrastructure scripts tested and documented
+- [x] All infrastructure scripts tested and documented (Steps 1-2 complete)
 
 ### Should Have (Important) ⚙️
 
 - [ ] CloudWatch log group configured with 7-day retention
 - [ ] Migration logs visible and readable in CloudWatch
-- [ ] Destroy scripts created for all new resources
-- [ ] `aws-resources.env` updated with all new resource IDs
-- [ ] `status.sh` updated to show Phase 10 resources
-- [ ] Documentation complete and accurate
+- [x] Destroy scripts created for all new resources (ECR complete)
+- [x] `aws-resources.env` updated with all new resource IDs (ECR fields added)
+- [x] `status.sh` updated to show Phase 5.14 resources (ECR section added)
+- [x] Documentation complete and accurate (Steps 1-2 documented)
 
 ### Nice to Have (Future) 💡
 

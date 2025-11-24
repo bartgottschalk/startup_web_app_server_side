@@ -134,6 +134,25 @@ else
 fi
 echo ""
 
+# ECR Repository (Phase 5.14)
+echo -e "${GREEN}ECR Repository (Phase 5.14):${NC}"
+if [ -n "${ECR_REPOSITORY_URI:-}" ]; then
+    echo -e "  ${GREEN}✓${NC} Repository Name:      ${ECR_REPOSITORY_NAME:-startupwebapp-backend}"
+    echo -e "  ${GREEN}✓${NC} Repository URI:       ${ECR_REPOSITORY_URI}"
+
+    # Count images in repository
+    IMAGE_COUNT=$(aws ecr list-images \
+        --repository-name "${ECR_REPOSITORY_NAME:-startupwebapp-backend}" \
+        --region "${AWS_REGION}" \
+        --query 'length(imageIds)' \
+        --output text 2>/dev/null || echo "0")
+
+    echo -e "  ${GREEN}✓${NC} Images:               ${IMAGE_COUNT} image(s)"
+else
+    echo -e "  ${YELLOW}⚠${NC} ECR not created (run: ./scripts/infra/create-ecr.sh)"
+fi
+echo ""
+
 # Cost Estimate
 echo -e "${GREEN}Estimated Monthly Cost:${NC}"
 TOTAL_COST=0
@@ -165,6 +184,10 @@ if [ -n "${SNS_TOPIC_ARN:-}" ]; then
     echo -e "  CloudWatch/SNS:       ~\$1/month"
     TOTAL_COST=$((TOTAL_COST + 1))
 fi
+if [ -n "${ECR_REPOSITORY_URI:-}" ]; then
+    echo -e "  ECR Storage:          ~\$0.10/month (1-2 images)"
+    # ECR cost is negligible, don't add to total
+fi
 if [ $TOTAL_COST -gt 0 ]; then
     echo -e "  ${GREEN}─────────────────────────────${NC}"
     echo -e "  ${GREEN}Total:                ~\$${TOTAL_COST}/month${NC}"
@@ -174,17 +197,26 @@ fi
 echo ""
 
 # Quick Links
-if [ -n "${RDS_ENDPOINT:-}" ]; then
+if [ -n "${RDS_ENDPOINT:-}" ] || [ -n "${ECR_REPOSITORY_URI:-}" ]; then
     echo -e "${GREEN}Quick Links:${NC}"
-    echo -e "  RDS Console:"
-    echo -e "    https://console.aws.amazon.com/rds/home?region=${AWS_REGION}#database:id=${RDS_INSTANCE_ID}"
-    echo ""
-    echo -e "  CloudWatch Dashboard:"
-    echo -e "    https://console.aws.amazon.com/cloudwatch/home?region=${AWS_REGION}#dashboards:name=${CLOUDWATCH_DASHBOARD_NAME}"
-    echo ""
-    echo -e "  Secrets Manager:"
-    echo -e "    https://console.aws.amazon.com/secretsmanager/home?region=${AWS_REGION}#!/secret?name=${DB_SECRET_NAME}"
-    echo ""
+
+    if [ -n "${RDS_ENDPOINT:-}" ]; then
+        echo -e "  RDS Console:"
+        echo -e "    https://console.aws.amazon.com/rds/home?region=${AWS_REGION}#database:id=${RDS_INSTANCE_ID}"
+        echo ""
+        echo -e "  CloudWatch Dashboard:"
+        echo -e "    https://console.aws.amazon.com/cloudwatch/home?region=${AWS_REGION}#dashboards:name=${CLOUDWATCH_DASHBOARD_NAME}"
+        echo ""
+        echo -e "  Secrets Manager:"
+        echo -e "    https://console.aws.amazon.com/secretsmanager/home?region=${AWS_REGION}#!/secret?name=${DB_SECRET_NAME}"
+        echo ""
+    fi
+
+    if [ -n "${ECR_REPOSITORY_URI:-}" ]; then
+        echo -e "  ECR Repository:"
+        echo -e "    https://console.aws.amazon.com/ecr/repositories/private/${AWS_ACCOUNT_ID}/${ECR_REPOSITORY_NAME:-startupwebapp-backend}?region=${AWS_REGION}"
+        echo ""
+    fi
 fi
 
 echo -e "${BLUE}========================================${NC}"

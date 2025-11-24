@@ -323,9 +323,9 @@ This document tracks the complete development history and modernization effort f
 - ✅ See [Deployment Guide](technical-notes/2025-11-21-phase-9-deployment-guide.md) for step-by-step instructions
 - ✅ See [Bastion Troubleshooting](technical-notes/2025-11-22-phase-9-bastion-troubleshooting.md) for SSM connection fix
 
-#### Phase 5.14: ECS Infrastructure, CI/CD, and RDS Migrations (In Progress - November 23, 2025)
+#### Phase 5.14: ECS Infrastructure, CI/CD, and RDS Migrations (In Progress - November 24, 2025)
 
-**Status**: 🚧 In Progress - Step 1/9 Complete
+**Status**: 🚧 In Progress - Step 2/9 Complete
 **Branch**: `feature/phase-5-14-ecs-cicd-migrations`
 
 **Step 1: Multi-Stage Dockerfile** ✅ (Completed - November 23, 2025)
@@ -345,8 +345,32 @@ This document tracks the complete development history and modernization effort f
 - `Dockerfile` - Complete rewrite as multi-stage build
 - `.dockerignore` - Added AWS/infrastructure exclusions
 
+**Step 2: AWS ECR Repository** ✅ (Completed - November 24, 2025)
+- ✅ Created infrastructure scripts following established patterns
+  - `scripts/infra/create-ecr.sh` - Creates ECR repository with full configuration
+  - `scripts/infra/destroy-ecr.sh` - Safely destroys ECR repository
+- ✅ ECR repository created: `startupwebapp-backend`
+- ✅ Image scanning enabled (scan on push for vulnerabilities)
+- ✅ Lifecycle policy configured (keep last 10 images automatically)
+- ✅ AES256 encryption at rest
+- ✅ Resource tracking in aws-resources.env
+- ✅ Full create → destroy → recreate test cycle validated
+- ✅ Updated status.sh with Phase 5.14 section and ECR status checking
+- ✅ Updated show-resources.sh to display ECR repository details
+- ✅ Updated scripts/infra/README.md with comprehensive ECR documentation
+- ✅ Cost: ~$0.10-$0.20/month for ECR storage (1-2 images)
+
+**Files Created**:
+- `scripts/infra/create-ecr.sh` - ECR creation script (idempotent, tested)
+- `scripts/infra/destroy-ecr.sh` - ECR destruction script (with confirmation)
+
+**Files Modified**:
+- `scripts/infra/aws-resources.env.template` - Added ECR_REPOSITORY_URI and ECR_REPOSITORY_NAME
+- `scripts/infra/status.sh` - Added Phase 5.14 section with visual separator
+- `scripts/infra/show-resources.sh` - Added ECR display with image count and quick link
+- `scripts/infra/README.md` - Added ECR documentation throughout
+
 **Next Steps**:
-- Step 2: Create AWS ECR repository (Docker image registry)
 - Step 3: Create ECS cluster and IAM roles
 - Step 4: Create ECS task definition for migrations
 - Step 5: Create GitHub Actions CI/CD workflow
