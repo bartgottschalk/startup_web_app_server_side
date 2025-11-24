@@ -182,12 +182,15 @@ Every commit MUST include documentation updates:
    - Shared base layer for efficiency
    - Result: Dev 1.69 GB, Prod 692 MB (59% smaller)
 
-2. 🚧 **Create AWS ECR Repository** (20 min) - NEXT
+2. ✅ **Create AWS ECR Repository** (20 min) - COMPLETE
    - Docker image registry in AWS
-   - Image scanning and lifecycle policies
-   - Infrastructure script: `scripts/infra/create-ecr.sh`
+   - Image scanning and lifecycle policies (keep 10 images)
+   - Infrastructure scripts: create-ecr.sh, destroy-ecr.sh (fully tested)
+   - Repository: startupwebapp-backend
+   - URI: 853463362083.dkr.ecr.us-east-1.amazonaws.com/startupwebapp-backend
+   - Cost: ~$0.10-$0.20/month
 
-3. **Create ECS Infrastructure** (45 min)
+3. 🚧 **Create ECS Infrastructure** (45 min) - NEXT
    - ECS Fargate cluster (serverless containers)
    - IAM roles for task execution (pull images, read secrets)
    - Security groups (allow ECS → RDS access)
