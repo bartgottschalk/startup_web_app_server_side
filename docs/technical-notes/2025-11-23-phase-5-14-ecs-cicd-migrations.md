@@ -707,6 +707,87 @@ Recreate Test:
 
 ---
 
+### Step 4: Create ECS Task Definition ✅ COMPLETE (November 24, 2025)
+
+**Goal**: Create ECS task definition for running Django migrations
+
+**Status**: ✅ Completed and tested November 24, 2025
+
+**Completed Tasks:**
+- ✅ Created infrastructure scripts following established patterns:
+  - `scripts/infra/create-ecs-task-definition.sh` - Creates ECS task definition
+  - `scripts/infra/destroy-ecs-task-definition.sh` - Deregisters task definition
+- ✅ Task definition registered: `startupwebapp-migration-task` (revision 2)
+- ✅ Configuration:
+  - Fargate launch type
+  - 0.25 vCPU (256 CPU units)
+  - 512 MB RAM
+  - Network mode: awsvpc
+  - Command: `python manage.py migrate`
+- ✅ Secrets Manager integration:
+  - DATABASE_PASSWORD, DATABASE_USER, DATABASE_HOST, DATABASE_PORT
+  - Pulled from `rds/startupwebapp/multi-tenant/master` secret
+- ✅ Environment variables configured:
+  - DJANGO_SETTINGS_MODULE=StartupWebApp.settings_production
+  - AWS_REGION=us-east-1
+  - DB_SECRET_NAME=rds/startupwebapp/multi-tenant/master
+- ✅ CloudWatch logging configured:
+  - Log group: `/ecs/startupwebapp-migrations`
+  - Log stream prefix: `migration`
+- ✅ Production Docker image built and pushed to ECR:
+  - Image: `853463362083.dkr.ecr.us-east-1.amazonaws.com/startupwebapp-backend:latest`
+  - Size: 157 MB (compressed)
+  - Built from multi-stage Dockerfile (production target)
+- ✅ Full lifecycle testing complete (create → destroy → recreate)
+- ✅ Updated aws-resources.env.template with task definition fields (3 new fields)
+- ✅ Updated aws-resources.env with task definition fields
+- ✅ Updated status.sh with task definition status checking
+- ✅ Updated show-resources.sh with task definition display (CPU, memory, status)
+- ✅ Updated scripts/infra/README.md with comprehensive task definition documentation
+
+**Test Results:**
+```
+Create Test:
+- Task definition registered successfully ✓
+- Revision 1 created ✓
+- All prerequisites verified (ECS cluster, IAM roles, ECR image) ✓
+- aws-resources.env updated with ARN and revision ✓
+
+Destroy Test:
+- Task definition deregistered cleanly ✓
+- aws-resources.env cleared ✓
+- status.sh shows "NOT STARTED" ✓
+
+Recreate Test:
+- Task definition re-registered successfully ✓
+- Revision 2 created (AWS increments revision numbers) ✓
+- All settings properly configured ✓
+- status.sh shows "COMPLETED" ✓
+- show-resources.sh displays details with live AWS status ✓
+```
+
+**Files Created:**
+- scripts/infra/create-ecs-task-definition.sh - Task definition creation script
+- scripts/infra/destroy-ecs-task-definition.sh - Task definition deregistration script
+
+**Files Modified:**
+- scripts/infra/aws-resources.env.template - Added task definition fields (3 new fields)
+- scripts/infra/aws-resources.env - Added task definition fields (3 new fields)
+- scripts/infra/status.sh - Added task definition status section with live AWS checks
+- scripts/infra/show-resources.sh - Added task definition display with CPU/memory details
+- scripts/infra/README.md - Added comprehensive task definition documentation
+
+**Resources Created:**
+- ECS Task Definition: `startupwebapp-migration-task:2` (ARN: arn:aws:ecs:us-east-1:853463362083:task-definition/startupwebapp-migration-task:2)
+- Docker Image in ECR: `startupwebapp-backend:latest` (157 MB compressed)
+
+**Cost:**
+- Task Definition: $0 (task definitions are free)
+- Task Execution: ~$0.001 per 5-minute migration run (pay-per-use)
+- ECR Storage: Included in existing ~$0.10-$0.20/month
+
+---
+
 ## Success Criteria
 
 ### Must Have (Blocking) ✅
@@ -717,22 +798,23 @@ Recreate Test:
 - [x] ECS task execution role created with Secrets Manager permissions
 - [x] ECS task role created with application permissions
 - [x] Security groups updated (ECS → RDS access)
-- [ ] ECS task definition created for migrations
+- [x] ECS task definition created for migrations
+- [x] Production Docker image pushed to ECR
 - [ ] GitHub Actions workflow created and tested
 - [ ] GitHub secrets configured (AWS credentials)
 - [ ] All 740 tests pass in CI pipeline
 - [ ] Migrations run successfully on all 3 databases via CI/CD
 - [ ] 57 tables verified in each RDS database
-- [x] All infrastructure scripts tested and documented (Steps 1-3 complete)
+- [x] All infrastructure scripts tested and documented (Steps 1-4 complete)
 
 ### Should Have (Important) ⚙️
 
 - [x] CloudWatch log group configured with 7-day retention
 - [ ] Migration logs visible and readable in CloudWatch
-- [x] Destroy scripts created for all new resources (ECR + ECS complete)
-- [x] `aws-resources.env` updated with all new resource IDs (ECR + ECS fields added)
-- [x] `status.sh` updated to show Phase 5.14 resources (ECR + ECS sections added)
-- [x] Documentation complete and accurate (Steps 1-3 documented)
+- [x] Destroy scripts created for all new resources (ECR + ECS + Task Definition complete)
+- [x] `aws-resources.env` updated with all new resource IDs (ECR + ECS + Task Definition fields added)
+- [x] `status.sh` updated to show Phase 5.14 resources (ECR + ECS + Task Definition sections added)
+- [x] Documentation complete and accurate (Steps 1-4 documented)
 
 ### Nice to Have (Future) 💡
 

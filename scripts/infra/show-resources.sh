@@ -193,6 +193,40 @@ else
 fi
 echo ""
 
+# ECS Task Definition (Phase 5.14)
+echo -e "${GREEN}ECS Task Definition (Phase 5.14):${NC}"
+if [ -n "${ECS_TASK_DEFINITION_ARN:-}" ]; then
+    echo -e "  ${GREEN}✓${NC} Family:               ${ECS_TASK_DEFINITION_FAMILY}"
+    echo -e "  ${GREEN}✓${NC} Revision:             ${ECS_TASK_DEFINITION_REVISION}"
+    echo -e "  ${GREEN}✓${NC} ARN:                  ${ECS_TASK_DEFINITION_ARN}"
+
+    # Get task definition details
+    TASK_DEF_STATUS=$(aws ecs describe-task-definition \
+        --task-definition "${ECS_TASK_DEFINITION_FAMILY}:${ECS_TASK_DEFINITION_REVISION}" \
+        --region "${AWS_REGION}" \
+        --query 'taskDefinition.status' \
+        --output text 2>/dev/null || echo "UNKNOWN")
+
+    TASK_DEF_CPU=$(aws ecs describe-task-definition \
+        --task-definition "${ECS_TASK_DEFINITION_FAMILY}:${ECS_TASK_DEFINITION_REVISION}" \
+        --region "${AWS_REGION}" \
+        --query 'taskDefinition.cpu' \
+        --output text 2>/dev/null || echo "unknown")
+
+    TASK_DEF_MEMORY=$(aws ecs describe-task-definition \
+        --task-definition "${ECS_TASK_DEFINITION_FAMILY}:${ECS_TASK_DEFINITION_REVISION}" \
+        --region "${AWS_REGION}" \
+        --query 'taskDefinition.memory' \
+        --output text 2>/dev/null || echo "unknown")
+
+    echo -e "  ${GREEN}✓${NC} Status:               ${TASK_DEF_STATUS}"
+    echo -e "  ${GREEN}✓${NC} CPU:                  ${TASK_DEF_CPU} (0.25 vCPU)"
+    echo -e "  ${GREEN}✓${NC} Memory:               ${TASK_DEF_MEMORY} MB"
+else
+    echo -e "  ${YELLOW}⚠${NC} Task Definition not created (run: ./scripts/infra/create-ecs-task-definition.sh)"
+fi
+echo ""
+
 # Cost Estimate
 echo -e "${GREEN}Estimated Monthly Cost:${NC}"
 TOTAL_COST=0

@@ -27,7 +27,7 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ## Current State
 
-**Project Status:** 🚧 Phase 5.14 - Step 4/9: ECS Task Definition (NEXT)
+**Project Status:** 🚧 Phase 5.14 - Step 5/8: GitHub Actions CI/CD (NEXT)
 
 - ✅ Django 4.2.16 LTS upgrade complete
 - ✅ Code linting complete (zero errors)
@@ -53,7 +53,16 @@ Hi Claude. I want to continue working on these two repositories together:
   - Infrastructure scripts: create-ecs-cluster.sh, create-ecs-task-role.sh, update-security-groups-ecs.sh, destroy scripts
   - Full lifecycle tested (create → destroy → recreate)
   - Cost: $0 (pay-per-use for tasks: ~$0.0137/hour when running)
-- 🚧 **Step 4 Next**: Create ECS Task Definition (code-based, not bash script)
+- ✅ **Step 4 Complete**: ECS Task Definition (November 24, 2025)
+  - Task definition: startupwebapp-migration-task (revision 2)
+  - Configuration: 0.25 vCPU, 512 MB RAM, Fargate launch type
+  - Secrets Manager integration for DB credentials
+  - Command: python manage.py migrate
+  - Infrastructure scripts: create-ecs-task-definition.sh, destroy-ecs-task-definition.sh (fully tested)
+  - Production Docker image pushed to ECR (157 MB compressed)
+  - Full lifecycle tested (create → destroy → recreate)
+  - Cost: $0 (task definition free; tasks cost ~$0.001 per 5-minute run)
+- 🚧 **Step 5 Next**: Create GitHub Actions CI/CD Workflow
 - 📍 **Current Branch**: `feature/phase-5-14-ecs-cicd-migrations`
 
 **Phase 5.14 Goals:**
@@ -206,12 +215,14 @@ Every commit MUST include documentation updates:
    - Full lifecycle tested (create → destroy → recreate)
    - Cost: $0 (pay-per-use for tasks)
 
-4. 🚧 **Create ECS Task Definition** (30 min) - NEXT
-   - Migration task: runs `python manage.py migrate`
-   - 0.25 vCPU, 0.5 GB RAM
+4. ✅ **Create ECS Task Definition** (30 min) - COMPLETE
+   - Infrastructure scripts: create-ecs-task-definition.sh, destroy-ecs-task-definition.sh
+   - Task definition: startupwebapp-migration-task (0.25 vCPU, 512 MB RAM)
    - Pulls credentials from AWS Secrets Manager
+   - Full lifecycle tested (create → destroy → recreate)
+   - Production Docker image pushed to ECR
 
-5. **Set Up GitHub Actions CI/CD** (60 min)
+5. 🚧 **Set Up GitHub Actions CI/CD** (60 min) - NEXT
    - Workflow: `.github/workflows/run-migrations.yml`
    - Pipeline: Test (740 tests) → Build → Push to ECR → Run ECS task
    - Manual trigger with database selection dropdown

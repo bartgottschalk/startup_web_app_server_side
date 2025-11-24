@@ -358,6 +358,36 @@ else
 fi
 echo ""
 
+# ECS Task Definition
+echo -e "${CYAN}ECS Task Definition (Migration Task)${NC}"
+if [ -n "${ECS_TASK_DEFINITION_ARN:-}" ]; then
+    # Check if task definition actually exists
+    TASK_DEF_EXISTS=$(aws ecs describe-task-definition \
+        --task-definition "${ECS_TASK_DEFINITION_FAMILY}" \
+        --region "${AWS_REGION}" \
+        --query 'taskDefinition.taskDefinitionArn' \
+        --output text 2>/dev/null || echo "")
+
+    if [ -n "$TASK_DEF_EXISTS" ]; then
+        echo -e "  ${GREEN}✓ COMPLETED${NC} - Task definition registered"
+        echo ""
+        echo -e "  Family:              ${ECS_TASK_DEFINITION_FAMILY}"
+        echo -e "  Revision:            ${ECS_TASK_DEFINITION_REVISION}"
+    else
+        echo -e "  ${YELLOW}⚠ Task definition in env file but not found in AWS${NC}"
+        echo -e "  ${YELLOW}→ Recreate: ./scripts/infra/create-ecs-task-definition.sh${NC}"
+    fi
+elif [ -n "${ECS_TASK_EXECUTION_ROLE_ARN:-}" ]; then
+    echo -e "  ${RED}✗ NOT STARTED${NC}"
+    echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-ecs-task-definition.sh${NC}"
+    echo -e "  ${YELLOW}   Time: ~2 minutes${NC}"
+    echo -e "  ${YELLOW}   Cost: \$0 (task definition itself is free)${NC}"
+    echo -e "  ${YELLOW}   Note: Requires Docker image in ECR first${NC}"
+else
+    echo -e "  ${RED}✗ BLOCKED${NC} - Requires ECS IAM roles"
+fi
+echo ""
+
 # Phase 5.14 Progress Summary
 if [ -n "${ECR_REPOSITORY_URI:-}" ] || [ -n "${ECS_CLUSTER_NAME:-}" ] || [ -n "${ECS_TASK_EXECUTION_ROLE_ARN:-}" ]; then
     echo -e "${YELLOW}Phase 5.14 Progress Summary:${NC}"
@@ -376,15 +406,20 @@ if [ -n "${ECR_REPOSITORY_URI:-}" ] || [ -n "${ECS_CLUSTER_NAME:-}" ] || [ -n "$
         echo -e "  → Step 3: ECS Cluster"
     fi
 
-    if [ -n "${ECS_TASK_EXECUTION_ROLE_ARN:-}" ]; then
-        echo -e "  ✓ Step 4: IAM Roles for ECS"
-        echo -e "  → Step 5: Update Security Groups (./scripts/infra/update-security-groups-ecs.sh)"
-        echo -e "  → Step 6: Create ECS Task Definition"
-        echo -e "  → Step 7: Create GitHub Actions Workflow"
-        echo -e "  → Step 8: Configure GitHub Secrets"
-        echo -e "  → Step 9: Run Migrations & Documentation"
+    if [ -n "${ECS_TASK_DEFINITION_ARN:-}" ]; then
+        echo -e "  ✓ Step 3: ECS Infrastructure (cluster + IAM roles)"
+        echo -e "  ✓ Step 4: ECS Task Definition"
+        echo -e "  → Step 5: Create GitHub Actions Workflow"
+        echo -e "  → Step 6: Configure GitHub Secrets"
+        echo -e "  → Step 7: Run Migrations & Documentation"
+    elif [ -n "${ECS_TASK_EXECUTION_ROLE_ARN:-}" ]; then
+        echo -e "  ✓ Step 3: ECS Infrastructure (cluster + IAM roles)"
+        echo -e "  → Step 4: Create ECS Task Definition (./scripts/infra/create-ecs-task-definition.sh)"
+        echo -e "  → Step 5: Create GitHub Actions Workflow"
+        echo -e "  → Step 6: Configure GitHub Secrets"
+        echo -e "  → Step 7: Run Migrations & Documentation"
     else
-        echo -e "  → Step 4: IAM Roles for ECS"
+        echo -e "  → Step 3: ECS Infrastructure (cluster + IAM roles)"
     fi
     echo ""
 fi

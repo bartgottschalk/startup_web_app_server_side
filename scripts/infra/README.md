@@ -122,6 +122,9 @@ scripts/infra/
 ├── create-ecs-task-role.sh          # Create IAM roles for ECS (Phase 5.14)
 ├── destroy-ecs-task-role.sh         # Delete ECS IAM roles
 │
+├── create-ecs-task-definition.sh    # Create ECS task definition for migrations (Phase 5.14)
+├── destroy-ecs-task-definition.sh   # Deregister ECS task definition
+│
 └── update-security-groups-ecs.sh    # Update security groups for ECS
 ```
 
@@ -201,7 +204,10 @@ Execute scripts in this order:
 # 5. Update security groups for ECS (1 minute)
 ./scripts/infra/update-security-groups-ecs.sh
 
-# 6. (Future) Create ECS task definition for migrations (code-based)
+# 6. Create ECS task definition for migrations (2 minutes)
+#    Note: Requires Docker image in ECR first
+./scripts/infra/create-ecs-task-definition.sh
+
 # 7. (Future) Create GitHub Actions workflow
 # 8. (Future) Run migrations via CI/CD pipeline
 
@@ -216,7 +222,8 @@ Execute scripts in reverse order:
 **Phase 5.14: ECS/CI/CD Infrastructure**
 
 ```bash
-# 1. (Future) Destroy ECS task definition
+# 1. Deregister ECS task definition
+./scripts/infra/destroy-ecs-task-definition.sh
 
 # 2. Destroy ECS IAM roles
 ./scripts/infra/destroy-ecs-task-role.sh
@@ -501,6 +508,69 @@ Updates existing security groups to allow ECS tasks to communicate with RDS:
 
 **Cost:** $0 (security group rules are free)
 
+### create-ecs-task-definition.sh (Phase 5.14)
+
+Creates an ECS task definition for running Django migrations on RDS:
+- Fargate launch type (serverless)
+- 0.25 vCPU, 512 MB RAM
+- Pulls database credentials from AWS Secrets Manager
+- Logs to CloudWatch (`/ecs/startupwebapp-migrations`)
+- Runs `python manage.py migrate` command
+
+**Prerequisites:**
+- ECS cluster must exist (`create-ecs-cluster.sh`)
+- IAM roles must exist (`create-ecs-task-role.sh`)
+- ECR repository must exist with a Docker image (`create-ecr.sh`)
+- Docker image must be pushed to ECR with `:latest` tag
+
+**Usage:**
+```bash
+./scripts/infra/create-ecs-task-definition.sh
+```
+
+**Time:** ~2 minutes
+
+**What Gets Created:**
+- ECS task definition: `startupwebapp-migration-task`
+- Container definition with Secrets Manager integration
+- Environment variables for Django settings
+- CloudWatch log configuration
+
+**Cost:** $0 (task definition itself is free; tasks cost ~$0.001 per 5-minute run)
+
+**Note:** The task definition expects a Docker image at `${ECR_REPOSITORY_URI}:latest`. You must build and push the production image to ECR before creating the task definition:
+
+```bash
+# Build production image
+docker build --target production -t startupwebapp-backend:latest .
+
+# Login to ECR
+aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin ${ECR_REPOSITORY_URI}
+
+# Tag and push
+docker tag startupwebapp-backend:latest ${ECR_REPOSITORY_URI}:latest
+docker push ${ECR_REPOSITORY_URI}:latest
+```
+
+**Testing the Task:**
+```bash
+# Run migration task manually (replace DATABASE_NAME with actual database)
+aws ecs run-task \
+  --cluster startupwebapp-cluster \
+  --task-definition startupwebapp-migration-task \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={subnets=[${PRIVATE_SUBNET_1_ID},${PRIVATE_SUBNET_2_ID}],securityGroups=[${BACKEND_SECURITY_GROUP_ID}]}" \
+  --overrides '{"containerOverrides":[{"name":"migration","environment":[{"name":"DATABASE_NAME","value":"startupwebapp_prod"}]}]}'
+```
+
+**Destroy:**
+```bash
+./scripts/infra/destroy-ecs-task-definition.sh
+```
+
+This deregisters all revisions of the task definition. Note that task definitions cannot be truly "deleted" in AWS, only deregistered (they remain visible but cannot be used).
+
 ### show-resources.sh
 
 Displays all created resources:
@@ -514,6 +584,7 @@ Displays all created resources:
 - ECR repository (Phase 5.14)
 - ECS cluster (Phase 5.14)
 - ECS IAM roles (Phase 5.14)
+- ECS task definition (Phase 5.14)
 - Cost estimate
 - Quick links to AWS Console
 
