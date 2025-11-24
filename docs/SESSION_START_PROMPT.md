@@ -198,13 +198,15 @@ Every commit MUST include documentation updates:
    - URI: 853463362083.dkr.ecr.us-east-1.amazonaws.com/startupwebapp-backend
    - Cost: ~$0.10-$0.20/month
 
-3. 🚧 **Create ECS Infrastructure** (45 min) - NEXT
+3. ✅ **Create ECS Infrastructure** (45 min) - COMPLETE
    - ECS Fargate cluster (serverless containers)
    - IAM roles for task execution (pull images, read secrets)
    - Security groups (allow ECS → RDS access)
-   - Infrastructure scripts: `scripts/infra/create-ecs-*.sh`
+   - Infrastructure scripts: create-ecs-cluster.sh, create-ecs-task-role.sh, update-security-groups-ecs.sh
+   - Full lifecycle tested (create → destroy → recreate)
+   - Cost: $0 (pay-per-use for tasks)
 
-4. **Create ECS Task Definition** (30 min)
+4. 🚧 **Create ECS Task Definition** (30 min) - NEXT
    - Migration task: runs `python manage.py migrate`
    - 0.25 vCPU, 0.5 GB RAM
    - Pulls credentials from AWS Secrets Manager
