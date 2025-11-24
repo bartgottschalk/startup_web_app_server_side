@@ -580,6 +580,10 @@ Production Image: 692 MB (59% reduction)
 
 ### Step 2: AWS ECR Repository ✅ COMPLETE (November 24, 2025)
 
+**Goal**: Create Docker image registry in AWS
+
+**Status**: ✅ Completed November 24, 2025
+
 **Completed Tasks:**
 - ✅ Created infrastructure scripts following established patterns
   - `scripts/infra/create-ecr.sh` - ECR creation script (idempotent)
@@ -629,31 +633,106 @@ Recreate Test:
 
 ---
 
+### Step 3: Create ECS Cluster and IAM Roles ✅ COMPLETE (November 24, 2025)
+
+**Goal**: Set up ECS Fargate cluster and necessary IAM permissions
+
+**Status**: ✅ Completed and tested November 24, 2025
+
+**Completed Tasks:**
+- ✅ Created infrastructure scripts following established patterns:
+  - `scripts/infra/create-ecs-cluster.sh` - Creates ECS Fargate cluster and CloudWatch log group
+  - `scripts/infra/destroy-ecs-cluster.sh` - Destroys ECS cluster and log group
+  - `scripts/infra/create-ecs-task-role.sh` - Creates IAM roles for ECS tasks
+  - `scripts/infra/destroy-ecs-task-role.sh` - Destroys IAM roles
+  - `scripts/infra/update-security-groups-ecs.sh` - Updates security groups for ECS → RDS communication
+- ✅ ECS cluster created: `startupwebapp-cluster` (Fargate)
+- ✅ CloudWatch log group created: `/ecs/startupwebapp-migrations` (7-day retention)
+- ✅ IAM roles created:
+  - Task Execution Role: `ecsTaskExecutionRole-startupwebapp` (pull images, read secrets, write logs)
+  - Task Role: `ecsTaskRole-startupwebapp` (application runtime permissions)
+- ✅ Security groups updated:
+  - Backend SG → RDS (port 5432 outbound)
+  - Backend SG → Internet (port 443 for ECR pulls)
+- ✅ Full lifecycle testing complete (create → destroy → recreate)
+- ✅ Updated aws-resources.env.template with ECS fields
+- ✅ Updated status.sh with ECS resource tracking
+- ✅ Updated show-resources.sh with ECS resource display
+- ✅ Updated scripts/infra/README.md with comprehensive ECS documentation
+
+**Test Results:**
+```
+Destroy Test:
+- IAM roles deleted cleanly (inline and managed policies removed) ✓
+- ECS cluster deleted successfully ✓
+- CloudWatch log group removed ✓
+- aws-resources.env cleared (ECS fields set to empty) ✓
+- Base infrastructure untouched (VPC, RDS, security groups, ECR) ✓
+
+Recreate Test:
+- ECS cluster recreated with same name ✓
+- CloudWatch log group recreated ✓
+- IAM roles recreated successfully ✓
+- aws-resources.env repopulated with new ARNs ✓
+- All status scripts showing correct state ✓
+```
+
+**Files Created:**
+- scripts/infra/create-ecs-cluster.sh - ECS cluster creation script
+- scripts/infra/destroy-ecs-cluster.sh - ECS cluster destruction script
+- scripts/infra/create-ecs-task-role.sh - IAM roles creation script
+- scripts/infra/destroy-ecs-task-role.sh - IAM roles destruction script
+- scripts/infra/update-security-groups-ecs.sh - Security group update script
+
+**Files Modified:**
+- scripts/infra/aws-resources.env.template - Added ECS fields (7 new fields)
+- scripts/infra/aws-resources.env - Added ECS fields (7 new fields)
+- scripts/infra/status.sh - Added ECS cluster and IAM role status checking
+- scripts/infra/show-resources.sh - Added ECS resource display with live status
+- scripts/infra/README.md - Added ECS documentation (deployment order, script docs)
+
+**Resources Created:**
+- ECS Cluster: `startupwebapp-cluster` (ARN: arn:aws:ecs:us-east-1:853463362083:cluster/startupwebapp-cluster)
+- Log Group: `/ecs/startupwebapp-migrations`
+- Task Execution Role: `ecsTaskExecutionRole-startupwebapp`
+- Task Role: `ecsTaskRole-startupwebapp`
+- Security Group Rules: 2 new outbound rules on Backend SG
+
+**Cost:**
+- ECS Cluster: $0 (no cost for cluster itself)
+- IAM Roles: $0 (free)
+- Security Group Rules: $0 (free)
+- CloudWatch Logs: ~$0.50/GB ingested (pay-per-use)
+- Fargate Tasks: ~$0.0137/hour when running (pay-per-use)
+
+---
+
 ## Success Criteria
 
 ### Must Have (Blocking) ✅
 
 - [x] Multi-stage Dockerfile created and tested locally
 - [x] ECR repository created and accessible
-- [ ] ECS cluster created (Fargate mode)
-- [ ] ECS task execution role created with Secrets Manager permissions
+- [x] ECS cluster created (Fargate mode)
+- [x] ECS task execution role created with Secrets Manager permissions
+- [x] ECS task role created with application permissions
+- [x] Security groups updated (ECS → RDS access)
 - [ ] ECS task definition created for migrations
-- [ ] Security groups updated (ECS → RDS access)
 - [ ] GitHub Actions workflow created and tested
 - [ ] GitHub secrets configured (AWS credentials)
 - [ ] All 740 tests pass in CI pipeline
 - [ ] Migrations run successfully on all 3 databases via CI/CD
 - [ ] 57 tables verified in each RDS database
-- [x] All infrastructure scripts tested and documented (Steps 1-2 complete)
+- [x] All infrastructure scripts tested and documented (Steps 1-3 complete)
 
 ### Should Have (Important) ⚙️
 
-- [ ] CloudWatch log group configured with 7-day retention
+- [x] CloudWatch log group configured with 7-day retention
 - [ ] Migration logs visible and readable in CloudWatch
-- [x] Destroy scripts created for all new resources (ECR complete)
-- [x] `aws-resources.env` updated with all new resource IDs (ECR fields added)
-- [x] `status.sh` updated to show Phase 5.14 resources (ECR section added)
-- [x] Documentation complete and accurate (Steps 1-2 documented)
+- [x] Destroy scripts created for all new resources (ECR + ECS complete)
+- [x] `aws-resources.env` updated with all new resource IDs (ECR + ECS fields added)
+- [x] `status.sh` updated to show Phase 5.14 resources (ECR + ECS sections added)
+- [x] Documentation complete and accurate (Steps 1-3 documented)
 
 ### Nice to Have (Future) 💡
 

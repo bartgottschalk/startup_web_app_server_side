@@ -278,14 +278,6 @@ if [ -n "${ECR_REPOSITORY_URI:-}" ]; then
         echo ""
         echo -e "  Repository URI:  ${ECR_REPOSITORY_URI}"
         echo -e "  Repository Name: ${ECR_REPOSITORY_NAME:-startupwebapp-backend}"
-        echo ""
-        echo -e "${YELLOW}Phase 5.14 Progress:${NC}"
-        echo -e "  ✓ Step 1: Multi-Stage Dockerfile"
-        echo -e "  ✓ Step 2: ECR Repository"
-        echo -e "  → Step 3: Create ECS cluster (./scripts/infra/create-ecs-cluster.sh)"
-        echo -e "  → Step 4: Create IAM roles (./scripts/infra/create-ecs-task-role.sh)"
-        echo -e "  → Step 5: Create ECS task definition"
-        echo -e "  → Step 6-9: GitHub Actions CI/CD and migrations"
     else
         echo -e "  ${YELLOW}⚠ URI in env file but repository not found in AWS${NC}"
         echo -e "  ${YELLOW}→ Recreate: ./scripts/infra/create-ecr.sh${NC}"
@@ -299,21 +291,103 @@ elif [ -n "${RDS_ENDPOINT:-}" ]; then
     echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-ecr.sh${NC}"
     echo -e "  ${YELLOW}   Time: ~2 minutes${NC}"
     echo -e "  ${YELLOW}   Cost: ~\$0.10-\$0.20/month (ECR storage)${NC}"
-    echo ""
-    echo -e "${YELLOW}Phase 5.14 Overview (9 steps):${NC}"
-    echo -e "  ✓ Step 1: Multi-Stage Dockerfile (complete)"
-    echo -e "  → Step 2: ECR Repository (ready to create)"
-    echo -e "  → Step 3: ECS Cluster"
-    echo -e "  → Step 4: IAM Roles for ECS"
-    echo -e "  → Step 5: ECS Task Definition"
-    echo -e "  → Step 6: GitHub Actions Workflow"
-    echo -e "  → Step 7: Configure GitHub Secrets"
-    echo -e "  → Step 8: Run Migrations via Pipeline"
-    echo -e "  → Step 9: Verification & Documentation"
 else
     echo -e "  ${RED}✗ BLOCKED${NC} - Requires RDS deployment complete (Steps 1-7 above)"
 fi
 echo ""
+
+# ECS Cluster
+echo -e "${CYAN}ECS Cluster (Container Orchestration)${NC}"
+if [ -n "${ECS_CLUSTER_NAME:-}" ]; then
+    # Check if cluster actually exists
+    ECS_EXISTS=$(aws ecs describe-clusters \
+        --clusters "${ECS_CLUSTER_NAME}" \
+        --region "${AWS_REGION}" \
+        --query 'clusters[0].clusterName' \
+        --output text 2>/dev/null || echo "")
+
+    if [ -n "$ECS_EXISTS" ] && [ "$ECS_EXISTS" != "None" ]; then
+        echo -e "  ${GREEN}✓ COMPLETED${NC} - ECS cluster created"
+        echo ""
+        echo -e "  Cluster Name:    ${ECS_CLUSTER_NAME}"
+        echo -e "  Log Group:       ${ECS_LOG_GROUP_NAME:-/ecs/${PROJECT_NAME}-migrations}"
+    else
+        echo -e "  ${YELLOW}⚠ Cluster in env file but not found in AWS${NC}"
+        echo -e "  ${YELLOW}→ Recreate: ./scripts/infra/create-ecs-cluster.sh${NC}"
+    fi
+elif [ -n "${ECR_REPOSITORY_URI:-}" ]; then
+    echo -e "  ${RED}✗ NOT STARTED${NC}"
+    echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-ecs-cluster.sh${NC}"
+    echo -e "  ${YELLOW}   Time: ~2 minutes${NC}"
+    echo -e "  ${YELLOW}   Cost: \$0 (cluster itself is free, pay-per-use for tasks)${NC}"
+else
+    echo -e "  ${RED}✗ BLOCKED${NC} - Requires ECR repository"
+fi
+echo ""
+
+# ECS IAM Roles
+echo -e "${CYAN}ECS IAM Roles (Task Permissions)${NC}"
+if [ -n "${ECS_TASK_EXECUTION_ROLE_ARN:-}" ]; then
+    # Check if roles actually exist
+    EXEC_ROLE_EXISTS=$(aws iam get-role \
+        --role-name "${ECS_TASK_EXECUTION_ROLE_NAME}" \
+        --query 'Role.RoleName' \
+        --output text 2>/dev/null || echo "")
+
+    TASK_ROLE_EXISTS=$(aws iam get-role \
+        --role-name "${ECS_TASK_ROLE_NAME}" \
+        --query 'Role.RoleName' \
+        --output text 2>/dev/null || echo "")
+
+    if [ -n "$EXEC_ROLE_EXISTS" ] && [ -n "$TASK_ROLE_EXISTS" ]; then
+        echo -e "  ${GREEN}✓ COMPLETED${NC} - IAM roles created"
+        echo ""
+        echo -e "  Task Execution Role: ${ECS_TASK_EXECUTION_ROLE_NAME}"
+        echo -e "  Task Role:           ${ECS_TASK_ROLE_NAME}"
+    else
+        echo -e "  ${YELLOW}⚠ Roles in env file but not found in AWS${NC}"
+        echo -e "  ${YELLOW}→ Recreate: ./scripts/infra/create-ecs-task-role.sh${NC}"
+    fi
+elif [ -n "${ECS_CLUSTER_NAME:-}" ]; then
+    echo -e "  ${RED}✗ NOT STARTED${NC}"
+    echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-ecs-task-role.sh${NC}"
+    echo -e "  ${YELLOW}   Time: ~2 minutes${NC}"
+    echo -e "  ${YELLOW}   Cost: \$0 (IAM roles are free)${NC}"
+else
+    echo -e "  ${RED}✗ BLOCKED${NC} - Requires ECS cluster"
+fi
+echo ""
+
+# Phase 5.14 Progress Summary
+if [ -n "${ECR_REPOSITORY_URI:-}" ] || [ -n "${ECS_CLUSTER_NAME:-}" ] || [ -n "${ECS_TASK_EXECUTION_ROLE_ARN:-}" ]; then
+    echo -e "${YELLOW}Phase 5.14 Progress Summary:${NC}"
+
+    if [ -n "${ECR_REPOSITORY_URI:-}" ]; then
+        echo -e "  ✓ Step 1: Multi-Stage Dockerfile"
+        echo -e "  ✓ Step 2: ECR Repository"
+    else
+        echo -e "  ✓ Step 1: Multi-Stage Dockerfile"
+        echo -e "  → Step 2: ECR Repository"
+    fi
+
+    if [ -n "${ECS_CLUSTER_NAME:-}" ]; then
+        echo -e "  ✓ Step 3: ECS Cluster"
+    else
+        echo -e "  → Step 3: ECS Cluster"
+    fi
+
+    if [ -n "${ECS_TASK_EXECUTION_ROLE_ARN:-}" ]; then
+        echo -e "  ✓ Step 4: IAM Roles for ECS"
+        echo -e "  → Step 5: Update Security Groups (./scripts/infra/update-security-groups-ecs.sh)"
+        echo -e "  → Step 6: Create ECS Task Definition"
+        echo -e "  → Step 7: Create GitHub Actions Workflow"
+        echo -e "  → Step 8: Configure GitHub Secrets"
+        echo -e "  → Step 9: Run Migrations & Documentation"
+    else
+        echo -e "  → Step 4: IAM Roles for ECS"
+    fi
+    echo ""
+fi
 
 # Progress summary
 echo -e "${BLUE}========================================${NC}"

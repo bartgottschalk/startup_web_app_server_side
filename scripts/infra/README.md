@@ -4,33 +4,38 @@ Infrastructure as Code (IaC) scripts for deploying StartupWebApp to AWS.
 
 ## ✅ Deployment Status
 
-**Current Status: Phase 5.14 In Progress - Step 2 Ready**
+**Current Status: Phase 5.14 In Progress - Step 3 Complete & Tested**
 
 - **Phase 5.13 Completed**: November 22, 2025 - RDS Infrastructure Deployed
 - **Phase 5.14 In Progress**: November 24, 2025 - ECS/CI/CD Setup
 - **Phase 5.14 Step 1**: ✅ Multi-Stage Dockerfile (Complete - November 23, 2025)
-- **Phase 5.14 Step 2**: 🚧 AWS ECR Repository (Scripts Ready - November 24, 2025)
+- **Phase 5.14 Step 2**: ✅ AWS ECR Repository (Complete - November 24, 2025)
+- **Phase 5.14 Step 3**: ✅ ECS Infrastructure (Complete & Tested - November 24, 2025)
 - **RDS Status**: Available
 - **Monitoring**: Active (4 alarms, email confirmed)
-- **Monthly Cost**: $29 (RDS: $26, Monitoring: $2, CloudWatch: $1)
-  - Will increase to ~$30/month after Phase 5.14 (ECR/logs add ~$1)
+- **Monthly Cost**: $36 (RDS: $26, Bastion: $7, Monitoring: $2, CloudWatch/ECR: $1)
 
 **Deployed Resources:**
-- VPC: vpc-0d1236512fe2df06f (startupwebapp-vpc, 10.0.0.0/16)
+- VPC: vpc-0df90226462f00350 (startupwebapp-vpc, 10.0.0.0/16)
 - RDS PostgreSQL 16.x: startupwebapp-multi-tenant-prod.cqbgoe8omhyh.us-east-1.rds.amazonaws.com:5432
 - Security Groups: 3 (RDS, Bastion, Backend)
 - Secrets Manager: rds/startupwebapp/multi-tenant/master
 - CloudWatch Dashboard: StartupWebApp-RDS-MultiTenant
 - SNS Topic: StartupWebApp-RDS-Alerts
+- ECR Repository: startupwebapp-backend
+- ECS Cluster: startupwebapp-cluster (Fargate)
+- ECS IAM Roles: 2 (task execution + task role)
 
 **Phase 5.14 Progress:**
 1. ✅ Multi-Stage Dockerfile (development + production targets)
-2. 🚧 **Create ECR repository** (`create-ecr.sh`) - Ready to run
-3. Create ECS Fargate cluster (`create-ecs-cluster.sh`)
-4. Create IAM roles for ECS tasks (`create-ecs-task-role.sh`)
-5. Create ECS task definition for migrations (`create-ecs-task-definition.sh`)
-6. Set up GitHub Actions CI/CD workflow
+2. ✅ Create ECR repository (`create-ecr.sh`)
+3. ✅ Create ECS infrastructure (cluster, IAM roles, security groups)
+   - ✅ Tested: Full destroy → recreate lifecycle validated
+4. 🚧 **Next: Create ECS task definition** (code-based)
+5. Set up GitHub Actions CI/CD workflow
+6. Configure GitHub secrets
 7. Run automated migrations on all 3 RDS databases via pipeline
+8. Verification and documentation
 
 **After Phase 5.14:**
 - Phase 5.15: Full production deployment (ECS service, ALB, auto-scaling)
@@ -109,7 +114,15 @@ scripts/infra/
 ├── destroy-monitoring.sh            # Delete monitoring
 │
 ├── create-ecr.sh                    # Create ECR repository (Phase 5.14)
-└── destroy-ecr.sh                   # Delete ECR repository
+├── destroy-ecr.sh                   # Delete ECR repository
+│
+├── create-ecs-cluster.sh            # Create ECS cluster (Phase 5.14)
+├── destroy-ecs-cluster.sh           # Delete ECS cluster
+│
+├── create-ecs-task-role.sh          # Create IAM roles for ECS (Phase 5.14)
+├── destroy-ecs-task-role.sh         # Delete ECS IAM roles
+│
+└── update-security-groups-ecs.sh    # Update security groups for ECS
 ```
 
 **Security Pattern:**
@@ -179,14 +192,18 @@ Execute scripts in this order:
 # 2. Create ECR repository for Docker images (2 minutes)
 ./scripts/infra/create-ecr.sh
 
-# 3. (Future) Create ECS cluster
+# 3. Create ECS Fargate cluster (2 minutes)
 ./scripts/infra/create-ecs-cluster.sh
 
-# 4. (Future) Create IAM roles for ECS tasks
+# 4. Create IAM roles for ECS tasks (2 minutes)
 ./scripts/infra/create-ecs-task-role.sh
 
-# 5. (Future) Create ECS task definition for migrations
-./scripts/infra/create-ecs-task-definition.sh
+# 5. Update security groups for ECS (1 minute)
+./scripts/infra/update-security-groups-ecs.sh
+
+# 6. (Future) Create ECS task definition for migrations (code-based)
+# 7. (Future) Create GitHub Actions workflow
+# 8. (Future) Run migrations via CI/CD pipeline
 
 # Check status
 ./scripts/infra/status.sh
@@ -200,13 +217,17 @@ Execute scripts in reverse order:
 
 ```bash
 # 1. (Future) Destroy ECS task definition
-./scripts/infra/destroy-ecs-task-definition.sh
 
-# 2. (Future) Destroy ECS cluster
+# 2. Destroy ECS IAM roles
+./scripts/infra/destroy-ecs-task-role.sh
+
+# 3. Destroy ECS cluster
 ./scripts/infra/destroy-ecs-cluster.sh
 
-# 3. Destroy ECR repository (deletes all images)
+# 4. Destroy ECR repository (deletes all images)
 ./scripts/infra/destroy-ecr.sh
+
+# Note: Security group rules are left intact (no dedicated destroy script)
 ```
 
 **Phase 5.13: RDS Infrastructure**
@@ -402,6 +423,84 @@ docker push <REPOSITORY_URI>:latest
 
 **Cost:** ~$0.10/GB/month storage (~$0.10-$0.20/month for 1-2 images)
 
+### create-ecs-cluster.sh (Phase 5.14)
+
+Creates AWS ECS Fargate cluster for running containerized tasks:
+- Cluster: `startupwebapp-cluster`
+- Launch type: Fargate (serverless, no EC2 management)
+- Capacity providers: FARGATE and FARGATE_SPOT
+- CloudWatch log group: `/ecs/startupwebapp-migrations` (7-day retention)
+- Tags for organization and cost tracking
+
+**Prerequisites:**
+- VPC must exist
+
+**Usage:**
+```bash
+./scripts/infra/create-ecs-cluster.sh
+```
+
+**Time:** ~2 minutes
+
+**What Gets Created:**
+- ECS Fargate cluster (serverless container orchestration)
+- CloudWatch log group for task logs
+
+**Cost:**
+- ECS cluster: $0 (no cost for cluster itself)
+- Fargate tasks: Pay-per-use (~$0.0137/hour per 0.25 vCPU + 0.5 GB task)
+- CloudWatch logs: ~$0.50/GB ingested
+
+### create-ecs-task-role.sh (Phase 5.14)
+
+Creates IAM roles for ECS tasks:
+- **Task Execution Role** (`ecsTaskExecutionRole-startupwebapp`):
+  - Pulls Docker images from ECR
+  - Writes logs to CloudWatch
+  - Reads secrets from Secrets Manager
+- **Task Role** (`ecsTaskRole-startupwebapp`):
+  - Application runtime permissions
+  - Read secrets during task execution
+
+**Prerequisites:**
+- Secrets Manager secret must exist
+
+**Usage:**
+```bash
+./scripts/infra/create-ecs-task-role.sh
+```
+
+**Time:** ~2 minutes (includes 10-second IAM propagation wait)
+
+**What Gets Created:**
+- 2 IAM roles with appropriate policies
+- Inline policies for Secrets Manager access
+
+**Cost:** $0 (IAM roles are free)
+
+### update-security-groups-ecs.sh (Phase 5.14)
+
+Updates existing security groups to allow ECS tasks to communicate with RDS:
+- Verifies Backend SG → RDS SG rule exists (port 5432)
+- Adds outbound rules to Backend SG for RDS and ECR
+- ECS tasks will use the Backend security group
+
+**Prerequisites:**
+- Security groups must exist
+
+**Usage:**
+```bash
+./scripts/infra/update-security-groups-ecs.sh
+```
+
+**Time:** ~1 minute
+
+**What Gets Updated:**
+- Backend SG: Outbound to RDS (port 5432)
+- Backend SG: Outbound to internet (port 443 for ECR)
+
+**Cost:** $0 (security group rules are free)
+
 ### show-resources.sh
 
 Displays all created resources:
@@ -413,6 +512,8 @@ Displays all created resources:
 - Bastion host (if created)
 - CloudWatch monitoring
 - ECR repository (Phase 5.14)
+- ECS cluster (Phase 5.14)
+- ECS IAM roles (Phase 5.14)
 - Cost estimate
 - Quick links to AWS Console
 

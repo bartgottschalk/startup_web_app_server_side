@@ -370,9 +370,54 @@ This document tracks the complete development history and modernization effort f
 - `scripts/infra/show-resources.sh` - Added ECR display with image count and quick link
 - `scripts/infra/README.md` - Added ECR documentation throughout
 
+---
+
+**Step 3: AWS ECS Infrastructure** ✅ (Completed & Tested - November 24, 2025)
+
+- ✅ Created 5 infrastructure scripts with full lifecycle management
+- ✅ ECS Fargate cluster created: `startupwebapp-cluster`
+- ✅ CloudWatch log group created: `/ecs/startupwebapp-migrations` (7-day retention)
+- ✅ IAM roles created:
+  - `ecsTaskExecutionRole-startupwebapp` (pull images, write logs, read secrets)
+  - `ecsTaskRole-startupwebapp` (application runtime permissions)
+- ✅ Security groups updated for ECS → RDS communication (port 5432) and ECR access (port 443)
+- ✅ Full lifecycle testing: create → destroy → recreate validated successfully
+- ✅ Updated aws-resources.env.template with 7 ECS fields
+- ✅ Updated status.sh with ECS cluster and IAM role tracking
+- ✅ Updated show-resources.sh with ECS resource display and live status
+- ✅ Updated scripts/infra/README.md with comprehensive ECS documentation
+- ✅ Cost: $0 for infrastructure (pay-per-use: ~$0.0137/hour when tasks run)
+
+**Files Created**:
+- `scripts/infra/create-ecs-cluster.sh` - ECS cluster creation (tested)
+- `scripts/infra/destroy-ecs-cluster.sh` - ECS cluster destruction (tested)
+- `scripts/infra/create-ecs-task-role.sh` - IAM roles creation (tested)
+- `scripts/infra/destroy-ecs-task-role.sh` - IAM roles destruction (tested)
+- `scripts/infra/update-security-groups-ecs.sh` - Security group updates (tested)
+
+**Files Modified**:
+- `scripts/infra/aws-resources.env.template` - Added 7 ECS resource fields
+- `scripts/infra/aws-resources.env` - Populated with actual ECS resource ARNs
+- `scripts/infra/status.sh` - Added ECS cluster and IAM role status checking with live AWS queries
+- `scripts/infra/show-resources.sh` - Added ECS resource display with cluster status and task count
+- `scripts/infra/README.md` - Added ECS deployment order and comprehensive script documentation
+
+**Resources Created**:
+- ECS Cluster: `startupwebapp-cluster` (ARN: arn:aws:ecs:us-east-1:853463362083:cluster/startupwebapp-cluster)
+- Log Group: `/ecs/startupwebapp-migrations` (7-day retention)
+- Task Execution Role: `ecsTaskExecutionRole-startupwebapp` (ARN: arn:aws:iam::853463362083:role/ecsTaskExecutionRole-startupwebapp)
+- Task Role: `ecsTaskRole-startupwebapp` (ARN: arn:aws:iam::853463362083:role/ecsTaskRole-startupwebapp)
+- Security Group Rules: Backend SG outbound to RDS (5432) and internet (443)
+
+**Test Results**:
+- Destroy: IAM roles, cluster, and log group deleted cleanly ✅
+- Recreate: All resources recreated with same names and configurations ✅
+- aws-resources.env: Properly cleared on destroy, repopulated on recreate ✅
+- Status scripts: Accurately reflect resource state ✅
+- Base infrastructure: Remained untouched (VPC, RDS, security groups, ECR) ✅
+
 **Next Steps**:
-- Step 3: Create ECS cluster and IAM roles
-- Step 4: Create ECS task definition for migrations
+- Step 4: Create ECS task definition for migrations (code-based)
 - Step 5: Create GitHub Actions CI/CD workflow
 - Step 6: Configure GitHub secrets
 - Step 7: Run migrations via pipeline (3 databases)

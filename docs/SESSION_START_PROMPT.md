@@ -27,7 +27,7 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ## Current State
 
-**Project Status:** 🚧 Phase 5.14 - Step 3/9: AWS ECS Cluster (NEXT)
+**Project Status:** 🚧 Phase 5.14 - Step 4/9: ECS Task Definition (NEXT)
 
 - ✅ Django 4.2.16 LTS upgrade complete
 - ✅ Code linting complete (zero errors)
@@ -45,7 +45,15 @@ Hi Claude. I want to continue working on these two repositories together:
   - Image scanning enabled, lifecycle policy configured (keep 10 images)
   - Infrastructure scripts: create-ecr.sh, destroy-ecr.sh (fully tested)
   - Cost: ~$0.10-$0.20/month
-- 🚧 **Step 3 Next**: Create AWS ECS Cluster (Fargate infrastructure)
+- ✅ **Step 3 Complete**: AWS ECS Infrastructure (November 24, 2025)
+  - ECS Cluster: startupwebapp-cluster (Fargate)
+  - IAM Roles: ecsTaskExecutionRole-startupwebapp, ecsTaskRole-startupwebapp
+  - CloudWatch log group: /ecs/startupwebapp-migrations (7-day retention)
+  - Security groups updated (Backend SG → RDS + ECR)
+  - Infrastructure scripts: create-ecs-cluster.sh, create-ecs-task-role.sh, update-security-groups-ecs.sh, destroy scripts
+  - Full lifecycle tested (create → destroy → recreate)
+  - Cost: $0 (pay-per-use for tasks: ~$0.0137/hour when running)
+- 🚧 **Step 4 Next**: Create ECS Task Definition (code-based, not bash script)
 - 📍 **Current Branch**: `feature/phase-5-14-ecs-cicd-migrations`
 
 **Phase 5.14 Goals:**
