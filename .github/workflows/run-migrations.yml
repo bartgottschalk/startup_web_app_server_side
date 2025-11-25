@@ -288,6 +288,11 @@ jobs:
         run: |
           git clone https://github.com/bartgottschalk/startup_web_app_client_side.git frontend
 
+          # Make frontend files readable by nginx (nginx runs as www-data user)
+          # Without this, nginx returns 403 Forbidden errors
+          sudo chown -R www-data:www-data frontend
+          echo "Frontend files ownership changed to www-data"
+
       # ----------------------------------------------------------------------
       # STEP 10: Install and configure nginx
       # ----------------------------------------------------------------------
@@ -366,14 +371,23 @@ jobs:
           fi
           echo "✓ /products page accessible"
 
-          # Check if the HTML contains expected title tags
+          # Check if the HTML contains expected title tags (not 403 Forbidden)
           echo "Checking HTML content for page titles..."
-          curl -s http://localliveservertestcase.startupwebapp.com:8080/about | grep -i "<title>" || echo "⚠ Warning: No <title> tag found in /about"
-          curl -s http://localliveservertestcase.startupwebapp.com:8080/products | grep -i "<title>" || echo "⚠ Warning: No <title> tag found in /products"
+          ABOUT_TITLE=$(curl -s http://localliveservertestcase.startupwebapp.com:8080/about | grep -i "<title>")
+          echo "About page title: $ABOUT_TITLE"
+          if echo "$ABOUT_TITLE" | grep -q "403 Forbidden"; then
+            echo "❌ ERROR: nginx returning 403 Forbidden - permission issue"
+            ls -la frontend | head -20
+            exit 1
+          fi
 
-          # Show first 50 lines of /about page for debugging
-          echo "First 50 lines of /about page:"
-          curl -s http://localliveservertestcase.startupwebapp.com:8080/about | head -50
+          PRODUCTS_TITLE=$(curl -s http://localliveservertestcase.startupwebapp.com:8080/products | grep -i "<title>")
+          echo "Products page title: $PRODUCTS_TITLE"
+          if echo "$PRODUCTS_TITLE" | grep -q "403 Forbidden"; then
+            echo "❌ ERROR: nginx returning 403 Forbidden - permission issue"
+            ls -la frontend | head -20
+            exit 1
+          fi
 
           echo "✓ All frontend pages verified successfully"
 
