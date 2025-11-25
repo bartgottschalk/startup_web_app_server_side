@@ -366,6 +366,15 @@ jobs:
           fi
           echo "✓ /products page accessible"
 
+          # Check if the HTML contains expected title tags
+          echo "Checking HTML content for page titles..."
+          curl -s http://localliveservertestcase.startupwebapp.com:8080/about | grep -i "<title>" || echo "⚠ Warning: No <title> tag found in /about"
+          curl -s http://localliveservertestcase.startupwebapp.com:8080/products | grep -i "<title>" || echo "⚠ Warning: No <title> tag found in /products"
+
+          # Show first 50 lines of /about page for debugging
+          echo "First 50 lines of /about page:"
+          curl -s http://localliveservertestcase.startupwebapp.com:8080/about | head -50
+
           echo "✓ All frontend pages verified successfully"
 
       # ----------------------------------------------------------------------
