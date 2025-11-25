@@ -279,8 +279,12 @@ jobs:
           DATABASE_PORT: 5432
           HEADLESS: "TRUE"
         run: |
+          # Setup /etc/hosts for functional tests (similar to Docker setup_docker_test_hosts.sh)
+          # Functional tests need these hostnames to resolve to localhost for cookie sharing
+          echo "127.0.0.1    localliveservertestcase.startupwebapp.com" | sudo tee -a /etc/hosts
+          echo "127.0.0.1    localliveservertestcaseapi.startupwebapp.com" | sudo tee -a /etc/hosts
+
           cd StartupWebApp
-          bash /app/setup_docker_test_hosts.sh || true
           python manage.py test functional_tests
 
   # ==========================================================================
