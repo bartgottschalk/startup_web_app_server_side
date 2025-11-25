@@ -59,6 +59,12 @@ on:
         type: boolean
         default: false
 
+      skip_unit_tests:
+        description: 'Skip unit tests (for faster iteration when debugging functional tests)'
+        required: false
+        type: boolean
+        default: false
+
 # ============================================================================
 # ENVIRONMENT VARIABLES
 # ============================================================================
@@ -228,6 +234,7 @@ jobs:
       # ----------------------------------------------------------------------
       # Check code quality before running tests
       - name: Run flake8 linting
+        if: ${{ github.event.inputs.skip_unit_tests != 'true' }}
         run: |
           cd StartupWebApp
           flake8 user order clientevent StartupWebApp --max-line-length=120 --exclude=*/migrations/* --statistics
@@ -237,6 +244,7 @@ jobs:
       # ----------------------------------------------------------------------
       # Run 712 unit tests in parallel (faster execution)
       - name: Run unit tests
+        if: ${{ github.event.inputs.skip_unit_tests != 'true' }}
         env:
           # Django uses these environment variables
           DATABASE_ENGINE: postgresql
@@ -314,24 +322,39 @@ jobs:
           sleep 2
           echo "Verifying nginx is serving files..."
 
-          # Test root page
+          # Show active nginx config for debugging
+          echo "Active nginx config:"
+          sudo cat /etc/nginx/sites-enabled/startupwebapp | head -20
+
+          # Test root page with localhost
           if ! curl -s http://localhost:8080/ > /dev/null; then
             echo "❌ ERROR: Frontend server not responding on port 8080"
             exit 1
           fi
-          echo "✓ Frontend server responding on port 8080"
+          echo "✓ Frontend server responding on localhost:8080"
+
+          # Test with the actual hostname that Selenium will use
+          if ! curl -s http://localliveservertestcase.startupwebapp.com:8080/ > /dev/null; then
+            echo "❌ ERROR: Frontend server not responding on localliveservertestcase.startupwebapp.com:8080"
+            echo "Testing DNS resolution:"
+            ping -c 1 localliveservertestcase.startupwebapp.com
+            echo "Testing with curl verbose:"
+            curl -v http://localliveservertestcase.startupwebapp.com:8080/
+            exit 1
+          fi
+          echo "✓ Frontend server responding on localliveservertestcase.startupwebapp.com:8080"
 
           # Test specific pages that functional tests use
-          if ! curl -s http://localhost:8080/about > /dev/null; then
+          if ! curl -s http://localliveservertestcase.startupwebapp.com:8080/about > /dev/null; then
             echo "❌ ERROR: /about page not found"
-            curl -v http://localhost:8080/about
+            curl -v http://localliveservertestcase.startupwebapp.com:8080/about
             exit 1
           fi
           echo "✓ /about page accessible"
 
-          if ! curl -s http://localhost:8080/products > /dev/null; then
+          if ! curl -s http://localliveservertestcase.startupwebapp.com:8080/products > /dev/null; then
             echo "❌ ERROR: /products page not found"
-            curl -v http://localhost:8080/products
+            curl -v http://localliveservertestcase.startupwebapp.com:8080/products
             exit 1
           fi
           echo "✓ /products page accessible"
