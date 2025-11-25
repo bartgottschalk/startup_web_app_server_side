@@ -396,8 +396,9 @@ jobs:
       # ----------------------------------------------------------------------
       # STEP 11: Run functional tests
       # ----------------------------------------------------------------------
-      # Run 28 functional tests with Selenium (headless mode)
-      - name: Run functional tests
+      # DEBUGGING: Run only the failing tests to save time
+      # TODO: Change back to "python manage.py test functional_tests" once issues are fixed
+      - name: Run functional tests (debugging subset)
         env:
           DATABASE_ENGINE: postgresql
           DATABASE_NAME: startupwebapp_test
@@ -410,7 +411,11 @@ jobs:
         run: |
           # /etc/hosts already configured in previous step
           cd StartupWebApp
-          python manage.py test functional_tests
+          # Run only the 2 failing tests for faster debugging
+          python manage.py test \
+            functional_tests.global.test_global_elements.AnonymousGlobalNavigationTests.test_header \
+            functional_tests.global.test_global_elements.AnonymousGlobalFunctionalTests.test_chat \
+            --verbosity=2
 
   # ==========================================================================
   # JOB 2: Build and Push Docker Image
