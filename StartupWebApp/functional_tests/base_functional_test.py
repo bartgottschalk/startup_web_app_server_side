@@ -26,10 +26,10 @@ class BaseFunctionalTest(LiveServerTestCase):
 	tomorrow = start_date_time=timezone.now() + timedelta(days=1)
 	# Use localliveservertestcase.startupwebapp.com for cookie sharing between frontend and backend
 	# Two environments supported:
-	# 1. CI (CI_ENV=true): No frontend server, connect directly to backend on port 60767
-	# 2. Docker (DOCKER_ENV=true): Frontend on port 80 (internal) proxies to backend on port 60767
+	# 1. CI (CI_ENV=true): Frontend on port 8080, backend on port 60767 (like local dev)
+	# 2. Docker (DOCKER_ENV=true): Frontend on port 80 (internal), backend on port 60767
 	if os.environ.get('CI_ENV'):
-		static_home_page_url = "http://localliveservertestcase.startupwebapp.com:60767/"
+		static_home_page_url = "http://localliveservertestcase.startupwebapp.com:8080/"
 	elif os.environ.get('DOCKER_ENV'):
 		static_home_page_url = "http://localliveservertestcase.startupwebapp.com/"
 	else:

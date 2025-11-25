@@ -273,7 +273,49 @@ jobs:
           sudo chmod +x /usr/local/bin/geckodriver
 
       # ----------------------------------------------------------------------
-      # STEP 9: Run functional tests
+      # STEP 9: Clone frontend repository
+      # ----------------------------------------------------------------------
+      # Functional tests require frontend HTML/JS files to be served
+      - name: Clone frontend repository
+        run: |
+          git clone https://github.com/bartgottschalk/startup_web_app_client_side.git frontend
+
+      # ----------------------------------------------------------------------
+      # STEP 10: Install and configure nginx
+      # ----------------------------------------------------------------------
+      # Use nginx to serve frontend files (same as Docker environment)
+      - name: Install and configure nginx
+        run: |
+          # Install nginx
+          sudo apt-get update
+          sudo apt-get install -y nginx
+
+          # Copy nginx config from backend repo
+          sudo cp nginx.conf /etc/nginx/sites-available/startupwebapp
+
+          # Update nginx config:
+          # 1. Change root directory to frontend location
+          # 2. Change listen port from 80 to 8080 (port 80 requires root, 8080 is safer)
+          sudo sed -i 's|/usr/share/nginx/html|'"$GITHUB_WORKSPACE"'/frontend|g' /etc/nginx/sites-available/startupwebapp
+          sudo sed -i 's|listen 80;|listen 8080;|g' /etc/nginx/sites-available/startupwebapp
+
+          # Enable site and remove default
+          sudo ln -sf /etc/nginx/sites-available/startupwebapp /etc/nginx/sites-enabled/
+          sudo rm -f /etc/nginx/sites-enabled/default
+
+          # Test nginx configuration
+          sudo nginx -t
+
+          # Start nginx
+          sudo systemctl start nginx
+          sudo systemctl status nginx --no-pager
+
+          # Verify nginx is serving files
+          sleep 2
+          curl -s http://localhost:8080/ > /dev/null && echo "✓ Frontend server (nginx) started successfully on port 8080" || echo "⚠ Warning: Frontend server may not be responding"
+
+      # ----------------------------------------------------------------------
+      # STEP 11: Run functional tests
       # ----------------------------------------------------------------------
       # Run 28 functional tests with Selenium (headless mode)
       - name: Run functional tests
@@ -285,7 +327,7 @@ jobs:
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
           HEADLESS: "TRUE"
-          CI_ENV: "true"  # Tell tests there's no frontend server, connect directly to backend on port 60767
+          CI_ENV: "true"  # Tell tests frontend is on port 8080, backend on port 60767
         run: |
           # Setup /etc/hosts for functional tests (similar to Docker setup_docker_test_hosts.sh)
           # Functional tests need these hostnames to resolve to localhost for cookie sharing
