@@ -306,13 +306,37 @@ jobs:
           # Test nginx configuration
           sudo nginx -t
 
-          # Start nginx
-          sudo systemctl start nginx
+          # Restart nginx to load new configuration (in case nginx was already running)
+          sudo systemctl restart nginx
           sudo systemctl status nginx --no-pager
 
-          # Verify nginx is serving files
+          # Verify nginx is serving files on port 8080 - FAIL FAST if not working
           sleep 2
-          curl -s http://localhost:8080/ > /dev/null && echo "✓ Frontend server (nginx) started successfully on port 8080" || echo "⚠ Warning: Frontend server may not be responding"
+          echo "Verifying nginx is serving files..."
+
+          # Test root page
+          if ! curl -s http://localhost:8080/ > /dev/null; then
+            echo "❌ ERROR: Frontend server not responding on port 8080"
+            exit 1
+          fi
+          echo "✓ Frontend server responding on port 8080"
+
+          # Test specific pages that functional tests use
+          if ! curl -s http://localhost:8080/about > /dev/null; then
+            echo "❌ ERROR: /about page not found"
+            curl -v http://localhost:8080/about
+            exit 1
+          fi
+          echo "✓ /about page accessible"
+
+          if ! curl -s http://localhost:8080/products > /dev/null; then
+            echo "❌ ERROR: /products page not found"
+            curl -v http://localhost:8080/products
+            exit 1
+          fi
+          echo "✓ /products page accessible"
+
+          echo "✓ All frontend pages verified successfully"
 
       # ----------------------------------------------------------------------
       # STEP 11: Run functional tests
