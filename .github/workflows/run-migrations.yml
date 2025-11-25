@@ -223,9 +223,12 @@ jobs:
           STRIPE_PUBLISHABLE_SECRET_KEY = 'pk_test_ci_placeholder'
           STRIPE_LOG_LEVEL = 'debug'
 
-          # CORS - allow all for testing
+          # CORS - allow origins for cross-origin AJAX requests with credentials
           CORS_ORIGIN_WHITELIST = (
               'http://localhost:8080',
+              'http://localhost.startupwebapp.com:8080',
+              'http://localliveservertestcase.startupwebapp.com',
+              'http://localliveservertestcase.startupwebapp.com:8080',
               'http://frontend',
               'http://testserver',
           )
