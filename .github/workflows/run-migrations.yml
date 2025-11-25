@@ -286,12 +286,14 @@ jobs:
       # Functional tests require frontend HTML/JS files to be served
       - name: Clone frontend repository
         run: |
+          # Clone to /tmp which is world-readable (nginx can access)
+          # Cloning to ~/work fails because nginx can't traverse /home/runner path
+          cd /tmp
           git clone https://github.com/bartgottschalk/startup_web_app_client_side.git frontend
 
           # Make frontend files readable by nginx (nginx runs as www-data user)
-          # Without this, nginx returns 403 Forbidden errors
           sudo chown -R www-data:www-data frontend
-          echo "Frontend files ownership changed to www-data"
+          echo "Frontend cloned to /tmp/frontend and ownership changed to www-data"
 
       # ----------------------------------------------------------------------
       # STEP 10: Install and configure nginx
@@ -307,9 +309,9 @@ jobs:
           sudo cp nginx.conf /etc/nginx/sites-available/startupwebapp
 
           # Update nginx config:
-          # 1. Change root directory to frontend location
+          # 1. Change root directory to /tmp/frontend (world-readable location)
           # 2. Change listen port from 80 to 8080 (port 80 requires root, 8080 is safer)
-          sudo sed -i 's|/usr/share/nginx/html|'"$GITHUB_WORKSPACE"'/frontend|g' /etc/nginx/sites-available/startupwebapp
+          sudo sed -i 's|/usr/share/nginx/html|/tmp/frontend|g' /etc/nginx/sites-available/startupwebapp
           sudo sed -i 's|listen 80;|listen 8080;|g' /etc/nginx/sites-available/startupwebapp
 
           # Enable site and remove default
@@ -377,7 +379,7 @@ jobs:
           echo "About page title: $ABOUT_TITLE"
           if echo "$ABOUT_TITLE" | grep -q "403 Forbidden"; then
             echo "❌ ERROR: nginx returning 403 Forbidden - permission issue"
-            ls -la frontend | head -20
+            ls -la /tmp/frontend | head -20
             exit 1
           fi
 
@@ -385,7 +387,7 @@ jobs:
           echo "Products page title: $PRODUCTS_TITLE"
           if echo "$PRODUCTS_TITLE" | grep -q "403 Forbidden"; then
             echo "❌ ERROR: nginx returning 403 Forbidden - permission issue"
-            ls -la frontend | head -20
+            ls -la /tmp/frontend | head -20
             exit 1
           fi
 
