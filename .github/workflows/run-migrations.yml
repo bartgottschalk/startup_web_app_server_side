@@ -646,12 +646,10 @@ jobs:
         run: |
           echo "Waiting for migration task to complete..."
 
-          # Wait up to 10 minutes for task to finish
+          # Wait for task to finish (default: 100 attempts x 6 sec = 10 minutes max)
           aws ecs wait tasks-stopped \
             --cluster ${{ env.ECS_CLUSTER }} \
-            --tasks ${{ steps.run-task.outputs.task-arn }} \
-            --max-attempts 60 \
-            --delay 10
+            --tasks ${{ steps.run-task.outputs.task-arn }}
 
           # Get task exit code
           EXIT_CODE=$(aws ecs describe-tasks \
@@ -689,8 +687,13 @@ jobs:
       - name: Check migration success
         if: always()
         run: |
-          if [ "${{ steps.wait-task.outputs.exit-code }}" != "0" ]; then
-            echo "❌ Migration failed with exit code ${{ steps.wait-task.outputs.exit-code }}"
+          EXIT_CODE="${{ steps.wait-task.outputs.exit-code }}"
+
+          if [ -z "$EXIT_CODE" ]; then
+            echo "❌ Failed to retrieve task exit code (task may not have started or wait failed)"
+            exit 1
+          elif [ "$EXIT_CODE" != "0" ]; then
+            echo "❌ Migration failed with exit code $EXIT_CODE"
             exit 1
           else
             echo "✅ Migration completed successfully!"

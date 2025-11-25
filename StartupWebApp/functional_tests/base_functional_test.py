@@ -83,6 +83,9 @@ class BaseFunctionalTest(LiveServerTestCase):
 		Discountcode.objects.create(code='SEPT50PERCENT', description='50% off your item total in September!', start_date_time=self.yesterday, end_date_time=self.tomorrow, combinable=False, discount_amount='50', discounttype=Discounttype.objects.get(action='percent-off'), order_minimum='0')
 		Discountcode.objects.create(code='SEPTSAVER', description='Get $10 off your order of $20 or more in September!', start_date_time=self.yesterday, end_date_time=self.tomorrow, combinable=False, discount_amount='10', discounttype=Discounttype.objects.get(action='dollar-amt-off'), order_minimum='20')
 
+		Orderconfiguration.objects.create(key='an_ct_values_allowed_to_checkout', string_value='*')  # Allow all anonymous carts
+		Orderconfiguration.objects.create(key='usernames_allowed_to_checkout', string_value='*')  # Allow all usernames
+
 		Skutype.objects.create(id=1, title='product')
 		Skuinventory.objects.create(id=1, title='In Stock', identifier='in-stock', description='In Stock items are available to purchase.')
 		Skuinventory.objects.create(id=2, title='Back Ordered', identifier='back-ordered', description='Back Ordered items are not available to purchase at this time.')
