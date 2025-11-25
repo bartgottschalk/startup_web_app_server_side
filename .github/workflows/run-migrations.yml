@@ -186,9 +186,12 @@ jobs:
           CSRF_COOKIE_DOMAIN = ".startupwebapp.com"  # Share CSRF cookies across subdomains for functional tests
           CSRF_TRUSTED_ORIGINS = [
               'http://localhost',
+              'http://localhost.startupwebapp.com:8080',
               'http://testserver',
               'http://localliveservertestcase.startupwebapp.com',
+              'http://localliveservertestcase.startupwebapp.com:8080',
               'http://localliveservertestcaseapi.startupwebapp.com',
+              'http://localliveservertestcaseapi.startupwebapp.com:60767',
           ]
 
           DEBUG = True
