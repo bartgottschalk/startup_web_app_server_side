@@ -314,6 +314,13 @@ jobs:
           # Test nginx configuration
           sudo nginx -t
 
+          # Setup /etc/hosts BEFORE testing nginx (needed for hostname resolution)
+          # Functional tests need these hostnames to resolve to localhost for cookie sharing
+          echo "127.0.0.1    localliveservertestcase.startupwebapp.com" | sudo tee -a /etc/hosts
+          echo "127.0.0.1    localliveservertestcaseapi.startupwebapp.com" | sudo tee -a /etc/hosts
+          echo "/etc/hosts configured:"
+          cat /etc/hosts | grep localliveservertestcase
+
           # Restart nginx to load new configuration (in case nginx was already running)
           sudo systemctl restart nginx
           sudo systemctl status nginx --no-pager
@@ -376,11 +383,7 @@ jobs:
           HEADLESS: "TRUE"
           CI_ENV: "true"  # Tell tests frontend is on port 8080, backend on port 60767
         run: |
-          # Setup /etc/hosts for functional tests (similar to Docker setup_docker_test_hosts.sh)
-          # Functional tests need these hostnames to resolve to localhost for cookie sharing
-          echo "127.0.0.1    localliveservertestcase.startupwebapp.com" | sudo tee -a /etc/hosts
-          echo "127.0.0.1    localliveservertestcaseapi.startupwebapp.com" | sudo tee -a /etc/hosts
-
+          # /etc/hosts already configured in previous step
           cd StartupWebApp
           python manage.py test functional_tests
 
