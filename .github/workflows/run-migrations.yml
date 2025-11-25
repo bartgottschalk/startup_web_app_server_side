@@ -161,6 +161,34 @@ jobs:
 
           import os
 
+          # Django secret key (for testing only - not production)
+          SECRET_KEY = 'test-secret-key-for-ci-only-not-secure'
+
+          # Allowed hosts for testing
+          ALLOWED_HOSTS = [
+              'localhost',
+              'backend',
+              'testserver',
+          ]
+
+          # Security settings (disabled for testing)
+          SESSION_COOKIE_SECURE = False
+          SESSION_COOKIE_DOMAIN = None
+          CSRF_COOKIE_SECURE = False
+          CSRF_COOKIE_DOMAIN = None
+          CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://testserver']
+
+          DEBUG = True
+          ENVIRONMENT_DOMAIN = 'http://localhost'
+
+          # Email configuration (console backend for testing)
+          EMAIL_HOST = 'localhost'
+          EMAIL_PORT = 1025
+          EMAIL_USE_TLS = False
+          EMAIL_HOST_USER = ''
+          EMAIL_HOST_PASSWORD = ''
+          EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
           # Database configuration from environment variables
           DATABASES = {
               'default': {
@@ -170,21 +198,21 @@ jobs:
                   'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'postgres'),
                   'HOST': os.environ.get('DATABASE_HOST', 'localhost'),
                   'PORT': os.environ.get('DATABASE_PORT', '5432'),
+                  'CONN_MAX_AGE': 600,
               }
           }
 
-          # Django secret key (for testing only - not production)
-          SECRET_KEY = 'test-secret-key-for-ci-only-not-secure'
-
           # Stripe test keys (placeholder - tests mock Stripe anyway)
-          STRIPE_SECRET_KEY = 'sk_test_ci_placeholder'
-          STRIPE_PUBLISHABLE_KEY = 'pk_test_ci_placeholder'
-
-          # Email backend (console for testing)
-          EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+          STRIPE_SERVER_SECRET_KEY = 'sk_test_ci_placeholder'
+          STRIPE_PUBLISHABLE_SECRET_KEY = 'pk_test_ci_placeholder'
+          STRIPE_LOG_LEVEL = 'debug'
 
           # CORS - allow all for testing
-          CORS_ORIGIN_WHITELIST = ['http://localhost:8080']
+          CORS_ORIGIN_WHITELIST = (
+              'http://localhost:8080',
+              'http://frontend',
+              'http://testserver',
+          )
           CORS_ALLOW_CREDENTIALS = True
           EOF
 
