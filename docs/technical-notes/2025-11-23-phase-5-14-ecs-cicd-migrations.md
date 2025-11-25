@@ -507,15 +507,53 @@ Workflow validation: ✓
 
 ---
 
-### Step 6: Configure GitHub Secrets ⏱️ 10 minutes
+### Step 6: Configure GitHub Secrets ✅ COMPLETE (November 25, 2025)
 
-**Required Secrets**:
-1. `AWS_ACCESS_KEY_ID` - IAM user access key
-2. `AWS_SECRET_ACCESS_KEY` - IAM user secret key
-3. `AWS_REGION` - us-east-1
+**Goal**: Configure AWS credentials for GitHub Actions workflow
 
-**Where to Add**:
-- GitHub repo → Settings → Secrets and variables → Actions → New repository secret
+**Status**: ✅ Completed November 25, 2025
+
+**Completed Tasks:**
+- ✅ Created IAM user: `github-actions-startupwebapp`
+- ✅ Attached IAM policies:
+  - `AmazonEC2ContainerRegistryPowerUser` - For pushing/pulling Docker images to/from ECR
+  - `AmazonECS_FullAccess` - For running ECS tasks and updating task definitions
+  - `CloudWatchLogsReadOnlyAccess` - For fetching migration logs from CloudWatch
+- ✅ Generated AWS access keys for programmatic access
+- ✅ Added 3 secrets to GitHub repository (Settings → Secrets and variables → Actions):
+  1. `AWS_ACCESS_KEY_ID` - IAM user access key (starts with AKIA)
+  2. `AWS_SECRET_ACCESS_KEY` - IAM user secret access key
+  3. `AWS_REGION` - us-east-1
+- ✅ Security: All secrets encrypted by GitHub, never exposed in workflow logs
+- ✅ **Workflow debugging and fixes** (7 iterations, ~3 hours):
+  1. **Boolean logic fix** - Fixed `skip_tests` condition (string comparison issue)
+  2. **Linting fix** - Excluded migrations from flake8 (auto-generated files)
+  3. **Settings fix** - Generated `settings_secret.py` for CI environment
+  4. **Stripe fix** - Corrected setting names to match template (STRIPE_SERVER_SECRET_KEY)
+  5. **Firefox fix** - Used snap for Ubuntu 24.04 instead of firefox-esr
+  6. **DNS fix** - Added /etc/hosts entries for functional tests
+  7. **Port fix** - Set DOCKER_ENV to skip frontend server, use backend directly
+
+**Test Results:**
+```
+Workflow Testing: All 740 tests pass in CI/CD
+- Unit tests: 712 tests ✓
+- Functional tests: 28 tests ✓
+- Flake8 linting: 0 errors ✓
+- Total pipeline time: ~10-17 minutes ✓
+```
+
+**Documentation Created:**
+- `docs/technical-notes/2025-11-25-phase-5-14-step-6-github-actions-debugging.md` - Comprehensive debugging documentation (7 iterations)
+
+**Key Learnings:**
+- GitHub Actions inputs are always strings, even when declared as boolean
+- Docker environment ≠ CI environment (different packages, architecture, file availability)
+- Functional tests are critical and worth the debugging effort
+- Template consistency is essential when generating config files
+- Rapid iteration is faster than trying to anticipate all problems
+
+**Next Step:** Run migrations via pipeline (Step 7)
 
 ---
 
@@ -911,11 +949,11 @@ Recreate Test:
 - [x] ECS task definition created for migrations
 - [x] Production Docker image pushed to ECR
 - [x] GitHub Actions workflow created and tested
-- [ ] GitHub secrets configured (AWS credentials)
-- [ ] All 740 tests pass in CI pipeline
-- [ ] Migrations run successfully on all 3 databases via CI/CD
+- [x] GitHub secrets configured (AWS credentials)
+- [x] All 740 tests pass in CI pipeline (verified via 7 debugging iterations)
+- [ ] Migrations run successfully on all 3 databases via CI/CD (Step 7 - in progress)
 - [ ] 57 tables verified in each RDS database
-- [x] All infrastructure scripts tested and documented (Steps 1-5 complete)
+- [x] All infrastructure scripts tested and documented (Steps 1-6 complete)
 
 ### Should Have (Important) ⚙️
 
@@ -1071,8 +1109,8 @@ Phase 5.15 will extend the CI/CD pipeline to deploy the full application:
 
 ---
 
-**Document Status**: 🚧 In Progress - Awaiting implementation
+**Document Status**: 🚧 In Progress - Step 7 (Testing Workflow)
 **Author**: Claude Code (AI Assistant) & Bart Gottschalk
-**Last Updated**: November 23, 2025
-**Version**: 1.0 (CI/CD-First Plan)
-**Branch**: `feature/phase-10-ecs-cicd-migrations`
+**Last Updated**: November 25, 2025
+**Version**: 1.2 (Steps 1-6 Complete, Step 7 In Progress)
+**Branch**: `master` (PR #38 merged)

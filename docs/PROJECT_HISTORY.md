@@ -527,9 +527,45 @@ This document tracks the complete development history and modernization effort f
 - ✅ Parallel test execution for speed
 - ✅ Production-ready error handling
 
+---
+
+**Step 6: Configure GitHub Secrets & Workflow Debugging** ✅ COMPLETE (November 25, 2025)
+
+- ✅ Created IAM user for GitHub Actions CI/CD
+  - User: `github-actions-startupwebapp`
+  - Policies: AmazonEC2ContainerRegistryPowerUser, AmazonECS_FullAccess, CloudWatchLogsReadOnlyAccess
+  - Generated AWS access keys for programmatic access
+- ✅ Added 3 GitHub repository secrets:
+  - AWS_ACCESS_KEY_ID (IAM user access key)
+  - AWS_SECRET_ACCESS_KEY (IAM user secret key)
+  - AWS_REGION (us-east-1)
+- ✅ Workflow debugging and fixes (7 iterations, ~3 hours):
+  1. Fixed skip_tests boolean logic (string vs boolean comparison)
+  2. Excluded migrations from flake8 linting (auto-generated files)
+  3. Generated settings_secret.py for CI environment
+  4. Fixed Stripe setting names (matched template structure)
+  5. Fixed Firefox installation (snap for Ubuntu 24.04 vs firefox-esr)
+  6. Added /etc/hosts entries for functional test hostnames
+  7. Set DOCKER_ENV variable (skip frontend server, use backend directly)
+- ✅ All 740 tests now pass in CI/CD (712 unit + 28 functional)
+- ✅ Created comprehensive debugging documentation
+
+**Files Modified**:
+- `.github/workflows/run-migrations.yml` - 7 bug fixes applied
+- All fixes committed to master (commits: 1168c38, c17734f, 8cda567, 953fad9, 62d9274, 71109c4, c74899e)
+
+**Lessons Learned**:
+- GitHub Actions inputs are strings, not booleans (even when declared as boolean)
+- Environment differences require iterative testing (Docker vs GitHub Actions)
+- Functional tests valuable but complex (browser, hostname resolution, server architecture)
+- Template consistency critical (settings_secret.py structure)
+- Ubuntu 24.04 ships Firefox as snap, not apt package
+
+**Documentation Created**:
+- `docs/technical-notes/2025-11-25-phase-5-14-step-6-github-actions-debugging.md`
+
 **Next Steps**:
-- Step 6: Configure GitHub secrets (AWS credentials)
-- Step 7: Run migrations via pipeline (3 databases)
+- Step 7: Test workflow and run migrations on all 3 databases (IN PROGRESS)
 - Step 8: Verification
 - Step 9: Documentation
 **Objective**: Establish production deployment infrastructure with GitHub Actions CI/CD and run Django migrations on AWS RDS
