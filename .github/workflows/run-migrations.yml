@@ -410,9 +410,9 @@ jobs:
         run: |
           # /etc/hosts already configured in previous step
           cd StartupWebApp
-          # Run tests serially (--parallel=1) to avoid port 60767 conflicts
-          # Each LiveServerTestCase needs exclusive access to the port
-          python manage.py test functional_tests --parallel=1
+          # Run without --parallel flag (Django 4.2 default is serial execution)
+          # This ensures LiveServerTestCase instances don't conflict on port 60767
+          python manage.py test functional_tests
 
   # ==========================================================================
   # JOB 2: Build and Push Docker Image
