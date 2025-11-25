@@ -410,7 +410,9 @@ jobs:
         run: |
           # /etc/hosts already configured in previous step
           cd StartupWebApp
-          python manage.py test functional_tests
+          # Run tests serially (--parallel=1) to avoid port 60767 conflicts
+          # Each LiveServerTestCase needs exclusive access to the port
+          python manage.py test functional_tests --parallel=1
 
   # ==========================================================================
   # JOB 2: Build and Push Docker Image
