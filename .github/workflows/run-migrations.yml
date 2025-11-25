@@ -278,6 +278,7 @@ jobs:
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
           HEADLESS: "TRUE"
+          DOCKER_ENV: "true"  # Tell tests to skip port 8080, use backend directly
         run: |
           # Setup /etc/hosts for functional tests (similar to Docker setup_docker_test_hosts.sh)
           # Functional tests need these hostnames to resolve to localhost for cookie sharing
