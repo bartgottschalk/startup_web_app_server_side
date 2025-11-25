@@ -416,10 +416,119 @@ This document tracks the complete development history and modernization effort f
 - Status scripts: Accurately reflect resource state ✅
 - Base infrastructure: Remained untouched (VPC, RDS, security groups, ECR) ✅
 
+---
+
+**Step 4: ECS Task Definition** ✅ (Completed - November 24, 2025)
+
+- ✅ Created infrastructure scripts with full lifecycle management
+- ✅ Task definition registered: `startupwebapp-migration-task:2` (0.25 vCPU, 512 MB RAM)
+- ✅ Fargate launch type configured with awsvpc networking mode
+- ✅ Command set to: `python manage.py migrate`
+- ✅ AWS Secrets Manager integration configured:
+  - DATABASE_PASSWORD, DATABASE_USER, DATABASE_HOST, DATABASE_PORT pulled from secret
+  - Secret: `rds/startupwebapp/multi-tenant/master`
+- ✅ Environment variables configured:
+  - DJANGO_SETTINGS_MODULE=StartupWebApp.settings_production
+  - AWS_REGION=us-east-1
+  - DB_SECRET_NAME=rds/startupwebapp/multi-tenant/master
+- ✅ CloudWatch logging configured: `/ecs/startupwebapp-migrations` log group
+- ✅ Production Docker image built and pushed to ECR:
+  - Image: `853463362083.dkr.ecr.us-east-1.amazonaws.com/startupwebapp-backend:latest`
+  - Size: 157 MB (compressed)
+  - Built from multi-stage Dockerfile production target
+- ✅ Full lifecycle testing: create → destroy → recreate validated successfully
+- ✅ Updated aws-resources.env.template with 3 task definition fields
+- ✅ Updated status.sh with task definition status checking
+- ✅ Updated show-resources.sh with task definition display (CPU, memory, status)
+- ✅ Updated scripts/infra/README.md with comprehensive documentation
+- ✅ Cost: $0 for task definition (tasks cost ~$0.001 per 5-minute migration run)
+
+**Files Created**:
+- `scripts/infra/create-ecs-task-definition.sh` - Task definition creation (tested)
+- `scripts/infra/destroy-ecs-task-definition.sh` - Task definition deregistration (tested)
+
+**Files Modified**:
+- `scripts/infra/aws-resources.env.template` - Added 3 task definition fields
+- `scripts/infra/aws-resources.env` - Populated with task definition ARN and revision
+- `scripts/infra/status.sh` - Added task definition status section with live AWS checks
+- `scripts/infra/show-resources.sh` - Added task definition display with CPU/memory details
+- `scripts/infra/README.md` - Added comprehensive task definition documentation
+
+**Resources Created**:
+- ECS Task Definition: `startupwebapp-migration-task:2` (ARN: arn:aws:ecs:us-east-1:853463362083:task-definition/startupwebapp-migration-task:2)
+- Docker Image: `startupwebapp-backend:latest` in ECR (157 MB compressed)
+
+**Test Results**:
+- Create: Task definition revision 1 registered successfully ✅
+- Destroy: Task definition deregistered, aws-resources.env cleared ✅
+- Recreate: Task definition revision 2 created (AWS auto-increments revisions) ✅
+- Status scripts: Accurately reflect task definition state ✅
+
+---
+
+**Step 5: GitHub Actions CI/CD Workflow** ✅ (Completed - November 25, 2025)
+
+- ✅ Created comprehensive GitHub Actions workflow: `.github/workflows/run-migrations.yml`
+- ✅ Manual trigger with database selection dropdown (startupwebapp_prod, healthtech_experiment, fintech_experiment)
+- ✅ Fully documented workflow with 200+ inline comments explaining every step
+- ✅ Four-job pipeline architecture:
+  - **Job 1: Test Suite** (~5-7 min)
+    - PostgreSQL 16 service container
+    - Python 3.12 with dependency caching
+    - Flake8 linting (code quality check)
+    - 712 unit tests (parallel execution)
+    - Firefox ESR + geckodriver setup
+    - 28 functional tests (Selenium)
+  - **Job 2: Build & Push** (~3-5 min)
+    - Multi-stage Docker build (production target)
+    - Tag with git commit SHA for traceability
+    - Push to AWS ECR with both commit SHA and 'latest' tags
+    - Output image URI for migration job
+  - **Job 3: Run Migrations** (~2-5 min)
+    - Configure AWS credentials from GitHub Secrets
+    - Get existing ECS task definition
+    - Update with new image and DATABASE_NAME environment variable
+    - Register new task definition revision
+    - Launch ECS Fargate task in private subnets
+    - Wait for task completion (up to 10 minutes)
+    - Fetch CloudWatch logs for review
+    - Verify exit code (0 = success)
+  - **Job 4: Summary** (~10 sec)
+    - Display results of all jobs
+    - Report success/failure status
+- ✅ Security features:
+  - AWS credentials stored as encrypted GitHub Secrets
+  - No hardcoded credentials in workflow file
+  - Proper IAM role usage for ECS tasks
+- ✅ Safety features:
+  - Manual trigger only (no automatic migrations on push)
+  - Optional "skip tests" checkbox for emergencies
+  - Confirmation required in GitHub UI before execution
+  - Full CloudWatch logs captured for audit trail
+- ✅ Created comprehensive guide: `docs/GITHUB_ACTIONS_GUIDE.md`
+  - Step-by-step instructions for setting up GitHub Secrets
+  - How to run migrations manually
+  - Reading workflow results
+  - Troubleshooting common issues
+  - Cost breakdown
+- ✅ Total pipeline duration: ~10-17 minutes per database
+- ✅ Cost: Negligible (~$0.10/month for ~100 migration runs)
+
+**Files Created**:
+- `.github/workflows/run-migrations.yml` - GitHub Actions workflow (fully documented)
+- `docs/GITHUB_ACTIONS_GUIDE.md` - Complete user guide with screenshots and examples
+
+**Workflow Capabilities**:
+- ✅ Prevents broken code from reaching production (test-first approach)
+- ✅ Traceable deployments (git commit SHA tags)
+- ✅ Real-time progress monitoring in GitHub UI
+- ✅ CloudWatch log integration for debugging
+- ✅ Multi-database support (3 RDS databases)
+- ✅ Parallel test execution for speed
+- ✅ Production-ready error handling
+
 **Next Steps**:
-- Step 4: Create ECS task definition for migrations (code-based)
-- Step 5: Create GitHub Actions CI/CD workflow
-- Step 6: Configure GitHub secrets
+- Step 6: Configure GitHub secrets (AWS credentials)
 - Step 7: Run migrations via pipeline (3 databases)
 - Step 8: Verification
 - Step 9: Documentation
