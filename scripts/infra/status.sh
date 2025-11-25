@@ -259,6 +259,171 @@ else
 fi
 echo ""
 
+# Additional Infrastructure: ECR Repository (Phase 5.14 - ECS/CI/CD)
+echo -e "${CYAN}════════════════════════════════════════${NC}"
+echo -e "${CYAN}Phase 5.14: ECS/CI/CD Infrastructure${NC}"
+echo -e "${CYAN}════════════════════════════════════════${NC}"
+echo ""
+echo -e "${CYAN}ECR Repository (Docker Registry)${NC}"
+if [ -n "${ECR_REPOSITORY_URI:-}" ]; then
+    # Check if repository actually exists
+    ECR_EXISTS=$(aws ecr describe-repositories \
+        --repository-names "${ECR_REPOSITORY_NAME:-startupwebapp-backend}" \
+        --region "${AWS_REGION}" \
+        --query 'repositories[0].repositoryUri' \
+        --output text 2>/dev/null || echo "")
+
+    if [ -n "$ECR_EXISTS" ]; then
+        echo -e "  ${GREEN}✓ COMPLETED${NC} - ECR repository created"
+        echo ""
+        echo -e "  Repository URI:  ${ECR_REPOSITORY_URI}"
+        echo -e "  Repository Name: ${ECR_REPOSITORY_NAME:-startupwebapp-backend}"
+    else
+        echo -e "  ${YELLOW}⚠ URI in env file but repository not found in AWS${NC}"
+        echo -e "  ${YELLOW}→ Recreate: ./scripts/infra/create-ecr.sh${NC}"
+    fi
+elif [ -n "${RDS_ENDPOINT:-}" ]; then
+    echo -e "  ${RED}✗ NOT STARTED${NC}"
+    echo ""
+    echo -e "  ${YELLOW}Phase 5.14 builds on Phase 5.13 (RDS Infrastructure)${NC}"
+    echo -e "  ${YELLOW}Purpose: Container orchestration and CI/CD for deployments${NC}"
+    echo ""
+    echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-ecr.sh${NC}"
+    echo -e "  ${YELLOW}   Time: ~2 minutes${NC}"
+    echo -e "  ${YELLOW}   Cost: ~\$0.10-\$0.20/month (ECR storage)${NC}"
+else
+    echo -e "  ${RED}✗ BLOCKED${NC} - Requires RDS deployment complete (Steps 1-7 above)"
+fi
+echo ""
+
+# ECS Cluster
+echo -e "${CYAN}ECS Cluster (Container Orchestration)${NC}"
+if [ -n "${ECS_CLUSTER_NAME:-}" ]; then
+    # Check if cluster actually exists
+    ECS_EXISTS=$(aws ecs describe-clusters \
+        --clusters "${ECS_CLUSTER_NAME}" \
+        --region "${AWS_REGION}" \
+        --query 'clusters[0].clusterName' \
+        --output text 2>/dev/null || echo "")
+
+    if [ -n "$ECS_EXISTS" ] && [ "$ECS_EXISTS" != "None" ]; then
+        echo -e "  ${GREEN}✓ COMPLETED${NC} - ECS cluster created"
+        echo ""
+        echo -e "  Cluster Name:    ${ECS_CLUSTER_NAME}"
+        echo -e "  Log Group:       ${ECS_LOG_GROUP_NAME:-/ecs/${PROJECT_NAME}-migrations}"
+    else
+        echo -e "  ${YELLOW}⚠ Cluster in env file but not found in AWS${NC}"
+        echo -e "  ${YELLOW}→ Recreate: ./scripts/infra/create-ecs-cluster.sh${NC}"
+    fi
+elif [ -n "${ECR_REPOSITORY_URI:-}" ]; then
+    echo -e "  ${RED}✗ NOT STARTED${NC}"
+    echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-ecs-cluster.sh${NC}"
+    echo -e "  ${YELLOW}   Time: ~2 minutes${NC}"
+    echo -e "  ${YELLOW}   Cost: \$0 (cluster itself is free, pay-per-use for tasks)${NC}"
+else
+    echo -e "  ${RED}✗ BLOCKED${NC} - Requires ECR repository"
+fi
+echo ""
+
+# ECS IAM Roles
+echo -e "${CYAN}ECS IAM Roles (Task Permissions)${NC}"
+if [ -n "${ECS_TASK_EXECUTION_ROLE_ARN:-}" ]; then
+    # Check if roles actually exist
+    EXEC_ROLE_EXISTS=$(aws iam get-role \
+        --role-name "${ECS_TASK_EXECUTION_ROLE_NAME}" \
+        --query 'Role.RoleName' \
+        --output text 2>/dev/null || echo "")
+
+    TASK_ROLE_EXISTS=$(aws iam get-role \
+        --role-name "${ECS_TASK_ROLE_NAME}" \
+        --query 'Role.RoleName' \
+        --output text 2>/dev/null || echo "")
+
+    if [ -n "$EXEC_ROLE_EXISTS" ] && [ -n "$TASK_ROLE_EXISTS" ]; then
+        echo -e "  ${GREEN}✓ COMPLETED${NC} - IAM roles created"
+        echo ""
+        echo -e "  Task Execution Role: ${ECS_TASK_EXECUTION_ROLE_NAME}"
+        echo -e "  Task Role:           ${ECS_TASK_ROLE_NAME}"
+    else
+        echo -e "  ${YELLOW}⚠ Roles in env file but not found in AWS${NC}"
+        echo -e "  ${YELLOW}→ Recreate: ./scripts/infra/create-ecs-task-role.sh${NC}"
+    fi
+elif [ -n "${ECS_CLUSTER_NAME:-}" ]; then
+    echo -e "  ${RED}✗ NOT STARTED${NC}"
+    echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-ecs-task-role.sh${NC}"
+    echo -e "  ${YELLOW}   Time: ~2 minutes${NC}"
+    echo -e "  ${YELLOW}   Cost: \$0 (IAM roles are free)${NC}"
+else
+    echo -e "  ${RED}✗ BLOCKED${NC} - Requires ECS cluster"
+fi
+echo ""
+
+# ECS Task Definition
+echo -e "${CYAN}ECS Task Definition (Migration Task)${NC}"
+if [ -n "${ECS_TASK_DEFINITION_ARN:-}" ]; then
+    # Check if task definition actually exists
+    TASK_DEF_EXISTS=$(aws ecs describe-task-definition \
+        --task-definition "${ECS_TASK_DEFINITION_FAMILY}" \
+        --region "${AWS_REGION}" \
+        --query 'taskDefinition.taskDefinitionArn' \
+        --output text 2>/dev/null || echo "")
+
+    if [ -n "$TASK_DEF_EXISTS" ]; then
+        echo -e "  ${GREEN}✓ COMPLETED${NC} - Task definition registered"
+        echo ""
+        echo -e "  Family:              ${ECS_TASK_DEFINITION_FAMILY}"
+        echo -e "  Revision:            ${ECS_TASK_DEFINITION_REVISION}"
+    else
+        echo -e "  ${YELLOW}⚠ Task definition in env file but not found in AWS${NC}"
+        echo -e "  ${YELLOW}→ Recreate: ./scripts/infra/create-ecs-task-definition.sh${NC}"
+    fi
+elif [ -n "${ECS_TASK_EXECUTION_ROLE_ARN:-}" ]; then
+    echo -e "  ${RED}✗ NOT STARTED${NC}"
+    echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-ecs-task-definition.sh${NC}"
+    echo -e "  ${YELLOW}   Time: ~2 minutes${NC}"
+    echo -e "  ${YELLOW}   Cost: \$0 (task definition itself is free)${NC}"
+    echo -e "  ${YELLOW}   Note: Requires Docker image in ECR first${NC}"
+else
+    echo -e "  ${RED}✗ BLOCKED${NC} - Requires ECS IAM roles"
+fi
+echo ""
+
+# Phase 5.14 Progress Summary
+if [ -n "${ECR_REPOSITORY_URI:-}" ] || [ -n "${ECS_CLUSTER_NAME:-}" ] || [ -n "${ECS_TASK_EXECUTION_ROLE_ARN:-}" ]; then
+    echo -e "${YELLOW}Phase 5.14 Progress Summary:${NC}"
+
+    if [ -n "${ECR_REPOSITORY_URI:-}" ]; then
+        echo -e "  ✓ Step 1: Multi-Stage Dockerfile"
+        echo -e "  ✓ Step 2: ECR Repository"
+    else
+        echo -e "  ✓ Step 1: Multi-Stage Dockerfile"
+        echo -e "  → Step 2: ECR Repository"
+    fi
+
+    if [ -n "${ECS_CLUSTER_NAME:-}" ]; then
+        echo -e "  ✓ Step 3: ECS Cluster"
+    else
+        echo -e "  → Step 3: ECS Cluster"
+    fi
+
+    if [ -n "${ECS_TASK_DEFINITION_ARN:-}" ]; then
+        echo -e "  ✓ Step 3: ECS Infrastructure (cluster + IAM roles)"
+        echo -e "  ✓ Step 4: ECS Task Definition"
+        echo -e "  → Step 5: Create GitHub Actions Workflow"
+        echo -e "  → Step 6: Configure GitHub Secrets"
+        echo -e "  → Step 7: Run Migrations & Documentation"
+    elif [ -n "${ECS_TASK_EXECUTION_ROLE_ARN:-}" ]; then
+        echo -e "  ✓ Step 3: ECS Infrastructure (cluster + IAM roles)"
+        echo -e "  → Step 4: Create ECS Task Definition (./scripts/infra/create-ecs-task-definition.sh)"
+        echo -e "  → Step 5: Create GitHub Actions Workflow"
+        echo -e "  → Step 6: Configure GitHub Secrets"
+        echo -e "  → Step 7: Run Migrations & Documentation"
+    else
+        echo -e "  → Step 3: ECS Infrastructure (cluster + IAM roles)"
+    fi
+    echo ""
+fi
+
 # Progress summary
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}Progress Summary${NC}"
@@ -325,6 +490,10 @@ if [ $COMPLETED_STEPS -gt 0 ]; then
     if [ -n "${SNS_TOPIC_ARN:-}" ]; then
         echo -e "  CloudWatch/SNS:       ~\$1/month"
         TOTAL_COST=$((TOTAL_COST + 1))
+    fi
+    if [ -n "${ECR_REPOSITORY_URI:-}" ]; then
+        echo -e "  ECR Storage:          ~\$0.10/month (1-2 images)"
+        # ECR cost is negligible, don't add to total
     fi
     echo -e "  ${CYAN}────────────────────────────${NC}"
     echo -e "  ${CYAN}Total:                ~\$${TOTAL_COST}/month${NC}"

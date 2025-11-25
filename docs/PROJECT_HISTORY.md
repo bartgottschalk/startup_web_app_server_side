@@ -323,10 +323,252 @@ This document tracks the complete development history and modernization effort f
 - ✅ See [Deployment Guide](technical-notes/2025-11-21-phase-9-deployment-guide.md) for step-by-step instructions
 - ✅ See [Bastion Troubleshooting](technical-notes/2025-11-22-phase-9-bastion-troubleshooting.md) for SSM connection fix
 
-#### Phase 5.14: Remaining Tasks
-- Run Django migrations on AWS RDS
-- Prepare containers for AWS deployment (Phase 10)
-- Setup CI/CD pipeline (Phase 11)
+#### Phase 5.14: ECS Infrastructure, CI/CD, and RDS Migrations (In Progress - November 24, 2025)
+
+**Status**: 🚧 In Progress - Step 2/9 Complete
+**Branch**: `feature/phase-5-14-ecs-cicd-migrations`
+
+**Step 1: Multi-Stage Dockerfile** ✅ (Completed - November 23, 2025)
+- ✅ Added gunicorn==21.2.0 to requirements.txt for production WSGI server
+- ✅ Created multi-stage Dockerfile with three targets:
+  - **base**: Shared layer with Python 3.12, gcc, libpq-dev, all Python dependencies
+  - **development**: Includes Firefox ESR, geckodriver for Selenium tests (1.69 GB)
+  - **production**: Minimal, optimized for deployment with gunicorn (692 MB, 59% smaller)
+- ✅ Enhanced .dockerignore to exclude AWS/infrastructure files from build context
+- ✅ Built and tested both images successfully
+- ✅ Verified development image has all test dependencies (Firefox, geckodriver)
+- ✅ Verified production image has gunicorn, excludes test dependencies
+- ✅ Production image ready for AWS ECS deployment
+
+**Files Modified**:
+- `requirements.txt` - Added gunicorn==21.2.0
+- `Dockerfile` - Complete rewrite as multi-stage build
+- `.dockerignore` - Added AWS/infrastructure exclusions
+
+**Step 2: AWS ECR Repository** ✅ (Completed - November 24, 2025)
+- ✅ Created infrastructure scripts following established patterns
+  - `scripts/infra/create-ecr.sh` - Creates ECR repository with full configuration
+  - `scripts/infra/destroy-ecr.sh` - Safely destroys ECR repository
+- ✅ ECR repository created: `startupwebapp-backend`
+- ✅ Image scanning enabled (scan on push for vulnerabilities)
+- ✅ Lifecycle policy configured (keep last 10 images automatically)
+- ✅ AES256 encryption at rest
+- ✅ Resource tracking in aws-resources.env
+- ✅ Full create → destroy → recreate test cycle validated
+- ✅ Updated status.sh with Phase 5.14 section and ECR status checking
+- ✅ Updated show-resources.sh to display ECR repository details
+- ✅ Updated scripts/infra/README.md with comprehensive ECR documentation
+- ✅ Cost: ~$0.10-$0.20/month for ECR storage (1-2 images)
+
+**Files Created**:
+- `scripts/infra/create-ecr.sh` - ECR creation script (idempotent, tested)
+- `scripts/infra/destroy-ecr.sh` - ECR destruction script (with confirmation)
+
+**Files Modified**:
+- `scripts/infra/aws-resources.env.template` - Added ECR_REPOSITORY_URI and ECR_REPOSITORY_NAME
+- `scripts/infra/status.sh` - Added Phase 5.14 section with visual separator
+- `scripts/infra/show-resources.sh` - Added ECR display with image count and quick link
+- `scripts/infra/README.md` - Added ECR documentation throughout
+
+---
+
+**Step 3: AWS ECS Infrastructure** ✅ (Completed & Tested - November 24, 2025)
+
+- ✅ Created 5 infrastructure scripts with full lifecycle management
+- ✅ ECS Fargate cluster created: `startupwebapp-cluster`
+- ✅ CloudWatch log group created: `/ecs/startupwebapp-migrations` (7-day retention)
+- ✅ IAM roles created:
+  - `ecsTaskExecutionRole-startupwebapp` (pull images, write logs, read secrets)
+  - `ecsTaskRole-startupwebapp` (application runtime permissions)
+- ✅ Security groups updated for ECS → RDS communication (port 5432) and ECR access (port 443)
+- ✅ Full lifecycle testing: create → destroy → recreate validated successfully
+- ✅ Updated aws-resources.env.template with 7 ECS fields
+- ✅ Updated status.sh with ECS cluster and IAM role tracking
+- ✅ Updated show-resources.sh with ECS resource display and live status
+- ✅ Updated scripts/infra/README.md with comprehensive ECS documentation
+- ✅ Cost: $0 for infrastructure (pay-per-use: ~$0.0137/hour when tasks run)
+
+**Files Created**:
+- `scripts/infra/create-ecs-cluster.sh` - ECS cluster creation (tested)
+- `scripts/infra/destroy-ecs-cluster.sh` - ECS cluster destruction (tested)
+- `scripts/infra/create-ecs-task-role.sh` - IAM roles creation (tested)
+- `scripts/infra/destroy-ecs-task-role.sh` - IAM roles destruction (tested)
+- `scripts/infra/update-security-groups-ecs.sh` - Security group updates (tested)
+
+**Files Modified**:
+- `scripts/infra/aws-resources.env.template` - Added 7 ECS resource fields
+- `scripts/infra/aws-resources.env` - Populated with actual ECS resource ARNs
+- `scripts/infra/status.sh` - Added ECS cluster and IAM role status checking with live AWS queries
+- `scripts/infra/show-resources.sh` - Added ECS resource display with cluster status and task count
+- `scripts/infra/README.md` - Added ECS deployment order and comprehensive script documentation
+
+**Resources Created**:
+- ECS Cluster: `startupwebapp-cluster` (ARN: arn:aws:ecs:us-east-1:853463362083:cluster/startupwebapp-cluster)
+- Log Group: `/ecs/startupwebapp-migrations` (7-day retention)
+- Task Execution Role: `ecsTaskExecutionRole-startupwebapp` (ARN: arn:aws:iam::853463362083:role/ecsTaskExecutionRole-startupwebapp)
+- Task Role: `ecsTaskRole-startupwebapp` (ARN: arn:aws:iam::853463362083:role/ecsTaskRole-startupwebapp)
+- Security Group Rules: Backend SG outbound to RDS (5432) and internet (443)
+
+**Test Results**:
+- Destroy: IAM roles, cluster, and log group deleted cleanly ✅
+- Recreate: All resources recreated with same names and configurations ✅
+- aws-resources.env: Properly cleared on destroy, repopulated on recreate ✅
+- Status scripts: Accurately reflect resource state ✅
+- Base infrastructure: Remained untouched (VPC, RDS, security groups, ECR) ✅
+
+---
+
+**Step 4: ECS Task Definition** ✅ (Completed - November 24, 2025)
+
+- ✅ Created infrastructure scripts with full lifecycle management
+- ✅ Task definition registered: `startupwebapp-migration-task:2` (0.25 vCPU, 512 MB RAM)
+- ✅ Fargate launch type configured with awsvpc networking mode
+- ✅ Command set to: `python manage.py migrate`
+- ✅ AWS Secrets Manager integration configured:
+  - DATABASE_PASSWORD, DATABASE_USER, DATABASE_HOST, DATABASE_PORT pulled from secret
+  - Secret: `rds/startupwebapp/multi-tenant/master`
+- ✅ Environment variables configured:
+  - DJANGO_SETTINGS_MODULE=StartupWebApp.settings_production
+  - AWS_REGION=us-east-1
+  - DB_SECRET_NAME=rds/startupwebapp/multi-tenant/master
+- ✅ CloudWatch logging configured: `/ecs/startupwebapp-migrations` log group
+- ✅ Production Docker image built and pushed to ECR:
+  - Image: `853463362083.dkr.ecr.us-east-1.amazonaws.com/startupwebapp-backend:latest`
+  - Size: 157 MB (compressed)
+  - Built from multi-stage Dockerfile production target
+- ✅ Full lifecycle testing: create → destroy → recreate validated successfully
+- ✅ Updated aws-resources.env.template with 3 task definition fields
+- ✅ Updated status.sh with task definition status checking
+- ✅ Updated show-resources.sh with task definition display (CPU, memory, status)
+- ✅ Updated scripts/infra/README.md with comprehensive documentation
+- ✅ Cost: $0 for task definition (tasks cost ~$0.001 per 5-minute migration run)
+
+**Files Created**:
+- `scripts/infra/create-ecs-task-definition.sh` - Task definition creation (tested)
+- `scripts/infra/destroy-ecs-task-definition.sh` - Task definition deregistration (tested)
+
+**Files Modified**:
+- `scripts/infra/aws-resources.env.template` - Added 3 task definition fields
+- `scripts/infra/aws-resources.env` - Populated with task definition ARN and revision
+- `scripts/infra/status.sh` - Added task definition status section with live AWS checks
+- `scripts/infra/show-resources.sh` - Added task definition display with CPU/memory details
+- `scripts/infra/README.md` - Added comprehensive task definition documentation
+
+**Resources Created**:
+- ECS Task Definition: `startupwebapp-migration-task:2` (ARN: arn:aws:ecs:us-east-1:853463362083:task-definition/startupwebapp-migration-task:2)
+- Docker Image: `startupwebapp-backend:latest` in ECR (157 MB compressed)
+
+**Test Results**:
+- Create: Task definition revision 1 registered successfully ✅
+- Destroy: Task definition deregistered, aws-resources.env cleared ✅
+- Recreate: Task definition revision 2 created (AWS auto-increments revisions) ✅
+- Status scripts: Accurately reflect task definition state ✅
+
+---
+
+**Step 5: GitHub Actions CI/CD Workflow** ✅ (Completed - November 25, 2025)
+
+- ✅ Created comprehensive GitHub Actions workflow: `.github/workflows/run-migrations.yml`
+- ✅ Manual trigger with database selection dropdown (startupwebapp_prod, healthtech_experiment, fintech_experiment)
+- ✅ Fully documented workflow with 200+ inline comments explaining every step
+- ✅ Four-job pipeline architecture:
+  - **Job 1: Test Suite** (~5-7 min)
+    - PostgreSQL 16 service container
+    - Python 3.12 with dependency caching
+    - Flake8 linting (code quality check)
+    - 712 unit tests (parallel execution)
+    - Firefox ESR + geckodriver setup
+    - 28 functional tests (Selenium)
+  - **Job 2: Build & Push** (~3-5 min)
+    - Multi-stage Docker build (production target)
+    - Tag with git commit SHA for traceability
+    - Push to AWS ECR with both commit SHA and 'latest' tags
+    - Output image URI for migration job
+  - **Job 3: Run Migrations** (~2-5 min)
+    - Configure AWS credentials from GitHub Secrets
+    - Get existing ECS task definition
+    - Update with new image and DATABASE_NAME environment variable
+    - Register new task definition revision
+    - Launch ECS Fargate task in private subnets
+    - Wait for task completion (up to 10 minutes)
+    - Fetch CloudWatch logs for review
+    - Verify exit code (0 = success)
+  - **Job 4: Summary** (~10 sec)
+    - Display results of all jobs
+    - Report success/failure status
+- ✅ Security features:
+  - AWS credentials stored as encrypted GitHub Secrets
+  - No hardcoded credentials in workflow file
+  - Proper IAM role usage for ECS tasks
+- ✅ Safety features:
+  - Manual trigger only (no automatic migrations on push)
+  - Optional "skip tests" checkbox for emergencies
+  - Confirmation required in GitHub UI before execution
+  - Full CloudWatch logs captured for audit trail
+- ✅ Created comprehensive guide: `docs/GITHUB_ACTIONS_GUIDE.md`
+  - Step-by-step instructions for setting up GitHub Secrets
+  - How to run migrations manually
+  - Reading workflow results
+  - Troubleshooting common issues
+  - Cost breakdown
+- ✅ Total pipeline duration: ~10-17 minutes per database
+- ✅ Cost: Negligible (~$0.10/month for ~100 migration runs)
+
+**Files Created**:
+- `.github/workflows/run-migrations.yml` - GitHub Actions workflow (fully documented)
+- `docs/GITHUB_ACTIONS_GUIDE.md` - Complete user guide with screenshots and examples
+
+**Workflow Capabilities**:
+- ✅ Prevents broken code from reaching production (test-first approach)
+- ✅ Traceable deployments (git commit SHA tags)
+- ✅ Real-time progress monitoring in GitHub UI
+- ✅ CloudWatch log integration for debugging
+- ✅ Multi-database support (3 RDS databases)
+- ✅ Parallel test execution for speed
+- ✅ Production-ready error handling
+
+**Next Steps**:
+- Step 6: Configure GitHub secrets (AWS credentials)
+- Step 7: Run migrations via pipeline (3 databases)
+- Step 8: Verification
+- Step 9: Documentation
+**Objective**: Establish production deployment infrastructure with GitHub Actions CI/CD and run Django migrations on AWS RDS
+
+**Approach**: CI/CD-first strategy - validate deployment pipeline with low-risk database migrations before full application deployment
+
+**Key Components**:
+- Multi-stage Dockerfile (development + production targets)
+- AWS ECR for Docker image registry
+- AWS ECS Fargate cluster (serverless containers)
+- GitHub Actions workflow (test → build → push → deploy)
+- ECS task definitions for migrations
+- Automated migrations on all 3 RDS databases (startupwebapp_prod, healthtech_experiment, fintech_experiment)
+
+**Estimated Time**: 6-7 hours
+**Progress**: Documentation complete, ready for implementation
+
+**Decisions Made**:
+- ✅ Multi-stage Dockerfile over separate files
+- ✅ GitHub Actions over AWS CodePipeline
+- ✅ CI/CD setup in Phase 5.14 (not deferred to later phase)
+- ✅ Manual trigger for migrations (safety for database operations)
+- ✅ Automated testing (740 tests) in pipeline before any deployment
+
+See [Phase 5.14 Technical Note](technical-notes/2025-11-23-phase-5-14-ecs-cicd-migrations.md) for detailed implementation plan.
+
+---
+
+#### Phase 5.15: Full Production Deployment (Planned)
+- Deploy long-running ECS service (not just one-time tasks)
+- Application Load Balancer with HTTPS
+- Auto-scaling policies
+- Frontend deployment (S3 + CloudFront)
+- Enhanced monitoring and observability
+
+#### Phase 5.16: Production Hardening (Future)
+- AWS WAF for security
+- Load testing and performance optimization
+- Automated disaster recovery testing
 
 ## Documentation Structure
 

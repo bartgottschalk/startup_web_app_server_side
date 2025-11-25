@@ -27,22 +27,68 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ## Current State
 
-**Project Status:** Production-ready infrastructure deployed, ready for Django migrations on AWS RDS
+**Project Status:** 🚧 Phase 5.14 - Step 6/8: Configure GitHub Secrets (NEXT)
 
 - ✅ Django 4.2.16 LTS upgrade complete
 - ✅ Code linting complete (zero errors)
 - ✅ PostgreSQL migration complete (local Docker + AWS RDS)
-- ✅ AWS Infrastructure 100% deployed (7/7 steps, $36/month)
+- ✅ AWS Infrastructure deployed (Phase 5.13/Phase 9: VPC, RDS, Secrets Manager, Bastion)
 - ✅ Multi-tenant databases created (startupwebapp_prod, healthtech_experiment, fintech_experiment)
-- ✅ Bastion host with SSM access
-- ✅ Separate master/application database passwords (security best practice)
-- ✅ All 740 tests passing (712 unit + 28 functional)
-- 📍 **Next**: Phase 10 - Run Django migrations on AWS RDS
+- ✅ All 740 tests passing locally (712 unit + 28 functional)
+- ✅ **Step 1 Complete**: Multi-Stage Dockerfile (November 23, 2025)
+  - Development image: 1.69 GB with Firefox/geckodriver for tests
+  - Production image: 692 MB with gunicorn (59% smaller)
+  - Files: Dockerfile, requirements.txt, .dockerignore updated and tested
+- ✅ **Step 2 Complete**: AWS ECR Repository (November 24, 2025)
+  - Repository: startupwebapp-backend
+  - URI: 853463362083.dkr.ecr.us-east-1.amazonaws.com/startupwebapp-backend
+  - Image scanning enabled, lifecycle policy configured (keep 10 images)
+  - Infrastructure scripts: create-ecr.sh, destroy-ecr.sh (fully tested)
+  - Cost: ~$0.10-$0.20/month
+- ✅ **Step 3 Complete**: AWS ECS Infrastructure (November 24, 2025)
+  - ECS Cluster: startupwebapp-cluster (Fargate)
+  - IAM Roles: ecsTaskExecutionRole-startupwebapp, ecsTaskRole-startupwebapp
+  - CloudWatch log group: /ecs/startupwebapp-migrations (7-day retention)
+  - Security groups updated (Backend SG → RDS + ECR)
+  - Infrastructure scripts: create-ecs-cluster.sh, create-ecs-task-role.sh, update-security-groups-ecs.sh, destroy scripts
+  - Full lifecycle tested (create → destroy → recreate)
+  - Cost: $0 (pay-per-use for tasks: ~$0.0137/hour when running)
+- ✅ **Step 4 Complete**: ECS Task Definition (November 24, 2025)
+  - Task definition: startupwebapp-migration-task (revision 2)
+  - Configuration: 0.25 vCPU, 512 MB RAM, Fargate launch type
+  - Secrets Manager integration for DB credentials
+  - Command: python manage.py migrate
+  - Infrastructure scripts: create-ecs-task-definition.sh, destroy-ecs-task-definition.sh (fully tested)
+  - Production Docker image pushed to ECR (157 MB compressed)
+  - Full lifecycle tested (create → destroy → recreate)
+  - Cost: $0 (task definition free; tasks cost ~$0.001 per 5-minute run)
+- ✅ **Step 5 Complete**: GitHub Actions CI/CD Workflow (November 25, 2025)
+  - Workflow file: .github/workflows/run-migrations.yml (200+ inline comments)
+  - Manual trigger with database selection dropdown
+  - Four-job pipeline: Test (5-7 min) → Build (3-5 min) → Migrate (2-5 min) → Summary (10 sec)
+  - Job 1: Runs 740 tests (712 unit + 28 functional) with PostgreSQL 16 service container
+  - Job 2: Builds production Docker image, tags with git commit SHA, pushes to ECR
+  - Job 3: Updates ECS task definition, launches Fargate task, fetches CloudWatch logs
+  - Job 4: Displays workflow summary and success/failure status
+  - User guide: docs/GITHUB_ACTIONS_GUIDE.md (comprehensive setup and troubleshooting)
+  - Total pipeline duration: ~10-17 minutes per database
+  - Cost: Negligible (~$0.10/month for ~100 migration runs)
+- 🚧 **Step 6 Next**: Configure GitHub Secrets (AWS credentials)
+- 📍 **Current Branch**: `feature/phase-5-14-ecs-cicd-migrations`
+
+**Phase 5.14 Goals:**
+1. Create multi-stage Dockerfile (development + production targets)
+2. Set up AWS ECS Fargate infrastructure (cluster, task definitions, IAM roles)
+3. Create AWS ECR for Docker image registry
+4. Build GitHub Actions CI/CD pipeline (test → build → deploy)
+5. Run Django migrations on RDS via automated pipeline
+6. Validate 57 tables created on all 3 production databases
 
 **Recent Milestones:**
 - PR #32: PostgreSQL migration (Phases 1-6) - November 19, 2025
 - PR #36: Phase 9 - Bastion host & separate passwords - November 22, 2025
 - PR #37: Bugfix - RDS secret preservation - November 22, 2025
+- Phase 5.14 Started: November 23, 2025 - ECS/CI/CD deployment infrastructure
 
 **For detailed history**, see: `docs/PROJECT_HISTORY.md`
 
@@ -152,37 +198,74 @@ Every commit MUST include documentation updates:
 - **Users**: Handle both `Member` and `Prospect` models
 - **Validation**: Use `unittest_utilities.validate_response_is_OK_and_JSON()`
 
-## Next Steps (Phase 10)
+## Next Steps (Phase 5.14 - IN PROGRESS)
 
-**Current Focus**: Django Migrations & Production Deployment
+**Current Focus**: ECS Infrastructure, GitHub Actions CI/CD, and RDS Migrations
 
-1. **Run Django migrations on AWS RDS**
-   - Connect to RDS via bastion or local machine
-   - Run migrations on all 3 databases
-   - Verify tables created successfully
+**Phase 5.14 Implementation Steps** (6-7 hours estimated, 5/8 steps complete):
 
-2. **Update production credentials**
-   - Add real Stripe API keys to Secrets Manager
-   - Add real Email SMTP credentials to Secrets Manager
+1. ✅ **Create Multi-Stage Dockerfile** (45 min) - COMPLETE
+   - Development target: includes test dependencies (Firefox, geckodriver)
+   - Production target: minimal, optimized for deployment
+   - Shared base layer for efficiency
+   - Result: Dev 1.69 GB, Prod 692 MB (59% smaller)
 
-3. **Test Django application against AWS RDS**
-   - Configure Django to use AWS RDS
-   - Test all endpoints and functionality
-   - Verify Stripe and email integrations
+2. ✅ **Create AWS ECR Repository** (20 min) - COMPLETE
+   - Docker image registry in AWS
+   - Image scanning and lifecycle policies (keep 10 images)
+   - Infrastructure scripts: create-ecr.sh, destroy-ecr.sh (fully tested)
+   - Repository: startupwebapp-backend
+   - URI: 853463362083.dkr.ecr.us-east-1.amazonaws.com/startupwebapp-backend
+   - Cost: ~$0.10-$0.20/month
 
-4. **Deploy backend to AWS**
-   - Containerize Django for production
-   - Choose deployment platform (ECS, EC2, or other)
-   - Deploy with proper security and scaling
+3. ✅ **Create ECS Infrastructure** (45 min) - COMPLETE
+   - ECS Fargate cluster (serverless containers)
+   - IAM roles for task execution (pull images, read secrets)
+   - Security groups (allow ECS → RDS access)
+   - Infrastructure scripts: create-ecs-cluster.sh, create-ecs-task-role.sh, update-security-groups-ecs.sh
+   - Full lifecycle tested (create → destroy → recreate)
+   - Cost: $0 (pay-per-use for tasks)
 
-**Other planned work:**
+4. ✅ **Create ECS Task Definition** (30 min) - COMPLETE
+   - Infrastructure scripts: create-ecs-task-definition.sh, destroy-ecs-task-definition.sh
+   - Task definition: startupwebapp-migration-task (0.25 vCPU, 512 MB RAM)
+   - Pulls credentials from AWS Secrets Manager
+   - Full lifecycle tested (create → destroy → recreate)
+   - Production Docker image pushed to ECR
+
+5. ✅ **Set Up GitHub Actions CI/CD** (60 min) - COMPLETE
+   - Workflow: `.github/workflows/run-migrations.yml` (200+ inline comments)
+   - Four-job pipeline: Test (740 tests) → Build → Push to ECR → Run ECS task → Summary
+   - Manual trigger with database selection dropdown
+   - User guide: `docs/GITHUB_ACTIONS_GUIDE.md` (setup + troubleshooting)
+   - Total duration: ~10-17 minutes per database
+
+6. 🚧 **Configure GitHub Secrets** (10 min) - NEXT
+   - Add AWS credentials to GitHub repository secrets
+   - Required: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION
+
+7. **Run Migrations via Pipeline** (45 min)
+   - Trigger GitHub Actions for each database
+   - Monitor CloudWatch logs
+   - Verify 57 tables created on each database
+
+8. **Verification & Documentation** (50 min)
+   - Confirm all migrations successful
+   - Update PROJECT_HISTORY.md
+   - Update documentation
+
+**After Phase 5.14**:
+- Phase 5.15: Full production deployment (ECS service, ALB, auto-scaling)
+- Phase 5.16: Production hardening (WAF, monitoring, load testing)
+
+**Other Planned Work**:
 - Consider Stripe library upgrade (optional)
 - Consider Selenium 4 upgrade (optional)
-- Setup CI/CD pipeline
 
 ## Key Documentation
 
 - **Project History**: `docs/PROJECT_HISTORY.md`
+- **Phase 5.14 Plan (Current)**: `docs/technical-notes/2025-11-23-phase-5-14-ecs-cicd-migrations.md`
 - **AWS RDS Deployment**: `docs/technical-notes/2025-11-19-aws-rds-deployment-plan.md`
 - **Phase 9 Deployment Guide**: `docs/technical-notes/2025-11-21-phase-9-deployment-guide.md`
 - **Bastion Troubleshooting**: `docs/technical-notes/2025-11-22-phase-9-bastion-troubleshooting.md`
@@ -202,4 +285,4 @@ Every commit MUST include documentation updates:
 
 ---
 
-**Ready to start?** Ask me what you'd like to work on, or I can propose starting Phase 10 (Django migrations on AWS RDS).
+**Ready to start?** Ask me what you'd like to work on, or I can propose continuing Phase 5.14 (ECS Infrastructure, CI/CD, and RDS Migrations).

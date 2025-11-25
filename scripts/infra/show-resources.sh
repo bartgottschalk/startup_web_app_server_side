@@ -134,6 +134,99 @@ else
 fi
 echo ""
 
+# ECR Repository (Phase 5.14)
+echo -e "${GREEN}ECR Repository (Phase 5.14):${NC}"
+if [ -n "${ECR_REPOSITORY_URI:-}" ]; then
+    echo -e "  ${GREEN}✓${NC} Repository Name:      ${ECR_REPOSITORY_NAME:-startupwebapp-backend}"
+    echo -e "  ${GREEN}✓${NC} Repository URI:       ${ECR_REPOSITORY_URI}"
+
+    # Count images in repository
+    IMAGE_COUNT=$(aws ecr list-images \
+        --repository-name "${ECR_REPOSITORY_NAME:-startupwebapp-backend}" \
+        --region "${AWS_REGION}" \
+        --query 'length(imageIds)' \
+        --output text 2>/dev/null || echo "0")
+
+    echo -e "  ${GREEN}✓${NC} Images:               ${IMAGE_COUNT} image(s)"
+else
+    echo -e "  ${YELLOW}⚠${NC} ECR not created (run: ./scripts/infra/create-ecr.sh)"
+fi
+echo ""
+
+# ECS Cluster (Phase 5.14)
+echo -e "${GREEN}ECS Cluster (Phase 5.14):${NC}"
+if [ -n "${ECS_CLUSTER_NAME:-}" ]; then
+    echo -e "  ${GREEN}✓${NC} Cluster Name:         ${ECS_CLUSTER_NAME}"
+    echo -e "  ${GREEN}✓${NC} Cluster ARN:          ${ECS_CLUSTER_ARN}"
+    echo -e "  ${GREEN}✓${NC} Log Group:            ${ECS_LOG_GROUP_NAME}"
+
+    # Get cluster status
+    CLUSTER_STATUS=$(aws ecs describe-clusters \
+        --clusters "${ECS_CLUSTER_NAME}" \
+        --region "${AWS_REGION}" \
+        --query 'clusters[0].status' \
+        --output text 2>/dev/null || echo "UNKNOWN")
+
+    # Count running tasks
+    TASK_COUNT=$(aws ecs list-tasks \
+        --cluster "${ECS_CLUSTER_NAME}" \
+        --region "${AWS_REGION}" \
+        --query 'length(taskArns)' \
+        --output text 2>/dev/null || echo "0")
+
+    echo -e "  ${GREEN}✓${NC} Status:               ${CLUSTER_STATUS}"
+    echo -e "  ${GREEN}✓${NC} Running Tasks:        ${TASK_COUNT}"
+else
+    echo -e "  ${YELLOW}⚠${NC} ECS Cluster not created (run: ./scripts/infra/create-ecs-cluster.sh)"
+fi
+echo ""
+
+# ECS IAM Roles (Phase 5.14)
+echo -e "${GREEN}ECS IAM Roles (Phase 5.14):${NC}"
+if [ -n "${ECS_TASK_EXECUTION_ROLE_ARN:-}" ]; then
+    echo -e "  ${GREEN}✓${NC} Task Execution Role:  ${ECS_TASK_EXECUTION_ROLE_NAME}"
+    echo -e "      ARN: ${ECS_TASK_EXECUTION_ROLE_ARN}"
+    echo -e "  ${GREEN}✓${NC} Task Role:            ${ECS_TASK_ROLE_NAME}"
+    echo -e "      ARN: ${ECS_TASK_ROLE_ARN}"
+else
+    echo -e "  ${YELLOW}⚠${NC} IAM Roles not created (run: ./scripts/infra/create-ecs-task-role.sh)"
+fi
+echo ""
+
+# ECS Task Definition (Phase 5.14)
+echo -e "${GREEN}ECS Task Definition (Phase 5.14):${NC}"
+if [ -n "${ECS_TASK_DEFINITION_ARN:-}" ]; then
+    echo -e "  ${GREEN}✓${NC} Family:               ${ECS_TASK_DEFINITION_FAMILY}"
+    echo -e "  ${GREEN}✓${NC} Revision:             ${ECS_TASK_DEFINITION_REVISION}"
+    echo -e "  ${GREEN}✓${NC} ARN:                  ${ECS_TASK_DEFINITION_ARN}"
+
+    # Get task definition details
+    TASK_DEF_STATUS=$(aws ecs describe-task-definition \
+        --task-definition "${ECS_TASK_DEFINITION_FAMILY}:${ECS_TASK_DEFINITION_REVISION}" \
+        --region "${AWS_REGION}" \
+        --query 'taskDefinition.status' \
+        --output text 2>/dev/null || echo "UNKNOWN")
+
+    TASK_DEF_CPU=$(aws ecs describe-task-definition \
+        --task-definition "${ECS_TASK_DEFINITION_FAMILY}:${ECS_TASK_DEFINITION_REVISION}" \
+        --region "${AWS_REGION}" \
+        --query 'taskDefinition.cpu' \
+        --output text 2>/dev/null || echo "unknown")
+
+    TASK_DEF_MEMORY=$(aws ecs describe-task-definition \
+        --task-definition "${ECS_TASK_DEFINITION_FAMILY}:${ECS_TASK_DEFINITION_REVISION}" \
+        --region "${AWS_REGION}" \
+        --query 'taskDefinition.memory' \
+        --output text 2>/dev/null || echo "unknown")
+
+    echo -e "  ${GREEN}✓${NC} Status:               ${TASK_DEF_STATUS}"
+    echo -e "  ${GREEN}✓${NC} CPU:                  ${TASK_DEF_CPU} (0.25 vCPU)"
+    echo -e "  ${GREEN}✓${NC} Memory:               ${TASK_DEF_MEMORY} MB"
+else
+    echo -e "  ${YELLOW}⚠${NC} Task Definition not created (run: ./scripts/infra/create-ecs-task-definition.sh)"
+fi
+echo ""
+
 # Cost Estimate
 echo -e "${GREEN}Estimated Monthly Cost:${NC}"
 TOTAL_COST=0
@@ -165,6 +258,10 @@ if [ -n "${SNS_TOPIC_ARN:-}" ]; then
     echo -e "  CloudWatch/SNS:       ~\$1/month"
     TOTAL_COST=$((TOTAL_COST + 1))
 fi
+if [ -n "${ECR_REPOSITORY_URI:-}" ]; then
+    echo -e "  ECR Storage:          ~\$0.10/month (1-2 images)"
+    # ECR cost is negligible, don't add to total
+fi
 if [ $TOTAL_COST -gt 0 ]; then
     echo -e "  ${GREEN}─────────────────────────────${NC}"
     echo -e "  ${GREEN}Total:                ~\$${TOTAL_COST}/month${NC}"
@@ -174,17 +271,35 @@ fi
 echo ""
 
 # Quick Links
-if [ -n "${RDS_ENDPOINT:-}" ]; then
+if [ -n "${RDS_ENDPOINT:-}" ] || [ -n "${ECR_REPOSITORY_URI:-}" ]; then
     echo -e "${GREEN}Quick Links:${NC}"
-    echo -e "  RDS Console:"
-    echo -e "    https://console.aws.amazon.com/rds/home?region=${AWS_REGION}#database:id=${RDS_INSTANCE_ID}"
-    echo ""
-    echo -e "  CloudWatch Dashboard:"
-    echo -e "    https://console.aws.amazon.com/cloudwatch/home?region=${AWS_REGION}#dashboards:name=${CLOUDWATCH_DASHBOARD_NAME}"
-    echo ""
-    echo -e "  Secrets Manager:"
-    echo -e "    https://console.aws.amazon.com/secretsmanager/home?region=${AWS_REGION}#!/secret?name=${DB_SECRET_NAME}"
-    echo ""
+
+    if [ -n "${RDS_ENDPOINT:-}" ]; then
+        echo -e "  RDS Console:"
+        echo -e "    https://console.aws.amazon.com/rds/home?region=${AWS_REGION}#database:id=${RDS_INSTANCE_ID}"
+        echo ""
+        echo -e "  CloudWatch Dashboard:"
+        echo -e "    https://console.aws.amazon.com/cloudwatch/home?region=${AWS_REGION}#dashboards:name=${CLOUDWATCH_DASHBOARD_NAME}"
+        echo ""
+        echo -e "  Secrets Manager:"
+        echo -e "    https://console.aws.amazon.com/secretsmanager/home?region=${AWS_REGION}#!/secret?name=${DB_SECRET_NAME}"
+        echo ""
+    fi
+
+    if [ -n "${ECR_REPOSITORY_URI:-}" ]; then
+        echo -e "  ECR Repository:"
+        echo -e "    https://console.aws.amazon.com/ecr/repositories/private/${AWS_ACCOUNT_ID}/${ECR_REPOSITORY_NAME:-startupwebapp-backend}?region=${AWS_REGION}"
+        echo ""
+    fi
+
+    if [ -n "${ECS_CLUSTER_NAME:-}" ]; then
+        echo -e "  ECS Cluster:"
+        echo -e "    https://console.aws.amazon.com/ecs/home?region=${AWS_REGION}#/clusters/${ECS_CLUSTER_NAME}"
+        echo ""
+        echo -e "  ECS CloudWatch Logs:"
+        echo -e "    https://console.aws.amazon.com/cloudwatch/home?region=${AWS_REGION}#logsV2:log-groups/log-group/${ECS_LOG_GROUP_NAME}"
+        echo ""
+    fi
 fi
 
 echo -e "${BLUE}========================================${NC}"
