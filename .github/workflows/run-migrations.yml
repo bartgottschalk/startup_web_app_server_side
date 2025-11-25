@@ -169,6 +169,8 @@ jobs:
               'localhost',
               'backend',
               'testserver',
+              'localliveservertestcase.startupwebapp.com',
+              'localliveservertestcaseapi.startupwebapp.com',
           ]
 
           # Security settings (disabled for testing)
@@ -176,7 +178,12 @@ jobs:
           SESSION_COOKIE_DOMAIN = None
           CSRF_COOKIE_SECURE = False
           CSRF_COOKIE_DOMAIN = None
-          CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://testserver']
+          CSRF_TRUSTED_ORIGINS = [
+              'http://localhost',
+              'http://testserver',
+              'http://localliveservertestcase.startupwebapp.com',
+              'http://localliveservertestcaseapi.startupwebapp.com',
+          ]
 
           DEBUG = True
           ENVIRONMENT_DOMAIN = 'http://localhost'
