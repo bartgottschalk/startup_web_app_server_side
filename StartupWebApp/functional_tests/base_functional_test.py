@@ -38,24 +38,6 @@ class BaseFunctionalTest(LiveServerTestCase):
 
 	def setUp(self):
 		self.browser = webdriver.Firefox(options=self.options)
-		self._test_passed = True  # Track test success for debugging
-
-		# Debug: Verify LiveServerTestCase backend is running (CI only)
-		if os.environ.get('CI_ENV'):
-			import socket
-			print(f"\n[DEBUG] Testing LiveServerTestCase connectivity...")
-			print(f"[DEBUG] Host: {self.host}, Port: {self.port}")
-			try:
-				sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-				sock.settimeout(2)
-				result = sock.connect_ex(('127.0.0.1', self.port))
-				sock.close()
-				if result == 0:
-					print(f"[DEBUG] ✓ Port {self.port} is open and accepting connections")
-				else:
-					print(f"[DEBUG] ✗ Port {self.port} is NOT accepting connections (error code: {result})")
-			except Exception as e:
-				print(f"[DEBUG] ✗ Socket test failed: {e}")
 
 		# Setup necessary DB Objects
 		ClientEventConfiguration.objects.create(id=1, log_client_events=True)
@@ -111,104 +93,9 @@ class BaseFunctionalTest(LiveServerTestCase):
 		Skuprice.objects.create(id=1, price=3.5, created_date_time=timezone.now(), sku_id=1)
 		Productsku.objects.create(id=1, product_id=1, sku_id=1)
 
-		# Debug: Verify backend API is responding (CI only)
-		if os.environ.get('CI_ENV'):
-			import urllib.request
-			import urllib.error
-			api_url = f"http://localliveservertestcaseapi.startupwebapp.com:{self.port}/user/logged-in"
-			print(f"\n[DEBUG] Testing backend API endpoint: {api_url}")
-			try:
-				req = urllib.request.Request(api_url)
-				response = urllib.request.urlopen(req, timeout=5)
-				print(f"[DEBUG] ✓ Backend API responding (status: {response.status})")
-				response_data = response.read().decode('utf-8')
-				print(f"[DEBUG] Response preview: {response_data[:200]}")
-			except urllib.error.HTTPError as e:
-				print(f"[DEBUG] ✗ Backend API returned HTTP error: {e.code} {e.reason}")
-			except urllib.error.URLError as e:
-				print(f"[DEBUG] ✗ Backend API connection failed: {e.reason}")
-			except Exception as e:
-				print(f"[DEBUG] ✗ Backend API test failed: {e}")
 
-
-
-	def run(self, result=None):
-		"""Override run to capture test failure status"""
-		test_result = super().run(result)
-		# If test had errors or failures, mark as failed for tearDown
-		if result and (result.errors or result.failures):
-			self._test_passed = False
-		return test_result
-
-	def _capture_debug_info(self):
-		"""Capture browser console logs and take screenshot on test failure"""
-		if not self._test_passed and os.environ.get('CI_ENV'):
-			print("\n" + "="*80)
-			print("DEBUG INFO - Test Failed in CI Environment")
-			print("="*80)
-
-			# Capture current URL
-			try:
-				print(f"Current URL: {self.browser.current_url}")
-			except Exception as e:
-				print(f"Could not get current URL: {e}")
-
-			# Capture page title
-			try:
-				print(f"Page Title: {self.browser.title}")
-			except Exception as e:
-				print(f"Could not get page title: {e}")
-
-			# Capture browser console logs
-			try:
-				print("\n--- Browser Console Logs ---")
-				logs = self.browser.get_log('browser')
-				if logs:
-					for log in logs:
-						print(f"[{log['level']}] {log['message']}")
-				else:
-					print("No browser console logs found")
-			except Exception as e:
-				print(f"Could not retrieve browser logs: {e}")
-
-			# Capture page source (first 1000 chars)
-			try:
-				print("\n--- Page Source (first 1000 chars) ---")
-				page_source = self.browser.page_source
-				print(page_source[:1000])
-			except Exception as e:
-				print(f"Could not get page source: {e}")
-
-			# Check if cart element exists in DOM
-			try:
-				print("\n--- Cart Element Check ---")
-				cart_wrapper = self.browser.find_elements_by_id('cart-item-count-wrapper')
-				if cart_wrapper:
-					print(f"cart-item-count-wrapper FOUND: {cart_wrapper[0].get_attribute('outerHTML')}")
-				else:
-					print("cart-item-count-wrapper NOT FOUND in DOM")
-					# Check if header-shopping-cart exists
-					header_cart = self.browser.find_elements_by_id('header-shopping-cart')
-					if header_cart:
-						print(f"header-shopping-cart exists: {header_cart[0].get_attribute('innerHTML')[:200]}")
-					else:
-						print("header-shopping-cart NOT FOUND either")
-			except Exception as e:
-				print(f"Could not check cart element: {e}")
-
-			# Take screenshot
-			try:
-				test_name = self.id().split('.')[-1]
-				screenshot_path = f"/tmp/test_failure_{test_name}.png"
-				self.browser.save_screenshot(screenshot_path)
-				print(f"\nScreenshot saved to: {screenshot_path}")
-			except Exception as e:
-				print(f"Could not save screenshot: {e}")
-
-			print("="*80 + "\n")
 
 	def tearDown(self):
-		self._capture_debug_info()
 		self.browser.quit()
 
 
