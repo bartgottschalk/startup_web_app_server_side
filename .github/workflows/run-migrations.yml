@@ -246,10 +246,13 @@ jobs:
       # STEP 7: Set up Firefox for functional tests
       # ----------------------------------------------------------------------
       # Functional tests use Selenium with Firefox
-      - name: Set up Firefox ESR
+      # Note: Ubuntu 24.04 (GitHub Actions) ships Firefox as snap, not firefox-esr package
+      - name: Set up Firefox
         run: |
-          sudo apt-get update
-          sudo apt-get install -y firefox-esr
+          # Firefox is pre-installed as snap on GitHub Actions Ubuntu 24.04
+          # Verify it's available and show version
+          firefox --version || sudo snap install firefox
+          firefox --version
 
       # ----------------------------------------------------------------------
       # STEP 8: Install geckodriver
