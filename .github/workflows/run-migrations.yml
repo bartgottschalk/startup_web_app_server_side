@@ -100,7 +100,7 @@ jobs:
     runs-on: ubuntu-latest
 
     # Skip this job if user selected skip_tests=true
-    if: ${{ !github.event.inputs.skip_tests }}
+    if: ${{ github.event.inputs.skip_tests != 'true' }}
 
     # Service containers run alongside the job
     # We need PostgreSQL for running tests
