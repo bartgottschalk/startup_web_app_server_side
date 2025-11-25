@@ -155,7 +155,7 @@ jobs:
       - name: Run flake8 linting
         run: |
           cd StartupWebApp
-          flake8 user order clientevent StartupWebApp --max-line-length=120 --statistics
+          flake8 user order clientevent StartupWebApp --max-line-length=120 --exclude=*/migrations/* --statistics
 
       # ----------------------------------------------------------------------
       # STEP 5: Run unit tests
