@@ -59,12 +59,6 @@ on:
         type: boolean
         default: false
 
-      skip_unit_tests:
-        description: 'Skip unit tests (for faster iteration when debugging functional tests)'
-        required: false
-        type: boolean
-        default: false
-
 # ============================================================================
 # ENVIRONMENT VARIABLES
 # ============================================================================
@@ -240,7 +234,6 @@ jobs:
       # ----------------------------------------------------------------------
       # Check code quality before running tests
       - name: Run flake8 linting
-        if: ${{ github.event.inputs.skip_unit_tests != 'true' }}
         run: |
           cd StartupWebApp
           flake8 user order clientevent StartupWebApp --max-line-length=120 --exclude=*/migrations/* --statistics
@@ -250,7 +243,6 @@ jobs:
       # ----------------------------------------------------------------------
       # Run 712 unit tests in parallel (faster execution)
       - name: Run unit tests
-        if: ${{ github.event.inputs.skip_unit_tests != 'true' }}
         env:
           # Django uses these environment variables
           DATABASE_ENGINE: postgresql
