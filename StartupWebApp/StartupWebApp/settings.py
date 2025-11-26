@@ -15,8 +15,13 @@ import os
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
 
-# get secret settings
-from .settings_secret import *  # noqa: F403,F401
+# get secret settings (optional - only for local development)
+try:
+    from .settings_secret import *  # noqa: F403,F401
+except ImportError:
+    # settings_secret.py doesn't exist (production environment)
+    # Production uses environment variables instead
+    pass
 
 # apply settings after getting secrets
 
