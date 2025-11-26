@@ -4,16 +4,21 @@ Infrastructure as Code (IaC) scripts for deploying StartupWebApp to AWS.
 
 ## ✅ Deployment Status
 
-**Current Status: Phase 5.14 In Progress - Step 3 Complete & Tested**
+**Current Status: Phase 5.14 In Progress - Step 7a/10 (NAT Gateway - NEXT)**
 
 - **Phase 5.13 Completed**: November 22, 2025 - RDS Infrastructure Deployed
-- **Phase 5.14 In Progress**: November 24, 2025 - ECS/CI/CD Setup
+- **Phase 5.14 In Progress**: November 26, 2025 - ECS/CI/CD Setup
 - **Phase 5.14 Step 1**: ✅ Multi-Stage Dockerfile (Complete - November 23, 2025)
 - **Phase 5.14 Step 2**: ✅ AWS ECR Repository (Complete - November 24, 2025)
 - **Phase 5.14 Step 3**: ✅ ECS Infrastructure (Complete & Tested - November 24, 2025)
+- **Phase 5.14 Step 4**: ✅ ECS Task Definition (Complete - November 24, 2025)
+- **Phase 5.14 Step 5**: ✅ GitHub Actions Workflow (Complete - November 25, 2025)
+- **Phase 5.14 Step 6**: ✅ GitHub Secrets Configured (Complete - November 25, 2025)
+- **Phase 5.14 Step 7a**: 🚧 **NEXT: Create NAT Gateway** (scripts ready, needs manual execution)
 - **RDS Status**: Available
 - **Monitoring**: Active (4 alarms, email confirmed)
-- **Monthly Cost**: $36 (RDS: $26, Bastion: $7, Monitoring: $2, CloudWatch/ECR: $1)
+- **Monthly Cost (Current)**: $36 (RDS: $26, Bastion: $7, Monitoring: $2, CloudWatch/ECR: $1)
+- **Monthly Cost (After NAT Gateway)**: ~$68 (adds $32/month for NAT Gateway)
 
 **Deployed Resources:**
 - VPC: vpc-0df90226462f00350 (startupwebapp-vpc, 10.0.0.0/16)
@@ -31,10 +36,11 @@ Infrastructure as Code (IaC) scripts for deploying StartupWebApp to AWS.
 2. ✅ Create ECR repository (`create-ecr.sh`)
 3. ✅ Create ECS infrastructure (cluster, IAM roles, security groups)
    - ✅ Tested: Full destroy → recreate lifecycle validated
-4. 🚧 **Next: Create ECS task definition** (code-based)
-5. Set up GitHub Actions CI/CD workflow
-6. Configure GitHub secrets
-7. Run automated migrations on all 3 RDS databases via pipeline
+4. ✅ Create ECS task definition (`create-ecs-task-definition.sh`)
+5. ✅ Create GitHub Actions CI/CD workflow (`.github/workflows/run-migrations.yml`)
+6. ✅ Configure GitHub secrets (AWS credentials, 740 tests passing in CI)
+7a. 🚧 **NEXT: Create NAT Gateway** (`create-nat-gateway.sh`) - Infrastructure scripts ready
+7b. Run automated migrations on all 3 RDS databases via pipeline (blocked by 7a)
 8. Verification and documentation
 
 **After Phase 5.14:**
@@ -62,18 +68,24 @@ This directory contains bash scripts to provision and manage AWS infrastructure 
 - Security groups for RDS, bastion, and backend services
 - AWS Secrets Manager for credential storage
 - CloudWatch monitoring with alarms and dashboard
-- NAT Gateway: **Optional** (default: not created, saves $32/month)
+- **NAT Gateway: REQUIRED for Phase 5.14+** (enables ECS tasks to reach AWS services)
+- ECS Fargate cluster for containerized workloads
+- ECR for Docker image registry
 
 **Estimated Monthly Cost:**
-- **Without NAT Gateway (default):** ~$29/month
+- **Phase 5.13 (RDS Infrastructure):** ~$36/month
   - RDS db.t4g.small: $26/month
   - Enhanced Monitoring: $2/month
+  - Bastion t3.micro: $7/month (stop when not in use to save $6/month)
   - CloudWatch/SNS: $1/month
-- **With NAT Gateway (optional):** ~$61/month
-  - NAT Gateway: $32/month (additional)
+- **Phase 5.14 (After NAT Gateway):** ~$68/month
+  - NAT Gateway: $32/month (required for ECS internet access)
   - RDS db.t4g.small: $26/month
   - Enhanced Monitoring: $2/month
-  - CloudWatch/SNS: $1/month
+  - Bastion t3.micro: $7/month (stop when not in use)
+  - CloudWatch/ECR/Logs: $1/month
+  - ECS Cluster: $0 (pay-per-use for tasks)
+  - GitHub Actions: ~$0.10/month (~100 workflow runs)
 
 ## Prerequisites
 
@@ -208,8 +220,22 @@ Execute scripts in this order:
 #    Note: Requires Docker image in ECR first
 ./scripts/infra/create-ecs-task-definition.sh
 
-# 7. (Future) Create GitHub Actions workflow
-# 8. (Future) Run migrations via CI/CD pipeline
+# 7. Create GitHub Actions workflow (manual - see .github/workflows/run-migrations.yml)
+#    Complete - November 25, 2025
+
+# 8. Configure GitHub Secrets (manual - see docs/GITHUB_ACTIONS_GUIDE.md)
+#    Complete - November 25, 2025
+
+# 9. Create NAT Gateway (5 minutes - includes 2-3 min wait)
+#    Required for ECS tasks to reach ECR, Secrets Manager, CloudWatch
+#    Cost: +$32/month
+./scripts/infra/create-nat-gateway.sh
+
+# 10. Run migrations via GitHub Actions (manual trigger)
+#     See: docs/GITHUB_ACTIONS_GUIDE.md
+#     Navigate to: https://github.com/bartgottschalk/startup_web_app_server_side/actions
+#     Select workflow: "Run Database Migrations"
+#     Click "Run workflow" → select database → Run
 
 # Check status
 ./scripts/infra/status.sh
@@ -231,7 +257,10 @@ Execute scripts in reverse order:
 # 3. Destroy ECS cluster
 ./scripts/infra/destroy-ecs-cluster.sh
 
-# 4. Destroy ECR repository (deletes all images)
+# 4. Destroy NAT Gateway (saves $32/month, but blocks ECS internet access)
+./scripts/infra/destroy-nat-gateway.sh
+
+# 5. Destroy ECR repository (deletes all images)
 ./scripts/infra/destroy-ecr.sh
 
 # Note: Security group rules are left intact (no dedicated destroy script)
@@ -270,28 +299,12 @@ Creates complete VPC infrastructure:
 - 2 public subnets (10.0.1.0/24, 10.0.2.0/24) in us-east-1a, us-east-1b
 - 2 private subnets (10.0.10.0/24, 10.0.11.0/24) in us-east-1a, us-east-1b
 - Internet Gateway
-- NAT Gateway (with Elastic IP) - **OPTIONAL** (default: no)
 - Route tables (public and private)
 - DB Subnet Group (for RDS)
 
-**NAT Gateway Decision:**
-The script will prompt: "Create NAT Gateway? (yes/no) [default: no]"
+**Note:** NAT Gateway is created separately via `create-nat-gateway.sh` (required for Phase 5.14+).
 
-- **Choose NO (default, recommended for cost savings):**
-  - Saves $32/month (~52% cost reduction)
-  - Private subnets (RDS) have no internet access (fine for databases)
-  - Deploy backend services to **public subnets** for internet access (Stripe API, email, etc.)
-  - Total monthly cost: ~$29
-
-- **Choose YES (for private subnet backend):**
-  - Adds $32/month
-  - Private subnets can access internet via NAT Gateway
-  - Deploy backend services to **private subnets** (more secure, enterprise pattern)
-  - Total monthly cost: ~$61
-
-**Time:**
-- Without NAT Gateway: ~5-7 minutes
-- With NAT Gateway: ~10-15 minutes (NAT Gateway provisioning)
+**Time:** ~5-7 minutes
 
 ### create-security-groups.sh
 
@@ -571,11 +584,100 @@ aws ecs run-task \
 
 This deregisters all revisions of the task definition. Note that task definitions cannot be truly "deleted" in AWS, only deregistered (they remain visible but cannot be used).
 
+### create-nat-gateway.sh (Phase 5.14)
+
+**Required for:** ECS tasks running in private subnets to access internet and AWS services (ECR, Secrets Manager, CloudWatch).
+
+Creates NAT Gateway infrastructure:
+- Elastic IP allocation for NAT Gateway
+- NAT Gateway in public subnet (us-east-1a)
+- Route table update: private subnets route 0.0.0.0/0 → NAT Gateway
+- Waits for NAT Gateway to become available (~2-3 minutes)
+
+**Why Required:**
+- ECS tasks in private subnets need outbound internet access for:
+  - Pulling Docker images from ECR
+  - Fetching secrets from AWS Secrets Manager
+  - Writing logs to CloudWatch Logs
+  - Calling external APIs (Stripe, email services, etc.)
+- NAT Gateway provides secure one-way internet access (outbound only, no inbound)
+- Industry-standard pattern for production workloads
+
+**Prerequisites:**
+- VPC with public and private subnets created
+- Internet Gateway attached to VPC
+- Private route table exists
+
+**Time:** ~5 minutes (includes 2-3 minute wait for NAT Gateway to become available)
+
+**Cost:** +$32/month ($0.045/hour + minimal data transfer charges)
+
+**What Happens:**
+1. Allocates Elastic IP address for NAT Gateway
+2. Creates NAT Gateway in first public subnet
+3. Waits for NAT Gateway to transition from "pending" to "available"
+4. Updates private subnet route table: adds route 0.0.0.0/0 → NAT Gateway
+5. Saves resource IDs to aws-resources.env
+
+**Network Flow After NAT Gateway:**
+```
+ECS Task (private subnet) → NAT Gateway (public subnet) → Internet Gateway → Internet
+                         ← NAT Gateway (translates IPs) ← Internet Gateway ← Internet
+```
+
+**Security:**
+- NAT Gateway only allows outbound connections (one-way)
+- Inbound connections from internet are blocked
+- Private resources never get public IP addresses
+- All connections appear to come from NAT Gateway's Elastic IP
+
+**Usage:**
+```bash
+./scripts/infra/create-nat-gateway.sh
+```
+
+**Script Behavior:**
+- Prompts for confirmation (shows cost impact)
+- Checks if NAT Gateway already exists (idempotent)
+- Creates all resources and waits for availability
+- Updates aws-resources.env with NAT Gateway ID and Elastic IP ID
+
+**Verification:**
+```bash
+# Check NAT Gateway status
+./scripts/infra/status.sh
+
+# View NAT Gateway details
+./scripts/infra/show-resources.sh
+
+# Or manually check
+aws ec2 describe-nat-gateways --nat-gateway-ids ${NAT_GATEWAY_ID}
+
+# Verify route table has 0.0.0.0/0 → NAT Gateway
+aws ec2 describe-route-tables --route-table-ids ${PRIVATE_RT_ID}
+```
+
+**Destroy:**
+```bash
+./scripts/infra/destroy-nat-gateway.sh
+```
+
+This script:
+1. Deletes the 0.0.0.0/0 route from private route table
+2. Deletes the NAT Gateway
+3. Waits for NAT Gateway deletion (~2-3 minutes)
+4. Releases the Elastic IP
+5. Clears aws-resources.env
+
+**Warning:** After destroying NAT Gateway, ECS tasks in private subnets will NOT be able to reach the internet. GitHub Actions workflow will fail until NAT Gateway is recreated.
+
+**Cost Savings:** Destroying NAT Gateway saves ~$32/month, but Phase 5.14 infrastructure (ECS tasks) will not work without it.
+
 ### show-resources.sh
 
 Displays all created resources:
 - Configuration (region, account, project)
-- VPC resources (VPC, subnets, gateways)
+- VPC resources (VPC, subnets, Internet Gateway, NAT Gateway with state, Elastic IP)
 - Security groups
 - Secrets Manager
 - RDS instance (with live status)
@@ -585,6 +687,7 @@ Displays all created resources:
 - ECS cluster (Phase 5.14)
 - ECS IAM roles (Phase 5.14)
 - ECS task definition (Phase 5.14)
+- NAT Gateway status (Phase 5.14)
 - Cost estimate
 - Quick links to AWS Console
 

@@ -51,8 +51,44 @@ echo -e "${GREEN}VPC Resources:${NC}"
 if [ -n "$VPC_ID" ]; then
     echo -e "  ${GREEN}✓${NC} VPC:                  ${VPC_ID}"
     echo -e "  ${GREEN}✓${NC} Internet Gateway:     ${IGW_ID}"
-    echo -e "  ${GREEN}✓${NC} NAT Gateway:          ${NAT_GATEWAY_ID}"
-    echo -e "  ${GREEN}✓${NC} Elastic IP:           ${ELASTIC_IP_ID}"
+
+    # NAT Gateway with state check
+    if [ -n "${NAT_GATEWAY_ID:-}" ]; then
+        NAT_STATE=$(aws ec2 describe-nat-gateways \
+            --nat-gateway-ids "${NAT_GATEWAY_ID}" \
+            --region "${AWS_REGION}" \
+            --query 'NatGateways[0].State' \
+            --output text 2>/dev/null || echo "not-found")
+
+        # Get Elastic IP public address
+        ELASTIC_IP_PUBLIC=""
+        if [ -n "${ELASTIC_IP_ID:-}" ]; then
+            ELASTIC_IP_PUBLIC=$(aws ec2 describe-addresses \
+                --allocation-ids "${ELASTIC_IP_ID}" \
+                --region "${AWS_REGION}" \
+                --query 'Addresses[0].PublicIp' \
+                --output text 2>/dev/null || echo "")
+        fi
+
+        if [ "$NAT_STATE" == "available" ]; then
+            echo -e "  ${GREEN}✓${NC} NAT Gateway:          ${NAT_GATEWAY_ID} (${NAT_STATE})"
+            if [ -n "$ELASTIC_IP_PUBLIC" ]; then
+                echo -e "  ${GREEN}✓${NC} Elastic IP:           ${ELASTIC_IP_ID} (${ELASTIC_IP_PUBLIC})"
+            else
+                echo -e "  ${GREEN}✓${NC} Elastic IP:           ${ELASTIC_IP_ID}"
+            fi
+        elif [ "$NAT_STATE" == "pending" ]; then
+            echo -e "  ${YELLOW}⚠${NC} NAT Gateway:          ${NAT_GATEWAY_ID} (${NAT_STATE} - wait 2-3 min)"
+            echo -e "  ${GREEN}✓${NC} Elastic IP:           ${ELASTIC_IP_ID}"
+        else
+            echo -e "  ${YELLOW}⚠${NC} NAT Gateway:          ${NAT_GATEWAY_ID} (${NAT_STATE})"
+            echo -e "  ${YELLOW}⚠${NC} Elastic IP:           ${ELASTIC_IP_ID}"
+        fi
+    else
+        echo -e "  ${YELLOW}⚠${NC} NAT Gateway:          Not created (./scripts/infra/create-nat-gateway.sh)"
+        echo -e "  ${YELLOW}⚠${NC} Elastic IP:           Not allocated"
+    fi
+
     echo -e "  ${GREEN}✓${NC} Public Subnet 1:      ${PUBLIC_SUBNET_1_ID}"
     echo -e "  ${GREEN}✓${NC} Public Subnet 2:      ${PUBLIC_SUBNET_2_ID}"
     echo -e "  ${GREEN}✓${NC} Private Subnet 1:     ${PRIVATE_SUBNET_1_ID}"

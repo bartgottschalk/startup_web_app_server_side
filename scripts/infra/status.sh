@@ -388,6 +388,45 @@ else
 fi
 echo ""
 
+# NAT Gateway (Required for ECS Tasks)
+echo -e "${CYAN}NAT Gateway (Private Subnet Internet Access)${NC}"
+if [ -n "${NAT_GATEWAY_ID:-}" ]; then
+    # Check if NAT Gateway actually exists and its state
+    NAT_STATE=$(aws ec2 describe-nat-gateways \
+        --nat-gateway-ids "${NAT_GATEWAY_ID}" \
+        --region "${AWS_REGION}" \
+        --query 'NatGateways[0].State' \
+        --output text 2>/dev/null || echo "")
+
+    if [ "$NAT_STATE" == "available" ]; then
+        echo -e "  ${GREEN}✓ COMPLETED${NC} - NAT Gateway available"
+        echo ""
+        echo -e "  NAT Gateway ID:      ${NAT_GATEWAY_ID}"
+        echo -e "  Elastic IP:          ${ELASTIC_IP_ID}"
+        echo -e "  State:               ${NAT_STATE}"
+    elif [ "$NAT_STATE" == "pending" ]; then
+        echo -e "  ${YELLOW}⚠ PENDING${NC} - NAT Gateway is being created (2-3 minutes)"
+        echo ""
+        echo -e "  NAT Gateway ID:      ${NAT_GATEWAY_ID}"
+        echo -e "  State:               ${NAT_STATE}"
+    else
+        echo -e "  ${YELLOW}⚠ NAT Gateway in env file but not found in AWS${NC}"
+        echo -e "  ${YELLOW}→ Recreate: ./scripts/infra/create-nat-gateway.sh${NC}"
+    fi
+elif [ -n "${ECS_TASK_DEFINITION_ARN:-}" ]; then
+    echo -e "  ${RED}✗ NOT STARTED${NC} - Required for Step 7b (Run Migrations)"
+    echo ""
+    echo -e "  ${YELLOW}Why needed: ECS tasks in private subnets need outbound internet access${NC}"
+    echo -e "  ${YELLOW}            to pull Docker images from ECR, fetch secrets, write logs${NC}"
+    echo ""
+    echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-nat-gateway.sh${NC}"
+    echo -e "  ${YELLOW}   Time: ~5 minutes (includes 2-3 min wait for NAT Gateway)${NC}"
+    echo -e "  ${YELLOW}   Cost: ~\$32/month (enables secure production infrastructure)${NC}"
+else
+    echo -e "  ${RED}✗ BLOCKED${NC} - Requires ECS task definition (Step 4)"
+fi
+echo ""
+
 # Phase 5.14 Progress Summary
 if [ -n "${ECR_REPOSITORY_URI:-}" ] || [ -n "${ECS_CLUSTER_NAME:-}" ] || [ -n "${ECS_TASK_EXECUTION_ROLE_ARN:-}" ]; then
     echo -e "${YELLOW}Phase 5.14 Progress Summary:${NC}"
@@ -409,15 +448,35 @@ if [ -n "${ECR_REPOSITORY_URI:-}" ] || [ -n "${ECS_CLUSTER_NAME:-}" ] || [ -n "$
     if [ -n "${ECS_TASK_DEFINITION_ARN:-}" ]; then
         echo -e "  ✓ Step 3: ECS Infrastructure (cluster + IAM roles)"
         echo -e "  ✓ Step 4: ECS Task Definition"
-        echo -e "  → Step 5: Create GitHub Actions Workflow"
-        echo -e "  → Step 6: Configure GitHub Secrets"
-        echo -e "  → Step 7: Run Migrations & Documentation"
+        echo -e "  ✓ Step 5: GitHub Actions Workflow"
+        echo -e "  ✓ Step 6: GitHub Secrets Configured"
+        if [ -n "${NAT_GATEWAY_ID:-}" ]; then
+            # Check NAT Gateway state
+            NAT_STATE=$(aws ec2 describe-nat-gateways \
+                --nat-gateway-ids "${NAT_GATEWAY_ID}" \
+                --region "${AWS_REGION}" \
+                --query 'NatGateways[0].State' \
+                --output text 2>/dev/null || echo "")
+            if [ "$NAT_STATE" == "available" ]; then
+                echo -e "  ✓ Step 7a: NAT Gateway Created"
+                echo -e "  → Step 7b: Test Workflow & Run Migrations (manual via GitHub Actions)"
+                echo -e "  → Step 8: Verify Migrations & Documentation"
+            else
+                echo -e "  ⚠ Step 7a: NAT Gateway (${NAT_STATE})"
+            fi
+        else
+            echo -e "  → Step 7a: Create NAT Gateway (./scripts/infra/create-nat-gateway.sh)"
+            echo -e "  → Step 7b: Test Workflow & Run Migrations (blocked by 7a)"
+            echo -e "  → Step 8: Verify Migrations & Documentation"
+        fi
     elif [ -n "${ECS_TASK_EXECUTION_ROLE_ARN:-}" ]; then
         echo -e "  ✓ Step 3: ECS Infrastructure (cluster + IAM roles)"
         echo -e "  → Step 4: Create ECS Task Definition (./scripts/infra/create-ecs-task-definition.sh)"
         echo -e "  → Step 5: Create GitHub Actions Workflow"
         echo -e "  → Step 6: Configure GitHub Secrets"
-        echo -e "  → Step 7: Run Migrations & Documentation"
+        echo -e "  → Step 7a: Create NAT Gateway"
+        echo -e "  → Step 7b: Test Workflow & Run Migrations"
+        echo -e "  → Step 8: Verify Migrations & Documentation"
     else
         echo -e "  → Step 3: ECS Infrastructure (cluster + IAM roles)"
     fi
