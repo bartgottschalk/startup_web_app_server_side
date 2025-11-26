@@ -569,9 +569,10 @@ jobs:
           # Extract the current task definition and update image
           TASK_DEF=$(cat task-definition.json)
 
+          # TEMPORARY: Use hardcoded image for debugging (restore after Step 7b complete)
           # Update the image URI and environment variables
           UPDATED_TASK_DEF=$(echo $TASK_DEF | jq \
-            --arg IMAGE "${{ needs.build-and-push.outputs.image }}" \
+            --arg IMAGE "853463362083.dkr.ecr.us-east-1.amazonaws.com/startupwebapp-backend:3f8f2b281256801350b421056bb3307932b7e4f6" \
             --arg DB_NAME "${{ env.DATABASE_NAME }}" \
             '
             .containerDefinitions[0].image = $IMAGE |
@@ -579,6 +580,8 @@ jobs:
               if .name == "DATABASE_NAME" then .value = $DB_NAME else . end
             )
             ')
+          # RESTORE THIS AFTER DEBUGGING:
+          # --arg IMAGE "${{ needs.build-and-push.outputs.image }}" \
 
           # Remove fields that aren't needed for registration
           CLEAN_TASK_DEF=$(echo $UPDATED_TASK_DEF | jq '
