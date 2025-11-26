@@ -78,6 +78,373 @@ Phase 5.14 establishes the complete production deployment infrastructure using A
 └──────────────────────────────────────────────────────────────┘
 ```
 
+## AWS Networking Background (Why NAT Gateway?)
+
+### The Problem: ECS Tasks Cannot Reach AWS Services
+
+During Step 7 testing (November 25, 2025), we discovered that ECS tasks running in private subnets could not reach AWS services:
+
+```
+ResourceInitializationError: unable to pull secrets or registry auth:
+unable to retrieve secret from asm: There is a connection issue between
+the task and AWS Secrets Manager. Check your task network configuration.
+```
+
+This section explains the fundamental networking concepts, the problem we encountered, and why NAT Gateway is the correct solution.
+
+---
+
+### VPC Networking Fundamentals
+
+**What is a VPC?**
+A Virtual Private Cloud (VPC) is an isolated network in AWS where you control IP addressing, routing, and security. Our VPC (10.0.0.0/16) contains subnets that determine how resources connect to the internet.
+
+**Public Subnets vs Private Subnets**
+
+| Aspect | Public Subnet | Private Subnet |
+|--------|---------------|----------------|
+| **Internet Gateway Route** | ✅ Yes (0.0.0.0/0 → IGW) | ❌ No direct route |
+| **Public IP Addresses** | ✅ Auto-assigned | ❌ None |
+| **Inbound Internet Traffic** | ✅ Allowed (with Security Groups) | ❌ Not possible |
+| **Outbound Internet Traffic** | ✅ Direct via Internet Gateway | ❌ Requires NAT Gateway |
+| **Use Case** | Load balancers, bastion hosts | Application servers, databases |
+| **Security Posture** | Lower (exposed to internet) | Higher (isolated from internet) |
+
+**What is a NAT Gateway?**
+NAT (Network Address Translation) Gateway is an AWS managed service that enables resources in private subnets to:
+- **Initiate** outbound connections to the internet (for software updates, API calls, pulling Docker images)
+- **Block** all inbound connections from the internet (security)
+
+NAT Gateway acts as a "one-way door" - private resources can reach out, but nothing from the internet can reach in.
+
+---
+
+### Current VPC Architecture
+
+Our StartupWebApp VPC has the following structure:
+
+```
+VPC: startupwebapp-vpc (10.0.0.0/16)
+├── Public Subnets (have Internet Gateway route)
+│   ├── startupwebapp-public-subnet-1a (10.0.1.0/24) - us-east-1a
+│   └── startupwebapp-public-subnet-1b (10.0.2.0/24) - us-east-1b
+├── Private Subnets (NO internet route - problem!)
+│   ├── startupwebapp-private-subnet-1a (10.0.11.0/24) - us-east-1a
+│   └── startupwebapp-private-subnet-1b (10.0.12.0/24) - us-east-1b
+└── Internet Gateway: startupwebapp-igw (attached to VPC)
+```
+
+**Current Route Tables:**
+
+Public Subnet Route Table:
+```
+Destination       Target
+10.0.0.0/16      local              (VPC internal traffic)
+0.0.0.0/0        igw-xxxxx          (all other traffic → Internet Gateway)
+```
+
+Private Subnet Route Table:
+```
+Destination       Target
+10.0.0.0/16      local              (VPC internal traffic only)
+                                    (NO 0.0.0.0/0 route - cannot reach internet!)
+```
+
+**Security Groups:**
+- `startupwebapp-backend-sg`: Applied to ECS tasks
+  - Outbound: Port 5432 → RDS (database)
+  - Outbound: Port 443 → 0.0.0.0/0 (HTTPS for AWS APIs)
+- `startupwebapp-rds-sg`: Applied to RDS instance
+  - Inbound: Port 5432 from Backend SG
+
+---
+
+### The Core Networking Problem
+
+**What ECS Tasks Need to Access:**
+
+1. **ECR (Elastic Container Registry)** - Pull Docker images
+   - Endpoint: `853463362083.dkr.ecr.us-east-1.amazonaws.com`
+   - Protocol: HTTPS (port 443)
+   - **Requires**: Internet access
+
+2. **Secrets Manager** - Fetch database credentials
+   - Endpoint: `secretsmanager.us-east-1.amazonaws.com`
+   - Protocol: HTTPS (port 443)
+   - **Requires**: Internet or VPC Endpoint
+
+3. **CloudWatch Logs** - Write application logs
+   - Endpoint: `logs.us-east-1.amazonaws.com`
+   - Protocol: HTTPS (port 443)
+   - **Requires**: Internet or VPC Endpoint
+
+4. **RDS PostgreSQL** - Database queries
+   - Endpoint: Internal VPC (startupwebapp-rds.xxxxx.us-east-1.rds.amazonaws.com)
+   - Protocol: PostgreSQL (port 5432)
+   - **Works**: Internal VPC routing (10.0.0.0/16 → local)
+
+**Why ECS Tasks Fail:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Private Subnet (10.0.11.0/24)                                  │
+│                                                                  │
+│  ┌───────────────────────────────┐                              │
+│  │ ECS Task (10.0.11.42)         │                              │
+│  │                               │                              │
+│  │ Needs to:                     │                              │
+│  │ 1. Pull Docker image from ECR │ ← Requires internet (HTTPS)  │
+│  │ 2. Get DB password from       │ ← Requires internet (HTTPS)  │
+│  │    Secrets Manager            │                              │
+│  └───────────┬───────────────────┘                              │
+│              │                                                   │
+│              │ Route table lookup:                              │
+│              │ - Destination: 443.xxx.xxx.xxx (ECR)            │
+│              │ - Match: 10.0.0.0/16? NO                         │
+│              │ - Match: 0.0.0.0/0? NO ROUTE EXISTS!             │
+│              │                                                   │
+│              ▼                                                   │
+│         ❌ CONNECTION FAILS                                      │
+│         "context deadline exceeded"                             │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**The Error Message Explained:**
+
+```
+unable to pull secrets or registry auth:
+unable to retrieve secret from asm: There is a connection issue between
+the task and AWS Secrets Manager. Check your task network configuration.
+failed to fetch secret arn:aws:secretsmanager:us-east-1:853463362083:secret:rds/startupwebapp/multi-tenant/master-bgyXcP
+from secrets manager: operation error Secrets Manager: GetSecretValue,
+https response error StatusCode: 0, RequestID: , canceled, context deadline exceeded
+```
+
+Translation:
+1. ECS task tries to start
+2. Needs DB password from Secrets Manager to run migrations
+3. Looks up route for `secretsmanager.us-east-1.amazonaws.com`
+4. Private subnet route table has NO 0.0.0.0/0 route
+5. Connection times out ("context deadline exceeded")
+6. Task fails before it can even start the migration
+
+---
+
+### Solution Options Evaluated
+
+We evaluated three options to solve this networking problem:
+
+#### Option 1: Move ECS Tasks to Public Subnets
+
+**How it works:**
+- Change ECS task network configuration to use public subnets
+- Tasks get public IP addresses automatically
+- Direct internet access via Internet Gateway
+
+**Pros:**
+- ✅ Simplest solution (no new infrastructure)
+- ✅ Lowest cost ($0 additional monthly cost)
+- ✅ No data processing charges
+
+**Cons:**
+- ❌ **Security Risk**: Tasks exposed to internet with public IPs
+- ❌ **Bad Practice**: Application workloads should not be internet-accessible
+- ❌ **Attack Surface**: Increases vulnerability to attacks even with Security Groups
+- ❌ **Compliance Issues**: May violate security policies for production systems
+- ❌ **Not Scalable**: When we deploy full application (Phase 5.15), it should be in private subnets
+
+**Cost:** $0/month
+
+**Verdict:** ❌ **REJECTED** - Unacceptable security posture for ongoing production infrastructure
+
+---
+
+#### Option 2: VPC Endpoints (AWS PrivateLink)
+
+**How it works:**
+- Create VPC Endpoints for Secrets Manager, ECR (API + DKR), CloudWatch Logs
+- Endpoints are ENIs (Elastic Network Interfaces) inside VPC
+- Traffic stays within AWS network, never touches internet
+- Update route tables to direct AWS service traffic to endpoints
+
+**VPC Endpoints Required:**
+1. `com.amazonaws.us-east-1.secretsmanager` - Secrets Manager access
+2. `com.amazonaws.us-east-1.ecr.api` - ECR API calls
+3. `com.amazonaws.us-east-1.ecr.dkr` - ECR Docker registry
+4. `com.amazonaws.us-east-1.logs` - CloudWatch Logs
+5. `com.amazonaws.us-east-1.s3` (Gateway Endpoint) - ECR layers stored in S3
+
+**Pros:**
+- ✅ **Best Security**: Traffic never leaves AWS network
+- ✅ **Fastest Performance**: Lower latency than internet routing
+- ✅ **No NAT Gateway**: Avoid NAT Gateway costs
+- ✅ **Private DNS**: Automatic DNS resolution for AWS services
+- ✅ **Ideal for Enterprise**: Best practice for highly regulated environments
+
+**Cons:**
+- ❌ **Higher Cost**: ~$21/month for 4 interface endpoints (S3 gateway endpoint is free)
+  - $0.01/hour per endpoint × 4 endpoints × 730 hours/month = $29.20/month
+  - Data processing: $0.01/GB (minimal for our use case)
+- ❌ **More Complex**: 5 endpoints to manage, monitor, and maintain
+- ❌ **Not Scalable for External APIs**: If application needs to call external APIs (Stripe, Twilio, etc.), still need NAT Gateway or internet access
+- ❌ **Limited Scope**: Only solves AWS service access, not general internet access
+
+**Cost:** ~$29/month for 4 interface endpoints + $0.01/GB data processing
+
+**Verdict:** ⚠️ **VIABLE BUT NOT CHOSEN** - More expensive than NAT Gateway and doesn't solve future needs for external API access
+
+**When to Use VPC Endpoints:**
+- Enterprise environments with strict compliance requirements
+- High-traffic workloads (GB+ per day) where data processing costs matter
+- Applications that ONLY need AWS service access
+
+---
+
+#### Option 3: NAT Gateway (CHOSEN)
+
+**How it works:**
+1. Create NAT Gateway in public subnet (has Internet Gateway route)
+2. Allocate Elastic IP address for NAT Gateway
+3. Update private subnet route tables: `0.0.0.0/0 → NAT Gateway`
+4. Private resources route internet traffic through NAT Gateway
+5. NAT Gateway translates private IPs to its Elastic IP, forwards to Internet Gateway
+6. Return traffic routed back through NAT Gateway to private resources
+
+**Network Flow with NAT Gateway:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  VPC (10.0.0.0/16)                                                      │
+│                                                                         │
+│  ┌───────────────────────────┐      ┌──────────────────────────────┐   │
+│  │ Private Subnet            │      │ Public Subnet                │   │
+│  │ (10.0.11.0/24)            │      │ (10.0.1.0/24)                │   │
+│  │                           │      │                              │   │
+│  │ ┌─────────────────────┐   │      │  ┌────────────────────────┐ │   │
+│  │ │ ECS Task            │   │      │  │ NAT Gateway            │ │   │
+│  │ │ (10.0.11.42)        │   │      │  │ (10.0.1.100)           │ │   │
+│  │ │                     │───┼──────┼─▶│ Elastic IP:            │ │   │
+│  │ │ "Get DB password    │   │      │  │ 54.XXX.XXX.XXX         │ │   │
+│  │ │  from Secrets Mgr"  │   │      │  └───────────┬────────────┘ │   │
+│  │ └─────────────────────┘   │      │              │              │   │
+│  │                           │      │              │              │   │
+│  │ Route Table:              │      │              │              │   │
+│  │ 10.0.0.0/16 → local       │      │              │              │   │
+│  │ 0.0.0.0/0 → NAT Gateway ✓ │      │              │              │   │
+│  └───────────────────────────┘      └──────────────┼──────────────┘   │
+│                                                     │                  │
+└─────────────────────────────────────────────────────┼──────────────────┘
+                                                      │
+                                                      │
+                         ┌────────────────────────────▼────────┐
+                         │  Internet Gateway                   │
+                         │  (startupwebapp-igw)                │
+                         └────────────────┬────────────────────┘
+                                          │
+                                          │
+          ┌───────────────────────────────┼───────────────────────────┐
+          │                               │                           │
+          │                               ▼                           │
+          │  ┌─────────────────────────────────────────────────┐     │
+          │  │ AWS Services (Internet-Facing)                  │     │
+          │  │                                                 │     │
+          │  │ • Secrets Manager (secretsmanager.us-east-1...) │     │
+          │  │   → Returns DB password                         │     │
+          │  │                                                 │     │
+          │  │ • ECR (853463362083.dkr.ecr.us-east-1...)      │     │
+          │  │   → Returns Docker image layers                 │     │
+          │  │                                                 │     │
+          │  │ • CloudWatch Logs (logs.us-east-1...)          │     │
+          │  │   → Accepts log entries                         │     │
+          │  └─────────────────────────────────────────────────┘     │
+          │                                                           │
+          │  Internet                                                 │
+          └───────────────────────────────────────────────────────────┘
+```
+
+**Step-by-Step Request Flow:**
+
+1. **ECS Task → NAT Gateway**
+   - ECS task (10.0.11.42) needs to reach `secretsmanager.us-east-1.amazonaws.com`
+   - Route table lookup: 0.0.0.0/0 → NAT Gateway
+   - Packet sent to NAT Gateway in public subnet (10.0.1.100)
+
+2. **NAT Gateway → Internet Gateway**
+   - NAT Gateway performs Network Address Translation
+   - Replaces source IP: 10.0.11.42 → Elastic IP (54.XXX.XXX.XXX)
+   - Forwards packet to Internet Gateway
+
+3. **Internet Gateway → Internet**
+   - Internet Gateway routes packet to public internet
+   - Destination: AWS Secrets Manager service endpoint
+
+4. **Return Path (Internet → ECS Task)**
+   - Response from Secrets Manager arrives at Internet Gateway
+   - Destination: Elastic IP (54.XXX.XXX.XXX)
+   - Internet Gateway routes to NAT Gateway
+   - NAT Gateway translates destination IP back: Elastic IP → 10.0.11.42
+   - Response delivered to ECS task
+
+**Pros:**
+- ✅ **Security**: Private resources stay private (no public IPs)
+- ✅ **Simple**: One resource solves all internet access needs
+- ✅ **Scalable**: Handles ANY internet-bound traffic (AWS services + external APIs)
+- ✅ **Highly Available**: AWS-managed (99.95% SLA)
+- ✅ **Standard Practice**: Industry-standard solution for production workloads
+- ✅ **Future-Proof**: Supports Stripe, Twilio, external APIs when needed (Phase 11+)
+
+**Cons:**
+- ❌ **Cost**: $32.40/month base cost (always running)
+- ❌ **Single Point**: One NAT Gateway (could add second for HA across AZs)
+
+**Cost:** $32.40/month
+- NAT Gateway hourly charge: $0.045/hour × 730 hours = $32.85/month
+- Data processing: $0.045/GB (estimated ~$0.10/month for migrations + occasional deployments)
+- **Total**: ~$33/month
+
+**Verdict:** ✅ **CHOSEN** - Best balance of security, simplicity, and scalability for ongoing production infrastructure
+
+---
+
+### Why NAT Gateway Was Chosen
+
+**Decision Factors:**
+
+1. **This is NOT a One-Time Migration**
+   - Initially considered: "Maybe we can just run migrations once in public subnets?"
+   - Reality: CI/CD pipeline will run frequently (every feature deployment, every database schema change)
+   - NAT Gateway needed for ongoing production infrastructure
+
+2. **Future Application Deployment (Phase 5.15)**
+   - Full Django application will run in ECS (not just migrations)
+   - Application needs external API access: Stripe (payments), Twilio (SMS), etc.
+   - VPC Endpoints only solve AWS service access, not external APIs
+   - NAT Gateway solves both AWS + external API access
+
+3. **Security Best Practices**
+   - Production workloads should NEVER have public IP addresses
+   - Private subnets + NAT Gateway is industry standard
+   - Public subnets rejected as unacceptable security posture
+
+4. **Cost Analysis**
+   - NAT Gateway: $32.40/month
+   - VPC Endpoints (4 required): $29.20/month
+   - NAT Gateway only $3/month more, but handles ALL internet needs
+   - VPC Endpoints would still require NAT Gateway for external APIs
+
+5. **Simplicity**
+   - NAT Gateway: 1 resource, 1 route table update
+   - VPC Endpoints: 5 endpoints, 5 configurations, 5 potential failure points
+
+**Production Infrastructure Philosophy:**
+- Security over cost (private subnets non-negotiable)
+- Simplicity over optimization (one solution for all internet access)
+- Scalability over one-time savings (future-proof for Phase 5.15+)
+
+**Final Decision:** NAT Gateway is the correct solution for secure, scalable production infrastructure at reasonable cost.
+
+---
+
 ## Phase 5.14 Implementation Steps
 
 ### Step 1: Create Multi-Stage Dockerfile ⏱️ 45 minutes
