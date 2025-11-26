@@ -99,10 +99,8 @@ jobs:
     name: Run Test Suite
     runs-on: ubuntu-latest
 
-    # TEMPORARILY DISABLED FOR DEBUGGING (restore after Step 7b complete)
-    if: false
     # Skip this job if user selected skip_tests=true
-    # if: ${{ github.event.inputs.skip_tests != 'true' }}
+    if: ${{ github.event.inputs.skip_tests != 'true' }}
 
     # Service containers run alongside the job
     # We need PostgreSQL for running tests
