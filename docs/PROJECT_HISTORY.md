@@ -323,10 +323,10 @@ This document tracks the complete development history and modernization effort f
 - ✅ See [Deployment Guide](technical-notes/2025-11-21-phase-9-deployment-guide.md) for step-by-step instructions
 - ✅ See [Bastion Troubleshooting](technical-notes/2025-11-22-phase-9-bastion-troubleshooting.md) for SSM connection fix
 
-#### Phase 5.14: ECS Infrastructure, CI/CD, and RDS Migrations (In Progress - November 25, 2025)
+#### Phase 5.14: ECS Infrastructure, CI/CD, and RDS Migrations (In Progress - November 26, 2025)
 
-**Status**: 🚧 Step 7 Blocked (NAT Gateway Required) - 6/9 Steps Complete
-**Branch**: `master` (Steps 1-6 merged)
+**Status**: ✅ Step 7b Complete (Testing Workflow) - 7b/10 Steps Complete (Step 8 Next)
+**Branch**: `master` (Steps 1-7b merged)
 
 **Step 1: Multi-Stage Dockerfile** ✅ (Completed - November 23, 2025)
 - ✅ Added gunicorn==21.2.0 to requirements.txt for production WSGI server
@@ -566,7 +566,69 @@ This document tracks the complete development history and modernization effort f
 
 ---
 
-**Step 7: Test Workflow & Run Migrations** 🚧 BLOCKED (November 25, 2025)
+**Step 7a: NAT Gateway Infrastructure** ✅ COMPLETE (November 26, 2025)
+
+- ✅ Created infrastructure scripts following established patterns
+  - `scripts/infra/create-nat-gateway.sh` - Creates NAT Gateway with full configuration
+  - `scripts/infra/destroy-nat-gateway.sh` - Safely destroys NAT Gateway
+- ✅ NAT Gateway created: `nat-06ecd81baab45cf4a` (available)
+- ✅ Elastic IP allocated: `52.206.125.11` (eipalloc-062ed4f41e4c172b1)
+- ✅ Private subnet route table updated: 0.0.0.0/0 → NAT Gateway
+- ✅ Full lifecycle validated: create → destroy → recreate tested successfully
+- ✅ Updated status.sh with NAT Gateway status section (shows state, explains requirement)
+- ✅ Updated show-resources.sh with NAT Gateway display (shows public IP, live state)
+- ✅ Updated scripts/infra/README.md with comprehensive NAT Gateway documentation
+- ✅ Cost: +$32/month (~$68/month total infrastructure)
+
+**Why Required:**
+- ECS tasks in private subnets need outbound internet access for:
+  - Pulling Docker images from ECR
+  - Fetching secrets from AWS Secrets Manager
+  - Writing logs to CloudWatch Logs
+  - Calling external APIs (Stripe, email services, etc.)
+- NAT Gateway provides secure one-way internet access (outbound only, no inbound)
+- Industry-standard pattern for production workloads
+
+**Files Created:**
+- `scripts/infra/create-nat-gateway.sh` - NAT Gateway creation (idempotent, tested)
+- `scripts/infra/destroy-nat-gateway.sh` - NAT Gateway destruction (with confirmation, tested)
+
+**Files Modified:**
+- `scripts/infra/aws-resources.env.template` - NAT Gateway fields already present (no changes needed)
+- `scripts/infra/aws-resources.env` - Populated with NAT Gateway ID and Elastic IP allocation ID
+- `scripts/infra/status.sh` - Added NAT Gateway status section with live AWS state checking
+- `scripts/infra/show-resources.sh` - Enhanced NAT Gateway display with public IP and state
+- `scripts/infra/README.md` - Updated status, costs, deployment order, added detailed NAT Gateway documentation
+
+**Resources Created:**
+- NAT Gateway: `nat-06ecd81baab45cf4a` (state: available)
+- Elastic IP: `52.206.125.11` (allocation: eipalloc-062ed4f41e4c172b1)
+- Route: 0.0.0.0/0 → nat-06ecd81baab45cf4a in private route table (rtb-0085e608db16a80ca)
+
+**Test Results:**
+- Create: NAT Gateway created successfully, route added, ~2-3 min wait time ✅
+- Destroy: Route deleted, NAT Gateway deleted, Elastic IP released cleanly ✅
+- Recreate: New NAT Gateway with different ID/IP, all configurations correct ✅
+- aws-resources.env: Properly cleared on destroy, repopulated on recreate ✅
+- Status scripts: Accurately show NAT Gateway state and requirements ✅
+
+**Network Flow Enabled:**
+```
+ECS Task (private subnet) → NAT Gateway → Internet Gateway → Internet
+                         ← (translates IPs) ← Internet Gateway ← (responses)
+```
+
+**Security:**
+- NAT Gateway only allows outbound connections (one-way)
+- Inbound connections from internet are blocked
+- Private resources never get public IP addresses
+- All connections appear to come from NAT Gateway's Elastic IP (52.206.125.11)
+
+---
+
+**Step 7b: Test Workflow & Run Migrations** ✅ COMPLETE (November 26, 2025)
+
+**Previously Step 7 - BLOCKER RESOLVED & MIGRATIONS SUCCESSFUL**
 
 - ✅ **Additional Functional Test Fixes** (4 additional commits):
   1. Fixed CSRF_COOKIE_DOMAIN = ".startupwebapp.com" (enable cookie sharing across subdomains)
@@ -578,18 +640,35 @@ This document tracks the complete development history and modernization effort f
 - ✅ **All 740 tests passing in CI/CD** (712 unit + 28 functional)
 - ✅ **Clean logs** (no 500 errors)
 - ✅ **Docker environment drift fixed** (removed manually created Orderconfiguration objects)
-- ❌ **BLOCKER DISCOVERED**: ECS task networking issue
-  - **Error**: "unable to pull secrets or registry auth... context deadline exceeded"
-  - **Root Cause**: ECS tasks in private subnets cannot reach AWS services (Secrets Manager, ECR)
-  - **Missing**: NAT Gateway for private subnet internet access
-  - **Decision**: Create NAT Gateway for proper production infrastructure
+- ✅ **BLOCKER RESOLVED**: NAT Gateway created in Step 7a
+  - **Previous Error**: "unable to pull secrets or registry auth... context deadline exceeded"
+  - **Root Cause**: ECS tasks in private subnets couldn't reach AWS services (Secrets Manager, ECR)
+  - **Solution**: Created NAT Gateway for private subnet internet access (Step 7a)
   - **Cost Impact**: +$32/month (total: ~$68/month)
-  - **Rejected Alternative**: Public subnets (bad practice for ongoing production infrastructure)
+- ✅ **Fixed Dual settings_secret Imports**:
+  - **Error**: "ModuleNotFoundError: No module named 'StartupWebApp.settings_secret'"
+  - **Root Cause**: settings.py imports settings_secret.py twice (lines 19 and 37)
+  - **Fix**: Wrapped both imports in try/except ImportError blocks
+  - **Why**: Production Docker image excludes settings_secret.py (.dockerignore), uses AWS Secrets Manager instead
+- ✅ **Workflow Optimization During Debugging**:
+  - Temporarily disabled test job (if: false) for faster debugging cycles
+  - Re-enabled build-and-push job with dynamic image reference
+  - Added explicit if condition to run-migrations: `if: always() && needs.build-and-push.result == 'success'`
+  - Test job re-enabled after successful migration (commit: ca0c4d2)
+- ✅ **MIGRATIONS SUCCESSFUL**:
+  - Workflow run: 19711045190
+  - Exit code: 0 (SUCCESS)
+  - Database: startupwebapp_prod (57 tables created)
+  - Duration: Build ~4 min, Migrations ~2.5 min, Total ~2m31s
+  - ECS task successfully pulled image from ECR
+  - ECS task fetched secrets from Secrets Manager
+  - CloudWatch logs captured (log stream: migration/migration/{task-id})
+  - All Django migrations applied cleanly
 
 **Files Modified**:
-- `.github/workflows/run-migrations.yml` - AWS wait command fix, exit code validation
+- `.github/workflows/run-migrations.yml` - Fixed AWS wait command, added exit code validation, temporarily disabled test job for debugging, re-enabled test job after success (commits: 92000bf, dd1b282, 1df9d94, ca0c4d2)
+- `StartupWebApp/StartupWebApp/settings.py` - Wrapped dual settings_secret imports in try/except blocks (lines 19 and 37)
 - `StartupWebApp/functional_tests/base_functional_test.py` - Added Orderconfiguration fixtures
-- All fixes committed to master (commits: 92000bf, dd1b282, 1df9d94)
 
 **Key Learnings**:
 - CSRF/CORS configuration critical for cross-subdomain AJAX in tests
@@ -597,12 +676,14 @@ This document tracks the complete development history and modernization effort f
 - Test fixtures should be self-contained (don't rely on manual database setup)
 - AWS Fargate tasks in private subnets require NAT Gateway for internet/AWS service access
 - Environment drift (Docker vs production) can hide infrastructure requirements
+- Docker bind mounts overlay host files at runtime; production images only contain files from build context
+- Must search entire file for all occurrences of problematic imports (settings.py had TWO settings_secret imports)
+- GitHub Actions job dependencies require explicit `if: always()` conditions when upstream jobs are disabled
 
-**Next Steps Required**:
-- Step 7a: Create NAT Gateway infrastructure (NEW STEP)
-- Step 7b: Complete workflow testing with migrations
-- Step 8: Verification
-- Step 9: Documentation
+**Remaining Steps**:
+- Step 8: Run migrations on remaining databases (healthtech_experiment, fintech_experiment)
+- Step 9: Verification & Documentation
+- Step 10: Phase 5.14 completion
 **Objective**: Establish production deployment infrastructure with GitHub Actions CI/CD and run Django migrations on AWS RDS
 
 **Approach**: CI/CD-first strategy - validate deployment pipeline with low-risk database migrations before full application deployment

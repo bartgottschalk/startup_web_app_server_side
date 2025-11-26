@@ -1,9 +1,9 @@
 # Phase 5.14: ECS Infrastructure, GitHub Actions CI/CD, and RDS Migrations
 
 **Date**: November 23, 2025
-**Status**: 🚧 In Progress
-**Branch**: `feature/phase-5-14-ecs-cicd-migrations`
-**Version**: 1.0 (CI/CD-First Plan)
+**Status**: ✅ Step 7b Complete - Step 8 Next
+**Branch**: `master`
+**Version**: 1.3 (Steps 1-7b Complete)
 **Priority**: HIGH - Production infrastructure and database setup
 
 ## Executive Summary
@@ -1373,6 +1373,144 @@ Recreate Test:
 
 ---
 
+### Step 6: Configure GitHub Secrets ✅ COMPLETE (November 25, 2025)
+
+**Goal**: Configure AWS credentials for GitHub Actions workflow
+
+**Status**: ✅ Completed November 25, 2025
+
+**Completed Tasks:**
+- ✅ Created IAM user: `github-actions-startupwebapp`
+- ✅ Attached IAM policies (ECR, ECS, CloudWatch Logs)
+- ✅ Generated AWS access keys
+- ✅ Added 3 secrets to GitHub repository (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION)
+- ✅ Workflow debugging completed (7 iterations to fix all test issues)
+- ✅ All 740 tests passing in CI/CD (712 unit + 28 functional)
+
+**Next Step:** Create NAT Gateway (Step 7a)
+
+---
+
+### Step 7a: NAT Gateway Infrastructure ✅ COMPLETE (November 26, 2025)
+
+**Goal**: Enable ECS tasks in private subnets to reach AWS services and internet
+
+**Status**: ✅ Completed and fully tested November 26, 2025
+
+**Completed Tasks:**
+- ✅ Created infrastructure scripts: `create-nat-gateway.sh`, `destroy-nat-gateway.sh`
+- ✅ NAT Gateway created: `nat-06ecd81baab45cf4a` (available)
+- ✅ Elastic IP allocated: `52.206.125.11` (eipalloc-062ed4f41e4c172b1)
+- ✅ Private subnet route table updated: 0.0.0.0/0 → NAT Gateway
+- ✅ Full lifecycle tested: create → destroy → recreate validated
+- ✅ Updated status.sh with NAT Gateway status section
+- ✅ Updated show-resources.sh with NAT Gateway display (public IP, state)
+- ✅ Updated scripts/infra/README.md with comprehensive NAT Gateway documentation
+- ✅ Cost: +$32/month (~$68/month total infrastructure)
+
+**Test Results:**
+```
+Create Test:
+- Elastic IP allocated: 98.88.160.72 ✓
+- NAT Gateway created: nat-06395b18cced4a76c ✓
+- Wait time: ~2-3 minutes (as expected) ✓
+- Route added to private route table ✓
+- aws-resources.env updated ✓
+
+Destroy Test:
+- Route deleted from private route table ✓
+- NAT Gateway deleted (~60 seconds) ✓
+- Elastic IP released ✓
+- aws-resources.env cleared ✓
+- Status shows "NOT STARTED" ✓
+
+Recreate Test:
+- New NAT Gateway: nat-06ecd81baab45cf4a (different ID) ✓
+- New Elastic IP: 52.206.125.11 (different IP) ✓
+- All configurations correct ✓
+- Status shows "COMPLETED" ✓
+```
+
+**Files Created:**
+- `scripts/infra/create-nat-gateway.sh` - NAT Gateway creation (idempotent, tested)
+- `scripts/infra/destroy-nat-gateway.sh` - NAT Gateway destruction (with confirmation, tested)
+
+**Files Modified:**
+- `scripts/infra/aws-resources.env` - Populated with NAT Gateway ID and Elastic IP
+- `scripts/infra/status.sh` - Added NAT Gateway status section with live state
+- `scripts/infra/show-resources.sh` - Enhanced NAT Gateway display with public IP
+- `scripts/infra/README.md` - Updated status, costs, deployment order, detailed docs
+
+**Network Flow Enabled:**
+```
+ECS Task (private) → NAT Gateway → Internet Gateway → AWS Services/Internet
+```
+
+**What This Enables:**
+- ✅ ECS tasks can pull Docker images from ECR
+- ✅ ECS tasks can fetch secrets from Secrets Manager
+- ✅ ECS tasks can write logs to CloudWatch
+- ✅ ECS tasks can call external APIs (Stripe, etc.)
+
+---
+
+### Step 7b: Test Workflow & Run Migrations ✅ COMPLETE (November 26, 2025)
+
+**Goal**: Validate GitHub Actions workflow and successfully run migrations on startupwebapp_prod database
+
+**Status**: ✅ Completed November 26, 2025
+
+**Completed Tasks:**
+- ✅ Fixed dual settings_secret imports in settings.py (lines 19 and 37)
+- ✅ Temporarily disabled test job for faster debugging cycles
+- ✅ Re-enabled build-and-push job with dynamic image reference
+- ✅ Added explicit if condition to run-migrations job
+- ✅ Test job re-enabled after successful migration (commit: ca0c4d2)
+- ✅ Workflow run 19711045190: Migration completed with EXIT_CODE="0"
+- ✅ Database migrations applied: startupwebapp_prod (57 tables created)
+
+**Error Fixed:**
+```
+Error: ModuleNotFoundError: No module named 'StartupWebApp.settings_secret'
+Root Cause: settings.py imports settings_secret.py twice (lines 19 and 37)
+Solution: Wrapped both imports in try/except ImportError blocks
+Why: Production Docker image excludes settings_secret.py (.dockerignore), uses AWS Secrets Manager
+```
+
+**Test Results:**
+```
+Workflow Run: 19711045190
+Status: ✅ SUCCESS
+Duration: ~2m31s
+
+Jobs:
+- Test: Skipped (temporarily disabled during debugging)
+- Build: ✅ Success (~4 min)
+- Migrations: ✅ Success (~2.5 min)
+  - Exit Code: 0
+  - ECS task pulled image from ECR successfully
+  - ECS task fetched secrets from Secrets Manager successfully
+  - CloudWatch logs captured (log stream: migration/migration/{task-id})
+  - All Django migrations applied cleanly
+- Summary: ✅ Success
+```
+
+**Files Modified:**
+- `.github/workflows/run-migrations.yml` - Re-enabled test job after debugging
+- `StartupWebApp/StartupWebApp/settings.py` - Wrapped dual settings_secret imports
+
+**Key Learnings:**
+- Docker bind mounts overlay host files at runtime; production images only contain build context files
+- Must search entire file for all problematic imports (settings.py had TWO settings_secret imports)
+- GitHub Actions job dependencies require explicit `if: always()` conditions when upstream jobs are disabled
+- Temporarily disabling test job saved ~6 minutes per debugging iteration
+
+**Next Steps:**
+- Step 8: Run migrations on remaining databases (healthtech_experiment, fintech_experiment)
+- Step 9: Verification & Documentation
+
+---
+
 ## Success Criteria
 
 ### Must Have (Blocking) ✅
@@ -1388,14 +1526,17 @@ Recreate Test:
 - [x] GitHub Actions workflow created and tested
 - [x] GitHub secrets configured (AWS credentials)
 - [x] All 740 tests pass in CI pipeline (verified via 7 debugging iterations)
-- [ ] Migrations run successfully on all 3 databases via CI/CD (Step 7 - in progress)
-- [ ] 57 tables verified in each RDS database
-- [x] All infrastructure scripts tested and documented (Steps 1-6 complete)
+- [x] NAT Gateway created for private subnet internet access (Step 7a complete)
+- [x] Migration workflow tested and validated (Step 7b complete)
+- [x] Migrations run successfully on startupwebapp_prod database (Step 7b complete)
+- [ ] Migrations run successfully on remaining 2 databases (Step 8 - next)
+- [ ] 57 tables verified in each RDS database (Step 8 - next)
+- [x] All infrastructure scripts tested and documented (Steps 1-7b complete)
 
 ### Should Have (Important) ⚙️
 
 - [x] CloudWatch log group configured with 7-day retention
-- [ ] Migration logs visible and readable in CloudWatch
+- [x] Migration logs visible and readable in CloudWatch (Step 7b complete)
 - [x] Destroy scripts created for all new resources (ECR + ECS + Task Definition complete)
 - [x] `aws-resources.env` updated with all new resource IDs (ECR + ECS + Task Definition fields added)
 - [x] `status.sh` updated to show Phase 5.14 resources (ECR + ECS + Task Definition sections added)
@@ -1546,8 +1687,8 @@ Phase 5.15 will extend the CI/CD pipeline to deploy the full application:
 
 ---
 
-**Document Status**: 🚧 In Progress - Step 7 (Testing Workflow)
+**Document Status**: ✅ Step 7b Complete - Step 8 Next (Run migrations on remaining databases)
 **Author**: Claude Code (AI Assistant) & Bart Gottschalk
-**Last Updated**: November 25, 2025
-**Version**: 1.2 (Steps 1-6 Complete, Step 7 In Progress)
-**Branch**: `master` (PR #38 merged)
+**Last Updated**: November 26, 2025
+**Version**: 1.3 (Steps 1-7b Complete, Step 8 Next)
+**Branch**: `master` (Steps 1-7b merged)

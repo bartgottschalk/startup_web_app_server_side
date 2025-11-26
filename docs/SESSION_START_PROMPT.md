@@ -27,7 +27,7 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ## Current State
 
-**Project Status:** 🚧 Phase 5.14 - Step 7a/10: Create NAT Gateway (NEXT)
+**Project Status:** ✅ Phase 5.14 - Step 7b/10: Test Workflow & Run Migrations (COMPLETE)
 
 - ✅ Django 4.2.16 LTS upgrade complete
 - ✅ Code linting complete (zero errors)
@@ -93,25 +93,31 @@ Hi Claude. I want to continue working on these two repositories together:
     - Set DOCKER_ENV variable for functional tests (skip frontend server, use backend directly)
   - **7 workflow iterations** completed to debug and fix all issues
   - Workflow now ready for testing with all 740 tests
-- 🚧 **Step 7 Blocked - NAT Gateway Required**: Test Workflow & Run Migrations (November 25, 2025)
-  - **Additional fixes completed**:
-    - Fixed CSRF_COOKIE_DOMAIN for cross-subdomain cookie sharing
-    - Added port numbers to CSRF_TRUSTED_ORIGINS (Django 4.x requirement)
-    - Added frontend origins to CORS_ORIGIN_WHITELIST (enable AJAX with credentials)
-    - Added Orderconfiguration objects to functional test fixtures (eliminate 500 errors)
-    - Fixed AWS ECS wait command syntax (removed unsupported flags)
-    - Removed skip_unit_tests debugging option (no longer needed)
-  - **All 740 tests passing in CI**: 712 unit tests + 28 functional tests ✅
-  - **Clean logs**: No more 500 errors for /order/checkout-allowed ✅
-  - **Docker drift fixed**: Removed manually created Orderconfiguration objects ✅
   - **Blocker Discovered**: ECS tasks in private subnets cannot reach AWS services (ECR, Secrets Manager)
     - Root cause: No NAT Gateway configured for private subnets
     - Error: "unable to pull secrets or registry auth... context deadline exceeded"
     - **Decision**: Create NAT Gateway for proper production infrastructure (~$32/month)
     - Public subnets rejected (bad practice for ongoing production infrastructure)
     - **See comprehensive networking explanation**: Phase 5.14 technical plan section "AWS Networking Background (Why NAT Gateway?)" explains VPC fundamentals, route tables, all solution options evaluated (public subnets, VPC endpoints, NAT Gateway), and decision rationale
-  - **Next**: Create NAT Gateway infrastructure (Step 7a), then complete Step 7
-- 📍 **Current Branch**: `master` (commits: 92000bf, dd1b282, 1df9d94, fb9543b)
+- ✅ **Step 7a Complete**: NAT Gateway Infrastructure (November 26, 2025)
+  - NAT Gateway: nat-06ecd81baab45cf4a (available)
+  - Elastic IP: 52.206.125.11 (eipalloc-062ed4f41e4c172b1)
+  - Route: 0.0.0.0/0 → NAT Gateway in private subnet route table
+  - Infrastructure scripts: create-nat-gateway.sh, destroy-nat-gateway.sh (fully tested)
+  - Full lifecycle validated: create → destroy → recreate
+  - Updated: status.sh, show-resources.sh, scripts/infra/README.md
+  - Cost: +$32/month (~$68/month total infrastructure)
+  - **Enables**: ECS tasks can now reach ECR (images), Secrets Manager (credentials), CloudWatch (logs), external APIs (Stripe)
+- ✅ **Step 7b Complete**: Test Workflow & Run Migrations (November 26, 2025)
+  - Fixed dual settings_secret imports in settings.py (lines 19 and 37)
+  - Workflow run 19711045190: Migration completed successfully with EXIT_CODE="0"
+  - ECS task successfully pulled image from ECR, fetched secrets from Secrets Manager, ran migrations
+  - CloudWatch logs captured (log stream: migration/migration/{task-id})
+  - Full workflow: Test (temporarily skipped) → Build (3-5 min) → Migrate (2-5 min) → Summary
+  - Test job re-enabled after successful debugging
+  - **Migrations completed**: startupwebapp_prod (57 tables)
+  - **Pending**: healthtech_experiment and fintech_experiment migrations (Step 8)
+- 📍 **Current Branch**: `master` (commits: 92000bf, dd1b282, 1df9d94, fb9543b, ca0c4d2)
 
 **Phase 5.14 Goals:**
 1. Create multi-stage Dockerfile (development + production targets)
@@ -192,12 +198,15 @@ docker-compose exec -d backend python manage.py runserver 0.0.0.0:8000
 
 **Infrastructure Deployed:**
 - VPC: vpc-0df90226462f00350 (10.0.0.0/16)
+- NAT Gateway: nat-06ecd81baab45cf4a (Elastic IP: 52.206.125.11)
 - RDS: startupwebapp-multi-tenant-prod.cqbgoe8omhyh.us-east-1.rds.amazonaws.com:5432
 - Bastion: i-0d8d746dd8059de2c (connect: `aws ssm start-session --target i-0d8d746dd8059de2c`)
+- ECS Cluster: startupwebapp-cluster (Fargate)
+- ECR Repository: startupwebapp-backend
 - Secrets: rds/startupwebapp/multi-tenant/master
 - Monitoring: CloudWatch dashboard + 4 alarms
 
-**Cost**: $36/month running ($30/month with bastion stopped)
+**Cost**: $68/month running ($62/month with bastion stopped)
 
 ### Documentation Requirements
 
@@ -239,7 +248,7 @@ Every commit MUST include documentation updates:
 
 **Current Focus**: ECS Infrastructure, GitHub Actions CI/CD, and RDS Migrations
 
-**Phase 5.14 Implementation Steps** (7.5-8.5 hours estimated, 6/10 steps complete, Step 7 blocked - NAT Gateway required):
+**Phase 5.14 Implementation Steps** (7.5-8.5 hours estimated, 7b/10 steps complete, Step 8 next):
 
 1. ✅ **Create Multi-Stage Dockerfile** (45 min) - COMPLETE
    - Development target: includes test dependencies (Firefox, geckodriver)
@@ -301,7 +310,7 @@ Every commit MUST include documentation updates:
    - **Blocker**: ECS tasks cannot reach AWS services from private subnets
    - Note: Took 8x longer than estimated due to functional test debugging
 
-7a. **Create NAT Gateway** (45 min) - NEW STEP REQUIRED
+7a. ✅ **Create NAT Gateway** (45 min) - COMPLETE
    - Create infrastructure scripts (create-nat-gateway.sh, destroy-nat-gateway.sh)
    - Allocate Elastic IP for NAT Gateway
    - Create NAT Gateway in public subnet
@@ -309,11 +318,13 @@ Every commit MUST include documentation updates:
    - Test ECS task can reach Secrets Manager and ECR
    - Cost: +$32/month (~$68/month total)
 
-7b. **Complete Migration Pipeline Testing** (30 min)
+7b. ✅ **Complete Migration Pipeline Testing** (30 min) - COMPLETE
    - Trigger workflow with NAT Gateway in place
-   - Verify migrations run successfully on startupwebapp_prod
-   - Verify CloudWatch logs captured
-   - Run migrations on healthtech_experiment and fintech_experiment
+   - Fixed dual settings_secret imports (lines 19 and 37)
+   - Verified migrations run successfully on startupwebapp_prod (EXIT_CODE="0")
+   - Verified CloudWatch logs captured
+   - Test job re-enabled after successful debugging
+   - Remaining: healthtech_experiment and fintech_experiment (Step 8)
 
 8. **Verification & Documentation** (50 min)
    - Confirm all migrations successful
