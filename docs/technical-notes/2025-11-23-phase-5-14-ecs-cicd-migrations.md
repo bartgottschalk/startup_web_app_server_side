@@ -1,9 +1,9 @@
 # Phase 5.14: ECS Infrastructure, GitHub Actions CI/CD, and RDS Migrations
 
 **Date**: November 23, 2025
-**Status**: ✅ Step 7b Complete - Step 8 Next
+**Status**: ✅ Step 8 Complete - Step 9 Next
 **Branch**: `master`
-**Version**: 1.3 (Steps 1-7b Complete)
+**Version**: 1.4 (Steps 1-8 Complete)
 **Priority**: HIGH - Production infrastructure and database setup
 
 ## Executive Summary
@@ -1505,9 +1505,83 @@ Jobs:
 - GitHub Actions job dependencies require explicit `if: always()` conditions when upstream jobs are disabled
 - Temporarily disabling test job saved ~6 minutes per debugging iteration
 
-**Next Steps:**
-- Step 8: Run migrations on remaining databases (healthtech_experiment, fintech_experiment)
-- Step 9: Verification & Documentation
+---
+
+### Step 8: Run Migrations on All Databases ✅ COMPLETE (November 26, 2025)
+
+**Goal**: Run migrations on remaining databases (healthtech_experiment, fintech_experiment) and verify all 3 databases operational
+
+**Status**: ✅ Completed November 26, 2025
+
+**Critical Bug Discovered:**
+```
+Error: "No migrations to apply" but databases are empty (0 tables)
+Root Cause: DATABASE_NAME environment variable not in base task definition
+Impact: All 3 workflow runs connected to default database (startupwebapp_prod)
+```
+
+**Investigation Process:**
+1. Checked CloudWatch logs: "No migrations to apply" for healthtech/fintech
+2. Connected to RDS via bastion host
+3. Ran `\dt` on all 3 databases:
+   - startupwebapp_prod: 57 tables ✅
+   - healthtech_experiment: 0 tables ❌
+   - fintech_experiment: 0 tables ❌
+4. Checked base task definition: `DATABASE_NAME` does not exist
+5. Analyzed workflow jq logic: Only updates existing variables, doesn't add new ones
+
+**Root Cause Analysis:**
+- Base ECS task definition has no `DATABASE_NAME` environment variable
+- Workflow jq command used `map()` which only updates existing array elements
+- Old logic: `map(if .name == "DATABASE_NAME" then .value = $DB_NAME else . end)`
+- Result: DATABASE_NAME never added, settings_production.py defaulted to 'startupwebapp_prod'
+- All 3 runs connected to startupwebapp_prod:
+  - Run 1 (startupwebapp_prod): Saw empty DB, ran migrations ✅
+  - Run 2 (healthtech_experiment): Saw migrations done, skipped ❌
+  - Run 3 (fintech_experiment): Saw migrations done, skipped ❌
+
+**Fix Applied** (commit: f6de4fc):
+```jq
+# New logic: Check if DATABASE_NAME exists, add it if missing
+.containerDefinitions[0].environment |= (
+  if any(.[]; .name == "DATABASE_NAME") then
+    map(if .name == "DATABASE_NAME" then .value = $DB_NAME else . end)
+  else
+    . + [{"name": "DATABASE_NAME", "value": $DB_NAME}]
+  end
+)
+```
+
+**Re-ran Migrations:**
+- Pushed fix to remote (commit: f6de4fc)
+- Triggered workflow for healthtech_experiment (tests skipped)
+- Triggered workflow for fintech_experiment (tests skipped)
+- Both workflows completed successfully with EXIT_CODE=0
+- CloudWatch logs confirmed: "Running migrations..." with "... OK" for all migrations
+- Duration: ~5-10 minutes per database (vs ~10-17 with tests)
+
+**Verification Results:**
+```bash
+# Connected to RDS via bastion, ran table counts:
+startupwebapp_prod: 57 tables ✅
+healthtech_experiment: 57 tables ✅
+fintech_experiment: 57 tables ✅
+```
+
+**Files Modified:**
+- `.github/workflows/run-migrations.yml` - Fixed jq logic to add DATABASE_NAME if missing
+
+**Key Learnings:**
+- jq `map()` only updates existing array elements, doesn't add new ones
+- Always verify task definition environment variables contain required fields
+- "No migrations to apply" doesn't always mean success - verify which database connected to
+- GitHub Actions skip_tests option very useful for debugging iterations
+- Multi-tenant requires explicit database selection, no safe defaults
+
+**Result:**
+- ✅ All 3 databases have 57 tables
+- ✅ Multi-tenant RDS fully operational for production and future forks
+- ✅ CI/CD pipeline validated end-to-end for all databases
 
 ---
 
@@ -1529,9 +1603,9 @@ Jobs:
 - [x] NAT Gateway created for private subnet internet access (Step 7a complete)
 - [x] Migration workflow tested and validated (Step 7b complete)
 - [x] Migrations run successfully on startupwebapp_prod database (Step 7b complete)
-- [ ] Migrations run successfully on remaining 2 databases (Step 8 - next)
-- [ ] 57 tables verified in each RDS database (Step 8 - next)
-- [x] All infrastructure scripts tested and documented (Steps 1-7b complete)
+- [x] Migrations run successfully on remaining 2 databases (Step 8 complete)
+- [x] 57 tables verified in each RDS database (Step 8 complete)
+- [x] All infrastructure scripts tested and documented (Steps 1-8 complete)
 
 ### Should Have (Important) ⚙️
 
@@ -1687,8 +1761,8 @@ Phase 5.15 will extend the CI/CD pipeline to deploy the full application:
 
 ---
 
-**Document Status**: ✅ Step 7b Complete - Step 8 Next (Run migrations on remaining databases)
+**Document Status**: ✅ Step 8 Complete - Step 9 Next (Final verification & documentation)
 **Author**: Claude Code (AI Assistant) & Bart Gottschalk
 **Last Updated**: November 26, 2025
-**Version**: 1.3 (Steps 1-7b Complete, Step 8 Next)
-**Branch**: `master` (Steps 1-7b merged)
+**Version**: 1.4 (Steps 1-8 Complete, Step 9 Next)
+**Branch**: `master` (Steps 1-8 merged)

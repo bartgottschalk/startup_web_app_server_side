@@ -27,7 +27,7 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ## Current State
 
-**Project Status:** ✅ Phase 5.14 - Step 7b/10: Test Workflow & Run Migrations (COMPLETE)
+**Project Status:** ✅ Phase 5.14 - Step 8/10: Run Migrations on All Databases (COMPLETE)
 
 - ✅ Django 4.2.16 LTS upgrade complete
 - ✅ Code linting complete (zero errors)
@@ -116,8 +116,22 @@ Hi Claude. I want to continue working on these two repositories together:
   - Full workflow: Test (temporarily skipped) → Build (3-5 min) → Migrate (2-5 min) → Summary
   - Test job re-enabled after successful debugging
   - **Migrations completed**: startupwebapp_prod (57 tables)
-  - **Pending**: healthtech_experiment and fintech_experiment migrations (Step 8)
-- 📍 **Current Branch**: `master` (commits: 92000bf, dd1b282, 1df9d94, fb9543b, ca0c4d2)
+- ✅ **Step 8 Complete**: Run Migrations on All Databases (November 26, 2025)
+  - **Critical Bug Found**: DATABASE_NAME not in base task definition
+    - Workflow jq only updated existing variables, didn't add new ones
+    - All 3 initial runs connected to default database (startupwebapp_prod)
+    - healthtech/fintech runs saw migrations done, reported "No migrations to apply"
+  - **Fix Applied**: Updated jq logic to add DATABASE_NAME if missing
+    - Changed from map() to conditional: check exists → update OR add
+    - Commit: f6de4fc
+  - **Re-ran Migrations**: healthtech_experiment and fintech_experiment (tests skipped)
+  - **Verification**: Connected to RDS via bastion, confirmed table counts
+  - **Result**: All 3 databases have 57 tables ✅
+    - startupwebapp_prod: 57 tables
+    - healthtech_experiment: 57 tables
+    - fintech_experiment: 57 tables
+  - Multi-tenant RDS fully operational for production and future forks
+- 📍 **Current Branch**: `master` (commits: 60752ec, b977abf, ca0c4d2, f6de4fc)
 
 **Phase 5.14 Goals:**
 1. Create multi-stage Dockerfile (development + production targets)
@@ -248,7 +262,7 @@ Every commit MUST include documentation updates:
 
 **Current Focus**: ECS Infrastructure, GitHub Actions CI/CD, and RDS Migrations
 
-**Phase 5.14 Implementation Steps** (7.5-8.5 hours estimated, 7b/10 steps complete, Step 8 next):
+**Phase 5.14 Implementation Steps** (7.5-8.5 hours estimated, 8/10 steps complete, Step 9 next):
 
 1. ✅ **Create Multi-Stage Dockerfile** (45 min) - COMPLETE
    - Development target: includes test dependencies (Firefox, geckodriver)
@@ -324,9 +338,18 @@ Every commit MUST include documentation updates:
    - Verified migrations run successfully on startupwebapp_prod (EXIT_CODE="0")
    - Verified CloudWatch logs captured
    - Test job re-enabled after successful debugging
-   - Remaining: healthtech_experiment and fintech_experiment (Step 8)
 
-8. **Verification & Documentation** (50 min)
+8. ✅ **Run Migrations on All Databases** (90 min actual) - COMPLETE
+   - **Bug discovered**: DATABASE_NAME not in base task definition
+   - Workflow jq only updated existing variables, didn't add new ones
+   - Fixed workflow to add DATABASE_NAME if missing (commit: f6de4fc)
+   - Re-ran migrations on healthtech_experiment (tests skipped)
+   - Re-ran migrations on fintech_experiment (tests skipped)
+   - Verified via bastion: All 3 databases have 57 tables ✅
+   - Multi-tenant RDS fully operational
+   - Note: Took longer than estimated due to bug discovery and debugging
+
+9. **Verification & Documentation** (50 min)
    - Confirm all migrations successful
    - Update PROJECT_HISTORY.md
    - Update documentation

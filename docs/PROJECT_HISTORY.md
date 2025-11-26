@@ -325,8 +325,8 @@ This document tracks the complete development history and modernization effort f
 
 #### Phase 5.14: ECS Infrastructure, CI/CD, and RDS Migrations (In Progress - November 26, 2025)
 
-**Status**: ✅ Step 7b Complete (Testing Workflow) - 7b/10 Steps Complete (Step 8 Next)
-**Branch**: `master` (Steps 1-7b merged)
+**Status**: ✅ Step 8 Complete (All Databases Migrated) - 8/10 Steps Complete (Step 9 Next)
+**Branch**: `master` (Steps 1-8 merged)
 
 **Step 1: Multi-Stage Dockerfile** ✅ (Completed - November 23, 2025)
 - ✅ Added gunicorn==21.2.0 to requirements.txt for production WSGI server
@@ -680,10 +680,62 @@ ECS Task (private subnet) → NAT Gateway → Internet Gateway → Internet
 - Must search entire file for all occurrences of problematic imports (settings.py had TWO settings_secret imports)
 - GitHub Actions job dependencies require explicit `if: always()` conditions when upstream jobs are disabled
 
+---
+
+**Step 8: Run Migrations on All Databases** ✅ COMPLETE (November 26, 2025)
+
+- ✅ **Critical Bug Discovered**: DATABASE_NAME not in base task definition
+  - **Investigation**: Checked CloudWatch logs, saw "No migrations to apply" for healthtech/fintech
+  - **Verification via Bastion**: Connected to RDS, found 0 tables in healthtech_experiment and fintech_experiment
+  - **Root Cause Analysis**:
+    - Base ECS task definition had no DATABASE_NAME environment variable
+    - Workflow jq command only updated existing variables: `map(if .name == "DATABASE_NAME" then...)`
+    - All 3 workflow runs defaulted to startupwebapp_prod (settings_production.py default)
+    - First run (startupwebapp_prod): Connected correctly, ran migrations ✅
+    - Second run (healthtech_experiment): Connected to startupwebapp_prod, saw migrations done, skipped ❌
+    - Third run (fintech_experiment): Connected to startupwebapp_prod, saw migrations done, skipped ❌
+- ✅ **Bug Fix Applied** (commit: f6de4fc)
+  - Updated workflow jq logic to ADD DATABASE_NAME if missing:
+    ```jq
+    .containerDefinitions[0].environment |= (
+      if any(.[]; .name == "DATABASE_NAME") then
+        map(if .name == "DATABASE_NAME" then .value = $DB_NAME else . end)
+      else
+        . + [{"name": "DATABASE_NAME", "value": $DB_NAME}]
+      end
+    )
+    ```
+  - Changed from map() (update only) to conditional (update OR add)
+- ✅ **Re-ran Migrations** (tests skipped for speed)
+  - healthtech_experiment: Workflow run successful, migrations applied
+  - fintech_experiment: Workflow run successful, migrations applied
+  - CloudWatch logs confirmed: "Running migrations..." with "... OK" for all migrations
+  - Duration: ~5-10 minutes per database (vs ~10-17 with tests)
+- ✅ **Verification Complete**
+  - Connected to RDS via bastion host
+  - Ran `\dt` count on all 3 databases
+  - **Results**: All 3 databases have 57 tables ✅
+    - startupwebapp_prod: 57 tables
+    - healthtech_experiment: 57 tables
+    - fintech_experiment: 57 tables
+  - Multi-tenant RDS fully operational for production and future forks
+
+**Files Modified**:
+- `.github/workflows/run-migrations.yml` - Fixed jq logic to add DATABASE_NAME (commit: f6de4fc)
+
+**Key Learnings**:
+- jq `map()` only updates existing array elements, doesn't add new ones
+- Always verify task definition environment variables contain required fields
+- "No migrations to apply" doesn't always mean success - verify which database connected to
+- GitHub Actions input.skip_tests very useful for debugging iterations
+- Multi-tenant requires explicit database selection, no safe defaults
+
 **Remaining Steps**:
-- Step 8: Run migrations on remaining databases (healthtech_experiment, fintech_experiment)
-- Step 9: Verification & Documentation
+- Step 9: Final verification and documentation
 - Step 10: Phase 5.14 completion
+
+---
+
 **Objective**: Establish production deployment infrastructure with GitHub Actions CI/CD and run Django migrations on AWS RDS
 
 **Approach**: CI/CD-first strategy - validate deployment pipeline with low-risk database migrations before full application deployment
