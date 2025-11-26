@@ -69,21 +69,46 @@ Hi Claude. I want to continue working on these two repositories together:
 
 **For detailed history**, see: `docs/PROJECT_HISTORY.md`
 
+## ⚠️ CRITICAL: Auto-Deploy on Master Branch
+
+**🚨 AUTOMATIC DEPLOYMENT TO PRODUCTION IS ENABLED 🚨**
+
+- **Merging to `master` automatically deploys to production** (after Phase 5.15)
+- **ALL work MUST be done in feature/bugfix branches** - NEVER commit directly to master
+- **All 740 tests MUST pass** before merging to master
+- **Breaking production = test failure** - If something breaks in production, the tests need improvement
+- **This is intentional** - Continuous deployment enforces a high bar for test quality
+- **PR review is your last checkpoint** - Review code and test results carefully before merging
+
+**Branch Strategy (MANDATORY):**
+1. Create feature branch: `git checkout -b feature/descriptive-name`
+2. Make changes, commit, push: `git push -u origin feature/descriptive-name`
+3. Create PR and verify all 740 tests pass in GitHub Actions
+4. Review code and test results carefully
+5. Merge to master → **automatic deployment to production**
+
 ## Pre-Session Checklist
 
 Before starting work:
 1. **HUMAN: START DOCKER DESKTOP FIRST!** - Required for docker-compose commands
-2. Verify on master branch with clean working tree
+2. Verify on master branch with clean working tree (then create feature branch immediately)
 3. Read `docs/PROJECT_HISTORY.md` for recent changes
 4. Review relevant technical notes in `docs/technical-notes/`
+5. **Create feature branch before making ANY changes** - Never work directly on master
 
 ## Development Workflow
 
-### Branch Strategy
-- All changes in feature/bugfix branches (never directly on master)
+### Branch Strategy (CRITICAL - Production Auto-Deploy Enabled)
+
+**⚠️ MANDATORY: All changes MUST be in feature/bugfix branches**
+
+- **NEVER commit directly to master** - Merging to master triggers automatic deployment to production
 - Branch naming: `feature/descriptive-name` or `bugfix/descriptive-name`
-- Run full test suite before committing
-- Create PR after pushing, wait for approval before merging
+- Run full test suite (all 740 tests) before committing
+- Verify zero linting errors before committing
+- Create PR after pushing, verify all tests pass in GitHub Actions
+- Review code carefully - PR approval is the last checkpoint before production
+- **After merge to master**: Automatic deployment begins (tests → build → deploy)
 
 ### Testing Requirements
 
@@ -178,16 +203,70 @@ Every commit MUST include documentation updates:
 - **Users**: Handle both `Member` and `Prospect` models
 - **Validation**: Use `unittest_utilities.validate_response_is_OK_and_JSON()`
 
+## 🚧 Phase 5.15 IN PROGRESS - Production Deployment
+
+**Branch**: `feature/phase-5-15-production-deployment`
+**Status**: Implementation in progress
+**Goal**: Deploy full-stack application to production with continuous deployment
+
+### Production Architecture Decisions
+
+**Domain Configuration:**
+- **Backend API**: `startupwebapp-api.mosaicmeshai.com` (ALB → ECS Fargate)
+- **Frontend**: `startupwebapp.mosaicmeshai.com` (CloudFront → S3)
+- **DNS**: Managed via Namecheap (not Route 53)
+- **SSL**: ACM wildcard certificate `*.mosaicmeshai.com`
+- **Pattern for forks**: `{fork}-api.mosaicmeshai.com` / `{fork}.mosaicmeshai.com`
+
+**Deployment Strategy:**
+- Backend: Auto-deploy on merge to `master`
+- Frontend: Backend-triggered or manual only (NO auto-deploy on frontend merge)
+- Migrations: Run automatically in deploy workflow (backward compatible only)
+- Default database: `startupwebapp_prod`
+
+### Migration Development Rules (CRITICAL)
+
+**✅ Allowed (Backward Compatible):**
+- ADD COLUMN (new columns, old code ignores them)
+- CREATE TABLE (new tables, old code doesn't use them)
+- ADD INDEX with CONCURRENTLY (no table locks)
+
+**❌ NOT Allowed in Phase 5.15:**
+- DROP COLUMN (breaks old code during rollback)
+- RENAME COLUMN (breaks old code during rollback)
+- ALTER COLUMN TYPE (can break old code)
+
+**Best Practices:**
+- Keep migrations fast (<30 seconds ideally, <5 minutes max)
+- Test migrations on production snapshot before merging PR
+- Use `CREATE INDEX CONCURRENTLY` to avoid table locks
+
+### Coordinated Deployment Workflow
+
+**For changes requiring both backend + frontend updates:**
+
+1. **Develop both PRs** (backend + frontend with same feature name)
+2. **Merge frontend FIRST** to master (does NOT auto-deploy)
+3. **Backend PR runs tests** against frontend master (validates compatibility)
+4. **Merge backend** → auto-deploys both backend + frontend
+
+**For backend-only changes:** Just merge backend (triggers frontend deploy anyway)
+
+**For frontend-only changes:** Manual trigger of frontend deployment workflow
+
+### Technical Details
+
+See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
+
+---
+
 ## Next Steps
 
-**✅ Phase 5.14 COMPLETE** - ECS Infrastructure, GitHub Actions CI/CD, and RDS Migrations
+**Current Task**: Implementing Phase 5.15 (see branch `feature/phase-5-15-production-deployment`)
 
-**Next Phase Options:**
-- **Phase 5.15**: Full Production Deployment (ECS service, ALB, auto-scaling, domain/SSL)
+**After Phase 5.15:**
 - **Phase 5.16**: Production Hardening (WAF, enhanced monitoring, load testing)
 - **Other Work**: Stripe library upgrade, Selenium 4 upgrade, feature development
-
-**For Phase 5.15 details**, see: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
 ## Key Documentation
 
