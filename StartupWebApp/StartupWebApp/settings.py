@@ -33,8 +33,12 @@ DEBUG = False  # override in secrets for local ONLY
 
 CSRF_COOKIE_SECURE = True  # override in secrets for local ONLY
 
-# get secret settings again for overrides
-from .settings_secret import *  # noqa: F403,F401,F811,E402
+# get secret settings again for overrides (optional - only for local development)
+try:
+    from .settings_secret import *  # noqa: F403,F401,F811,E402
+except ImportError:
+    # settings_secret.py doesn't exist (production environment)
+    pass
 
 # Django 4.0+ compatibility: Convert CSRF_TRUSTED_ORIGINS from old string format to new list format
 # In Django 4.0+, CSRF_TRUSTED_ORIGINS must be a list with schemes (http:// or https://)
