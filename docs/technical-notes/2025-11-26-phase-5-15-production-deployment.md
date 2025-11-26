@@ -31,6 +31,46 @@ Phase 5.15 deploys the full StartupWebApp application to production using AWS EC
 7. **GitHub Actions Workflows** - Auto-deploy backend + frontend, migrations
 8. **Security Groups** - ALB → ECS, allow HTTPS traffic
 
+## ⚠️ Pre-Implementation Discussions Required
+
+**Status**: Implementation paused pending two critical discussions
+
+### Discussion 1: Cost Review and Optimization
+
+**Current Cost Estimate**: $129-161/month total infrastructure
+
+**Questions to Address:**
+1. Can we reduce costs without compromising functionality?
+2. Are there alternative architectures that cost less?
+3. Should we implement cost optimization strategies from the start?
+4. Trade-offs between cost and complexity/maintainability?
+
+**Areas to Review:**
+- NAT Gateway ($32/month) - Could use VPC Endpoints instead?
+- ALB vs other load balancing options
+- ECS task sizing (0.5 vCPU, 1GB) - Is this optimal?
+- Reserved capacity vs on-demand pricing
+- Development/staging environment strategy
+
+### Discussion 2: Automation Opportunities
+
+**Goal**: Maximize automation, minimize manual steps
+
+**Questions to Address:**
+1. Which manual steps in the 11-step plan can be automated?
+2. Should infrastructure deployment be scripted or use IaC tools (Terraform/CDK)?
+3. Can DNS configuration (Namecheap) be automated via API?
+4. Should we automate ACM certificate validation?
+5. Other manual processes that could be automated?
+
+**Manual Steps to Review:**
+- Step 2: ACM certificate validation (manual CNAME in Namecheap)
+- Step 3: Namecheap DNS configuration (manual CNAME entries)
+- All infrastructure scripts (run manually) - Could use CI/CD?
+- Rollback procedures (currently manual)
+
+---
+
 ## Prerequisites (Already Complete ✅)
 
 - ✅ Phase 5.14 complete (ECS cluster, ECR, GitHub Actions, NAT Gateway)
@@ -820,8 +860,8 @@ After Phase 5.15, the next phase will focus on:
 
 ---
 
-**Document Status**: 📋 Planning Complete - Ready for Implementation
+**Document Status**: ⏸️ Planning Complete - Awaiting Pre-Implementation Discussions
 **Author**: Claude Code (AI Assistant) & Bart Gottschalk
 **Last Updated**: November 26, 2025
-**Version**: 1.0 (Planning Phase)
-**Next Step**: Review with user, begin Step 1 when ready
+**Version**: 1.1 (Planning Phase - Discussions Required)
+**Next Step**: Complete cost review and automation discussions, then begin Step 1
