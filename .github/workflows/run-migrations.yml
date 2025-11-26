@@ -429,13 +429,11 @@ jobs:
   build-and-push:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
-    # TEMPORARILY DISABLED FOR DEBUGGING (restore after Step 7b complete)
-    if: false
     # needs: This job waits for 'test' job to complete successfully
     # If tests fail, this job never runs (fail-fast approach)
-    # needs: test
+    needs: test
     # If tests were skipped, still run this job
-    # if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped')
+    if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped')
 
     # Outputs: Variables this job produces for use by other jobs
     outputs:
@@ -524,8 +522,7 @@ jobs:
   run-migrations:
     name: Run Migrations on ${{ github.event.inputs.database }}
     runs-on: ubuntu-latest
-    # TEMPORARILY DISABLED DEPENDENCY FOR DEBUGGING (restore after Step 7b complete)
-    # needs: build-and-push
+    needs: build-and-push
 
     steps:
       # ----------------------------------------------------------------------
@@ -569,10 +566,9 @@ jobs:
           # Extract the current task definition and update image
           TASK_DEF=$(cat task-definition.json)
 
-          # TEMPORARY: Use hardcoded image for debugging (restore after Step 7b complete)
           # Update the image URI and environment variables
           UPDATED_TASK_DEF=$(echo $TASK_DEF | jq \
-            --arg IMAGE "853463362083.dkr.ecr.us-east-1.amazonaws.com/startupwebapp-backend:3f8f2b281256801350b421056bb3307932b7e4f6" \
+            --arg IMAGE "${{ needs.build-and-push.outputs.image }}" \
             --arg DB_NAME "${{ env.DATABASE_NAME }}" \
             '
             .containerDefinitions[0].image = $IMAGE |
@@ -580,8 +576,6 @@ jobs:
               if .name == "DATABASE_NAME" then .value = $DB_NAME else . end
             )
             ')
-          # RESTORE THIS AFTER DEBUGGING:
-          # --arg IMAGE "${{ needs.build-and-push.outputs.image }}" \
 
           # Remove fields that aren't needed for registration
           CLEAN_TASK_DEF=$(echo $UPDATED_TASK_DEF | jq '
@@ -711,9 +705,7 @@ jobs:
   notify:
     name: Workflow Summary
     runs-on: ubuntu-latest
-    # TEMPORARILY REDUCED DEPENDENCIES FOR DEBUGGING (restore after Step 7b complete)
-    needs: [run-migrations]
-    # needs: [test, build-and-push, run-migrations]
+    needs: [test, build-and-push, run-migrations]
     if: always()
 
     steps:
