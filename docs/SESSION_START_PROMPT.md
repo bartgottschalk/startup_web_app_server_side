@@ -254,6 +254,22 @@ Every commit MUST include documentation updates:
 
 **For frontend-only changes:** Manual trigger of frontend deployment workflow
 
+### Current Implementation Status
+
+**Planning**: ✅ Complete (all architectural decisions documented)
+**Implementation**: ❌ Not started - All 11 steps pending
+
+**Next Step**: Begin Step 1 - Create Application Load Balancer (ALB)
+
+### Implementation Steps Summary
+
+Follow the 11 steps in the technical note:
+1-7. Infrastructure (ALB, ACM, DNS, ECS, S3+CloudFront)
+8. Add `/health` endpoint (for ALB health checks)
+9-11. Workflows, Django settings, verification
+
+**Note**: `/health` endpoint (Step 8) can be developed/tested locally before deployment
+
 ### Technical Details
 
 See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
