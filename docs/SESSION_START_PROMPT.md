@@ -93,12 +93,24 @@ Hi Claude. I want to continue working on these two repositories together:
     - Set DOCKER_ENV variable for functional tests (skip frontend server, use backend directly)
   - **7 workflow iterations** completed to debug and fix all issues
   - Workflow now ready for testing with all 740 tests
-- 🚧 **Step 7 In Progress**: Test Workflow & Run Migrations (November 25, 2025)
-  - Workflow triggered, currently running
-  - Testing full pipeline: tests → build → push to ECR → run migrations
-  - Target database: startupwebapp_prod
-  - Expected: All 740 tests pass, migrations applied successfully
-- 📍 **Current Branch**: `master` (PR #38 merged)
+- 🚧 **Step 7 Blocked - NAT Gateway Required**: Test Workflow & Run Migrations (November 25, 2025)
+  - **Additional fixes completed**:
+    - Fixed CSRF_COOKIE_DOMAIN for cross-subdomain cookie sharing
+    - Added port numbers to CSRF_TRUSTED_ORIGINS (Django 4.x requirement)
+    - Added frontend origins to CORS_ORIGIN_WHITELIST (enable AJAX with credentials)
+    - Added Orderconfiguration objects to functional test fixtures (eliminate 500 errors)
+    - Fixed AWS ECS wait command syntax (removed unsupported flags)
+    - Removed skip_unit_tests debugging option (no longer needed)
+  - **All 740 tests passing in CI**: 712 unit tests + 28 functional tests ✅
+  - **Clean logs**: No more 500 errors for /order/checkout-allowed ✅
+  - **Docker drift fixed**: Removed manually created Orderconfiguration objects ✅
+  - **Blocker Discovered**: ECS tasks in private subnets cannot reach AWS services (ECR, Secrets Manager)
+    - Root cause: No NAT Gateway configured for private subnets
+    - Error: "unable to pull secrets or registry auth... context deadline exceeded"
+    - **Decision**: Create NAT Gateway for proper production infrastructure (~$32/month)
+    - Public subnets rejected (bad practice for ongoing production infrastructure)
+  - **Next**: Create NAT Gateway infrastructure (Step 7a), then complete Step 7
+- 📍 **Current Branch**: `master` (commits: 92000bf, dd1b282, 1df9d94)
 
 **Phase 5.14 Goals:**
 1. Create multi-stage Dockerfile (development + production targets)
@@ -277,10 +289,30 @@ Every commit MUST include documentation updates:
      - Set DOCKER_ENV for functional tests (no frontend server)
    - Note: Took significantly longer than estimated due to debugging
 
-7. 🚧 **Run Migrations via Pipeline** (45 min) - IN PROGRESS
-   - Trigger GitHub Actions for each database
-   - Monitor CloudWatch logs
-   - Verify 57 tables created on each database
+7. 🚧 **Run Migrations via Pipeline** (360 min actual) - BLOCKED
+   - **Additional debugging and fixes**:
+     - Fixed CSRF_COOKIE_DOMAIN, CSRF_TRUSTED_ORIGINS, CORS_ORIGIN_WHITELIST
+     - Added Orderconfiguration test fixtures (eliminate 500 errors)
+     - Fixed AWS ECS wait command syntax
+     - Removed skip_unit_tests debugging option
+   - **All 740 tests passing in CI** (712 unit + 28 functional)
+   - **Clean logs** (no more 500 errors)
+   - **Blocker**: ECS tasks cannot reach AWS services from private subnets
+   - Note: Took 8x longer than estimated due to functional test debugging
+
+7a. **Create NAT Gateway** (45 min) - NEW STEP REQUIRED
+   - Create infrastructure scripts (create-nat-gateway.sh, destroy-nat-gateway.sh)
+   - Allocate Elastic IP for NAT Gateway
+   - Create NAT Gateway in public subnet
+   - Update private subnet route tables (route 0.0.0.0/0 → NAT Gateway)
+   - Test ECS task can reach Secrets Manager and ECR
+   - Cost: +$32/month (~$68/month total)
+
+7b. **Complete Migration Pipeline Testing** (30 min)
+   - Trigger workflow with NAT Gateway in place
+   - Verify migrations run successfully on startupwebapp_prod
+   - Verify CloudWatch logs captured
+   - Run migrations on healthtech_experiment and fintech_experiment
 
 8. **Verification & Documentation** (50 min)
    - Confirm all migrations successful

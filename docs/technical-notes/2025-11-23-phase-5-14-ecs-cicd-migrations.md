@@ -557,7 +557,65 @@ Workflow Testing: All 740 tests pass in CI/CD
 
 ---
 
-### Step 7: Run Migration Pipeline ⏱️ 45 minutes (3 databases)
+### Step 7: Test Migration Pipeline ⏱️ 15 minutes (BLOCKED - See Step 7a)
+
+**Goal**: Test workflow execution (test → build → push → migrate)
+
+**Status**: ❌ BLOCKED - ECS tasks cannot reach AWS services from private subnets
+
+**Discovery**: When workflow was triggered, ECS task failed with:
+```
+ResourceInitializationError: unable to pull secrets or registry auth:
+unable to retrieve secret from asm: There is a connection issue between
+the task and AWS Secrets Manager. Check your task network configuration.
+```
+
+**Root Cause**: Private subnets require NAT Gateway for internet/AWS service access
+- ECS task needs to pull Docker image from ECR (requires internet)
+- ECS task needs to fetch RDS password from Secrets Manager (AWS service)
+- Current VPC has private subnets but NO NAT Gateway
+
+**Resolution**: Create NAT Gateway (see Step 7a below)
+
+---
+
+### Step 7a: Create NAT Gateway ⏱️ 45 minutes (NEW STEP - REQUIRED)
+
+**Goal**: Enable private subnet resources to access internet and AWS services
+
+**Why Required**:
+- ECS Fargate tasks run in private subnets for security
+- Private subnets cannot route to internet without NAT Gateway
+- NAT Gateway provides secure outbound internet access
+- Required for: ECR image pulls, Secrets Manager access, CloudWatch logs
+
+**Infrastructure to Create**:
+1. **Allocate Elastic IP** for NAT Gateway
+2. **Create NAT Gateway** in public subnet
+3. **Update private subnet route tables** (route 0.0.0.0/0 → NAT Gateway)
+4. **Test ECS task** can reach Secrets Manager and ECR
+
+**Scripts to Create**:
+- `scripts/infra/create-nat-gateway.sh` - Create NAT Gateway with route table updates
+- `scripts/infra/destroy-nat-gateway.sh` - Safely destroy NAT Gateway
+
+**Cost Impact**: +$32/month
+- NAT Gateway: $0.045/hour = $32.40/month
+- Data processing: ~$0.045/GB (minimal for migrations)
+- **New Total**: ~$68/month (from $36/month)
+
+**Testing**:
+```bash
+# After NAT Gateway creation
+./scripts/infra/create-nat-gateway.sh
+
+# Trigger workflow to verify connectivity
+# Expected: ECS task successfully pulls image and fetches secrets
+```
+
+---
+
+### Step 7b: Complete Migration Pipeline Testing ⏱️ 30 minutes (3 databases)
 
 **Goal**: Execute migrations via GitHub Actions for all 3 databases
 
@@ -568,15 +626,15 @@ Workflow Testing: All 740 tests pass in CI/CD
 4. Select database from dropdown
 5. Click "Run workflow" button
 6. Monitor progress (tests → build → push → migrate)
-7. Verify success
+7. Verify success in CloudWatch logs
 8. Repeat for remaining 2 databases
 
-**Expected Duration**: ~15 minutes per database
-- Tests: 5 minutes
-- Build: 3 minutes
-- Push: 2 minutes
-- Migrate: 2 minutes
-- Logs: 3 minutes
+**Expected Duration**: ~10 minutes per database
+- Tests: 5 minutes (740 tests)
+- Build: 2 minutes (Docker image)
+- Push: 1 minute (to ECR)
+- Migrate: 1 minute (run migrations)
+- Logs: 1 minute (fetch from CloudWatch)
 
 ---
 
@@ -612,21 +670,24 @@ Workflow Testing: All 740 tests pass in CI/CD
 
 ## Timeline and Estimates
 
-**Total Estimated Time**: 6-7 hours
+**Total Estimated Time**: 7.5-8.5 hours (updated with NAT Gateway requirement)
 
-| Step | Task | Time | Dependencies |
-|------|------|------|--------------|
-| 1 | Multi-stage Dockerfile | 45 min | None |
-| 2 | Create ECR repository | 20 min | AWS access |
-| 3 | Create ECS cluster + IAM | 45 min | ECR |
-| 4 | Create task definition | 30 min | ECS cluster |
-| 5 | GitHub Actions workflow | 60 min | ECR, ECS |
-| 6 | Configure GitHub secrets | 10 min | IAM user |
-| 7 | Run migrations (3 DBs) | 45 min | All above |
-| 8 | Verification | 20 min | Migrations complete |
-| 9 | Documentation | 30 min | Phase complete |
-| **Buffer** | Troubleshooting | 60 min | - |
-| **TOTAL** | | **6-7 hours** | |
+| Step | Task | Time | Status | Dependencies |
+|------|------|------|--------|--------------|
+| 1 | Multi-stage Dockerfile | 45 min | ✅ DONE | None |
+| 2 | Create ECR repository | 20 min | ✅ DONE | AWS access |
+| 3 | Create ECS cluster + IAM | 45 min | ✅ DONE | ECR |
+| 4 | Create task definition | 30 min | ✅ DONE | ECS cluster |
+| 5 | GitHub Actions workflow | 60 min | ✅ DONE | ECR, ECS |
+| 6 | Configure GitHub secrets | 180 min | ✅ DONE | IAM user |
+| 7 | Test pipeline | 15 min | ❌ BLOCKED | All above |
+| 7a | **Create NAT Gateway** | **45 min** | **🔜 NEXT** | **VPC** |
+| 7b | Run migrations (3 DBs) | 30 min | ⏸️ PENDING | NAT Gateway |
+| 8 | Verification | 20 min | ⏸️ PENDING | Migrations complete |
+| 9 | Documentation | 30 min | ⏸️ PENDING | Phase complete |
+| **TOTAL** | | **~8 hours** | 6/10 steps | |
+
+**Note**: Step 6 took significantly longer than estimated (180 min vs 10 min) due to 7 iterations of functional test debugging.
 
 ## Cost Estimate
 
@@ -641,11 +702,20 @@ Workflow Testing: All 740 tests pass in CI/CD
 - **ECR Storage**: ~$0.10/month (1-2 images)
 - **CloudWatch Logs**: ~$1/month (7-day retention)
 - **ECS Cluster**: $0 (Fargate is pay-per-use)
-- **New Monthly Cost**: ~**$1.10/month**
+- **NAT Gateway**: ~$32/month ($0.045/hour + minimal data transfer)
+- **New Monthly Cost**: ~**$33/month**
 
-**Combined Infrastructure Cost**: $29 (RDS) + $7 (bastion) + $1 (ECR/logs) = **$37/month**
+**Combined Infrastructure Cost**:
+- RDS: $29/month
+- Bastion: $7/month (stop when not in use)
+- NAT Gateway: $32/month
+- ECR/Logs: $1/month
+- **Total**: **~$69/month** (or **$62/month** with bastion stopped)
 
-*(Bastion can be stopped when not in use: $30/month)*
+**Cost Breakdown**:
+- Before Phase 5.14: $36/month
+- After Phase 5.14: $69/month
+- Increase: +$33/month (mostly NAT Gateway for secure networking)
 
 ## Progress Tracking
 

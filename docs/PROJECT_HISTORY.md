@@ -323,10 +323,10 @@ This document tracks the complete development history and modernization effort f
 - ✅ See [Deployment Guide](technical-notes/2025-11-21-phase-9-deployment-guide.md) for step-by-step instructions
 - ✅ See [Bastion Troubleshooting](technical-notes/2025-11-22-phase-9-bastion-troubleshooting.md) for SSM connection fix
 
-#### Phase 5.14: ECS Infrastructure, CI/CD, and RDS Migrations (In Progress - November 24, 2025)
+#### Phase 5.14: ECS Infrastructure, CI/CD, and RDS Migrations (In Progress - November 25, 2025)
 
-**Status**: 🚧 In Progress - Step 2/9 Complete
-**Branch**: `feature/phase-5-14-ecs-cicd-migrations`
+**Status**: 🚧 Step 7 Blocked (NAT Gateway Required) - 6/9 Steps Complete
+**Branch**: `master` (Steps 1-6 merged)
 
 **Step 1: Multi-Stage Dockerfile** ✅ (Completed - November 23, 2025)
 - ✅ Added gunicorn==21.2.0 to requirements.txt for production WSGI server
@@ -564,8 +564,43 @@ This document tracks the complete development history and modernization effort f
 **Documentation Created**:
 - `docs/technical-notes/2025-11-25-phase-5-14-step-6-github-actions-debugging.md`
 
-**Next Steps**:
-- Step 7: Test workflow and run migrations on all 3 databases (IN PROGRESS)
+---
+
+**Step 7: Test Workflow & Run Migrations** 🚧 BLOCKED (November 25, 2025)
+
+- ✅ **Additional Functional Test Fixes** (4 additional commits):
+  1. Fixed CSRF_COOKIE_DOMAIN = ".startupwebapp.com" (enable cookie sharing across subdomains)
+  2. Added port numbers to CSRF_TRUSTED_ORIGINS (Django 4.x requires explicit ports)
+  3. Added frontend origins to CORS_ORIGIN_WHITELIST (enable AJAX with credentials)
+  4. Added Orderconfiguration test fixtures (eliminate 500 errors for /order/checkout-allowed)
+  5. Fixed AWS ECS wait command syntax (removed unsupported --max-attempts/--delay flags)
+  6. Removed skip_unit_tests debugging option (no longer needed)
+- ✅ **All 740 tests passing in CI/CD** (712 unit + 28 functional)
+- ✅ **Clean logs** (no 500 errors)
+- ✅ **Docker environment drift fixed** (removed manually created Orderconfiguration objects)
+- ❌ **BLOCKER DISCOVERED**: ECS task networking issue
+  - **Error**: "unable to pull secrets or registry auth... context deadline exceeded"
+  - **Root Cause**: ECS tasks in private subnets cannot reach AWS services (Secrets Manager, ECR)
+  - **Missing**: NAT Gateway for private subnet internet access
+  - **Decision**: Create NAT Gateway for proper production infrastructure
+  - **Cost Impact**: +$32/month (total: ~$68/month)
+  - **Rejected Alternative**: Public subnets (bad practice for ongoing production infrastructure)
+
+**Files Modified**:
+- `.github/workflows/run-migrations.yml` - AWS wait command fix, exit code validation
+- `StartupWebApp/functional_tests/base_functional_test.py` - Added Orderconfiguration fixtures
+- All fixes committed to master (commits: 92000bf, dd1b282, 1df9d94)
+
+**Key Learnings**:
+- CSRF/CORS configuration critical for cross-subdomain AJAX in tests
+- Django 4.x requires explicit port numbers in CSRF_TRUSTED_ORIGINS
+- Test fixtures should be self-contained (don't rely on manual database setup)
+- AWS Fargate tasks in private subnets require NAT Gateway for internet/AWS service access
+- Environment drift (Docker vs production) can hide infrastructure requirements
+
+**Next Steps Required**:
+- Step 7a: Create NAT Gateway infrastructure (NEW STEP)
+- Step 7b: Complete workflow testing with migrations
 - Step 8: Verification
 - Step 9: Documentation
 **Objective**: Establish production deployment infrastructure with GitHub Actions CI/CD and run Django migrations on AWS RDS
