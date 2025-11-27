@@ -257,23 +257,23 @@ Every commit MUST include documentation updates:
 ### Current Implementation Status
 
 **Planning**: ✅ Complete (all architectural decisions documented)
-**Implementation**: ⏸️ Paused - Two discussions needed before proceeding
+**Discussions**: ✅ Complete (November 27, 2025 - cost optimization and automation decisions made)
+**Implementation**: 🚀 Ready to begin Step 1
 
-### Pre-Implementation Discussions Required
+### Pre-Implementation Discussions Complete ✅ (November 27, 2025)
 
-**⚠️ DISCUSS BEFORE IMPLEMENTING:**
+**Cost Decision**: Pragmatic approach - Keep current architecture ($122-154/month)
+- Bastion stopped when not needed (saves $6/month)
+- Keep NAT Gateway, 2 ECS tasks for HA, on-demand pricing
+- Defer optimizations (VPC Endpoints, Reserved Instances) to Phase 5.16
 
-1. **Cost Review and Optimization**
-   - Current estimate: $129-161/month total infrastructure
-   - Opportunity to review and optimize before building
-   - Identify cost reduction strategies that won't compromise functionality
+**Automation Decision**: Pragmatic automation - Automate where it matters
+- Keep bash scripts (consistent with Phase 5.14)
+- Manual DNS/ACM (infrequent, 5-10 minutes each)
+- Add rollback workflow (manual trigger, automated execution)
+- No CloudFront invalidation needed (versioning strategy already optimal)
 
-2. **Automation Opportunities**
-   - Review all manual steps in Phase 5.15 plan
-   - Identify candidates for automation
-   - Goal: Maximize automation, minimize manual intervention
-
-**After discussions complete**: Begin Step 1 - Create Application Load Balancer (ALB)
+**Next**: Begin Step 1 - Create Application Load Balancer (ALB)
 
 ### Implementation Steps Summary
 

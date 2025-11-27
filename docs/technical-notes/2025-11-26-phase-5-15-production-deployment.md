@@ -1,9 +1,9 @@
 # Phase 5.15: Full Production Deployment - ECS Service, ALB, Auto-Scaling
 
-**Date**: November 26, 2025
-**Status**: 📋 Planned - Ready to Begin
+**Date**: November 26, 2025 (Planning) | November 27, 2025 (Discussions Complete)
+**Status**: 🚀 Ready to Begin - Discussions Complete
 **Branch**: `feature/phase-5-15-production-deployment` (created)
-**Version**: 1.0 (Planning Phase)
+**Version**: 1.1 (Implementation Ready)
 **Priority**: HIGH - Production deployment
 
 ## Executive Summary
@@ -31,43 +31,51 @@ Phase 5.15 deploys the full StartupWebApp application to production using AWS EC
 7. **GitHub Actions Workflows** - Auto-deploy backend + frontend, migrations
 8. **Security Groups** - ALB → ECS, allow HTTPS traffic
 
-## ⚠️ Pre-Implementation Discussions Required
+## ✅ Pre-Implementation Discussions Complete (November 27, 2025)
 
-**Status**: Implementation paused pending two critical discussions
+### Discussion 1: Cost Review and Optimization - DECIDED
 
-### Discussion 1: Cost Review and Optimization
+**Decision**: Pragmatic approach - Keep current architecture, defer optimizations to Phase 5.16
 
-**Current Cost Estimate**: $129-161/month total infrastructure
+**Cost Target**: $122-154/month (down from $129-161/month estimate)
 
-**Questions to Address:**
-1. Can we reduce costs without compromising functionality?
-2. Are there alternative architectures that cost less?
-3. Should we implement cost optimization strategies from the start?
-4. Trade-offs between cost and complexity/maintainability?
+**Decisions Made**:
+1. ✅ **Bastion Host**: Stopped when not needed (saves $6/month) - Already done November 26, 2025
+2. ✅ **NAT Gateway**: Keep current architecture ($32/month)
+   - Rationale: Simpler than VPC Endpoints, already working, saves ~10 hours setup time
+   - Future: Can optimize in Phase 5.16 if costs become a concern
+3. ✅ **ECS Tasks**: Start with 2 tasks for high availability ($39/month base)
+   - Rationale: Validates HA architecture, avoids downtime, proper production setup
+4. ✅ **Pricing Model**: Stay on-demand (no reserved instances yet)
+   - Rationale: Flexibility during development, don't know usage patterns yet
+   - Future: After 6 months of production data, consider reserved instances/savings plans
 
-**Areas to Review:**
-- NAT Gateway ($32/month) - Could use VPC Endpoints instead?
-- ALB vs other load balancing options
-- ECS task sizing (0.5 vCPU, 1GB) - Is this optimal?
-- Reserved capacity vs on-demand pricing
-- Development/staging environment strategy
+**Deferred Optimizations** (Phase 5.16):
+- NAT Gateway → VPC Endpoints (potential $22-25/month savings)
+- RDS Reserved Instance (potential $8-10/month savings)
+- ECS Compute Savings Plan (potential $8-12/month savings)
 
-### Discussion 2: Automation Opportunities
+### Discussion 2: Automation Opportunities - DECIDED
 
-**Goal**: Maximize automation, minimize manual steps
+**Decision**: Pragmatic automation - Automate where it matters, manual where appropriate
 
-**Questions to Address:**
-1. Which manual steps in the 11-step plan can be automated?
-2. Should infrastructure deployment be scripted or use IaC tools (Terraform/CDK)?
-3. Can DNS configuration (Namecheap) be automated via API?
-4. Should we automate ACM certificate validation?
-5. Other manual processes that could be automated?
+**Decisions Made**:
+1. ✅ **Infrastructure Scripts**: Keep bash scripts (consistent with Phase 5.14)
+   - Rationale: Simple, working well, fast to implement, consistent pattern
+   - Future: Can migrate to Terraform in Phase 5.16 if complexity grows
+2. ✅ **DNS Configuration**: Keep manual Namecheap DNS updates
+   - Rationale: Infrequent changes (one-time per fork), reliable, takes 5-10 minutes
+   - Future: If deploying many forks, consider Namecheap API automation
+3. ✅ **ACM Certificate**: Keep manual validation (one-time CNAME in Namecheap)
+   - Rationale: One-time setup per domain, takes 5 minutes, not worth automation effort
+4. ✅ **Rollback Workflow**: Add manual-trigger GitHub Actions workflow
+   - Benefit: Automated execution of rollback steps, reduces human error
+5. ❌ **CloudFront Invalidation**: NOT needed (we use versioning strategy)
+   - Rationale: Manual version increments (main-0.0.1.css → main-0.0.2.css) = new URLs = no cache issues
+   - Versioned URLs are superior to cache invalidation (no race conditions, always works)
+6. ❌ **Slack Notifications**: Not needed (email is sufficient)
 
-**Manual Steps to Review:**
-- Step 2: ACM certificate validation (manual CNAME in Namecheap)
-- Step 3: Namecheap DNS configuration (manual CNAME entries)
-- All infrastructure scripts (run manually) - Could use CI/CD?
-- Rollback procedures (currently manual)
+**Result**: Maximum automation where it matters (deployments via GitHub Actions), manual where appropriate (one-time DNS/certificate setup)
 
 ---
 
@@ -860,8 +868,8 @@ After Phase 5.15, the next phase will focus on:
 
 ---
 
-**Document Status**: ⏸️ Planning Complete - Awaiting Pre-Implementation Discussions
+**Document Status**: 🚀 Ready for Implementation - All Discussions Complete
 **Author**: Claude Code (AI Assistant) & Bart Gottschalk
-**Last Updated**: November 26, 2025
-**Version**: 1.1 (Planning Phase - Discussions Required)
-**Next Step**: Complete cost review and automation discussions, then begin Step 1
+**Last Updated**: November 27, 2025
+**Version**: 1.1 (Implementation Ready)
+**Next Step**: Begin Step 1 - Create Application Load Balancer (ALB)
