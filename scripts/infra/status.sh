@@ -483,6 +483,182 @@ if [ -n "${ECR_REPOSITORY_URI:-}" ] || [ -n "${ECS_CLUSTER_NAME:-}" ] || [ -n "$
     echo ""
 fi
 
+# Phase 5.15: Production Deployment
+echo -e "${CYAN}════════════════════════════════════════${NC}"
+echo -e "${CYAN}Phase 5.15: Production Deployment${NC}"
+echo -e "${CYAN}════════════════════════════════════════${NC}"
+echo ""
+
+# ALB
+echo -e "${CYAN}Application Load Balancer (ALB)${NC}"
+if [ -n "${ALB_ARN:-}" ]; then
+    # Check if ALB actually exists
+    ALB_STATE=$(aws elbv2 describe-load-balancers \
+        --load-balancer-arns "${ALB_ARN}" \
+        --region "${AWS_REGION}" \
+        --query 'LoadBalancers[0].State.Code' \
+        --output text 2>/dev/null || echo "")
+
+    if [ "$ALB_STATE" == "active" ]; then
+        echo -e "  ${GREEN}✓ COMPLETED${NC} - ALB active"
+        echo ""
+        echo -e "  ALB DNS:         ${ALB_DNS_NAME:-unknown}"
+        echo -e "  Target Group:    ${TARGET_GROUP_ARN:-unknown}"
+        echo -e "  HTTP Listener:   ${HTTP_LISTENER_ARN:-unknown}"
+        if [ -n "${HTTPS_LISTENER_ARN:-}" ]; then
+            echo -e "  HTTPS Listener:  ${HTTPS_LISTENER_ARN}"
+        else
+            echo -e "  HTTPS Listener:  ${YELLOW}Not configured (needs ACM certificate)${NC}"
+        fi
+    elif [ "$ALB_STATE" == "provisioning" ]; then
+        echo -e "  ${YELLOW}⚠ PROVISIONING${NC} - ALB is being created (1-2 minutes)"
+    else
+        echo -e "  ${YELLOW}⚠ ALB in env file but not found or inactive in AWS${NC}"
+        echo -e "  ${YELLOW}→ Recreate: ./scripts/infra/create-alb.sh${NC}"
+    fi
+elif [ -n "${NAT_GATEWAY_ID:-}" ]; then
+    echo -e "  ${RED}✗ NOT STARTED${NC}"
+    echo ""
+    echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-alb.sh${NC}"
+    echo -e "  ${YELLOW}   Time: ~5 minutes${NC}"
+    echo -e "  ${YELLOW}   Cost: ~\$16-20/month (ALB + traffic)${NC}"
+else
+    echo -e "  ${RED}✗ BLOCKED${NC} - Requires NAT Gateway (Phase 5.14)"
+fi
+echo ""
+
+# ACM Certificate
+echo -e "${CYAN}ACM Certificate (SSL/TLS)${NC}"
+if [ -n "${ACM_CERTIFICATE_ARN:-}" ]; then
+    # Check certificate status
+    CERT_STATUS=$(aws acm describe-certificate \
+        --certificate-arn "${ACM_CERTIFICATE_ARN}" \
+        --region "${AWS_REGION}" \
+        --query 'Certificate.Status' \
+        --output text 2>/dev/null || echo "")
+
+    if [ "$CERT_STATUS" == "ISSUED" ]; then
+        echo -e "  ${GREEN}✓ COMPLETED${NC} - Certificate issued"
+        echo ""
+        echo -e "  Certificate ARN: ${ACM_CERTIFICATE_ARN}"
+    elif [ "$CERT_STATUS" == "PENDING_VALIDATION" ]; then
+        echo -e "  ${YELLOW}⚠ PENDING VALIDATION${NC} - Add DNS CNAME record in Namecheap"
+        echo ""
+        echo -e "  Certificate ARN: ${ACM_CERTIFICATE_ARN}"
+        echo -e "  ${YELLOW}   Check ACM console for validation CNAME record${NC}"
+    else
+        echo -e "  ${YELLOW}⚠ Certificate in env file but status: ${CERT_STATUS:-unknown}${NC}"
+    fi
+elif [ -n "${ALB_ARN:-}" ]; then
+    echo -e "  ${RED}✗ NOT STARTED${NC}"
+    echo ""
+    echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-acm-certificate.sh${NC}"
+    echo -e "  ${YELLOW}   Time: ~5-30 minutes (DNS validation)${NC}"
+    echo -e "  ${YELLOW}   Cost: \$0 (ACM certificates are free)${NC}"
+else
+    echo -e "  ${RED}✗ BLOCKED${NC} - Requires ALB"
+fi
+echo ""
+
+# ECS Service Task Definition
+echo -e "${CYAN}ECS Service Task Definition (Web Server)${NC}"
+if [ -n "${ECS_SERVICE_TASK_DEFINITION_ARN:-}" ]; then
+    # Check if task definition actually exists
+    SERVICE_TASK_DEF_EXISTS=$(aws ecs describe-task-definition \
+        --task-definition "${ECS_SERVICE_TASK_DEFINITION_FAMILY:-startupwebapp-service-task}" \
+        --region "${AWS_REGION}" \
+        --query 'taskDefinition.taskDefinitionArn' \
+        --output text 2>/dev/null || echo "")
+
+    if [ -n "$SERVICE_TASK_DEF_EXISTS" ]; then
+        echo -e "  ${GREEN}✓ COMPLETED${NC} - Service task definition registered"
+        echo ""
+        echo -e "  Family:              ${ECS_SERVICE_TASK_DEFINITION_FAMILY:-startupwebapp-service-task}"
+        echo -e "  Revision:            ${ECS_SERVICE_TASK_DEFINITION_REVISION:-1}"
+        echo -e "  Log Group:           ${ECS_SERVICE_LOG_GROUP:-/ecs/startupwebapp-service}"
+    else
+        echo -e "  ${YELLOW}⚠ Task definition in env file but not found in AWS${NC}"
+        echo -e "  ${YELLOW}→ Recreate: ./scripts/infra/create-ecs-service-task-definition.sh${NC}"
+    fi
+elif [ -n "${ACM_CERTIFICATE_ARN:-}" ]; then
+    echo -e "  ${RED}✗ NOT STARTED${NC}"
+    echo ""
+    echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-ecs-service-task-definition.sh${NC}"
+    echo -e "  ${YELLOW}   Time: ~2 minutes${NC}"
+    echo -e "  ${YELLOW}   Cost: \$0 (task definition itself is free)${NC}"
+else
+    echo -e "  ${RED}✗ BLOCKED${NC} - Requires ACM Certificate"
+fi
+echo ""
+
+# Phase 5.15 Progress Summary
+echo -e "${YELLOW}Phase 5.15 Progress Summary:${NC}"
+if [ -n "${ALB_ARN:-}" ]; then
+    ALB_STATE=$(aws elbv2 describe-load-balancers \
+        --load-balancer-arns "${ALB_ARN}" \
+        --region "${AWS_REGION}" \
+        --query 'LoadBalancers[0].State.Code' \
+        --output text 2>/dev/null || echo "")
+    if [ "$ALB_STATE" == "active" ]; then
+        echo -e "  ✓ Step 1: Create Application Load Balancer (ALB)"
+    else
+        echo -e "  ⚠ Step 1: ALB (${ALB_STATE:-not found})"
+    fi
+else
+    echo -e "  → Step 1: Create ALB (./scripts/infra/create-alb.sh)"
+fi
+
+if [ -n "${ACM_CERTIFICATE_ARN:-}" ]; then
+    CERT_STATUS=$(aws acm describe-certificate \
+        --certificate-arn "${ACM_CERTIFICATE_ARN}" \
+        --region "${AWS_REGION}" \
+        --query 'Certificate.Status' \
+        --output text 2>/dev/null || echo "")
+    if [ "$CERT_STATUS" == "ISSUED" ]; then
+        echo -e "  ✓ Step 2: Request ACM Certificate"
+    else
+        echo -e "  ⚠ Step 2: ACM Certificate (${CERT_STATUS:-not found})"
+    fi
+else
+    echo -e "  → Step 2: Request ACM Certificate"
+fi
+
+# Step 3: HTTPS Listener (check if configured)
+if [ -n "${HTTPS_LISTENER_ARN:-}" ]; then
+    echo -e "  ✓ Step 3: Create HTTPS Listener"
+else
+    echo -e "  → Step 3: Create HTTPS Listener (./scripts/infra/create-alb-https-listener.sh)"
+fi
+
+# Step 4: DNS (manual - can't auto-detect, show as done if HTTPS listener exists)
+if [ -n "${HTTPS_LISTENER_ARN:-}" ]; then
+    echo -e "  ✓ Step 4: Configure Namecheap DNS (manual)"
+else
+    echo -e "  → Step 4: Configure Namecheap DNS"
+fi
+
+# Step 5: Service Task Definition
+if [ -n "${ECS_SERVICE_TASK_DEFINITION_ARN:-}" ]; then
+    echo -e "  ✓ Step 5: Create ECS Service Task Definition"
+else
+    echo -e "  → Step 5: Create ECS Service Task Definition (./scripts/infra/create-ecs-service-task-definition.sh)"
+fi
+
+# Step 6: ECS Service
+if [ -n "${ECS_SERVICE_ARN:-}" ]; then
+    echo -e "  ✓ Step 6: Create ECS Service"
+else
+    echo -e "  → Step 6: Create ECS Service (./scripts/infra/create-ecs-service.sh)"
+fi
+
+echo -e "  → Step 7: Configure Auto-Scaling"
+echo -e "  → Step 8: Setup S3 + CloudFront (frontend)"
+echo -e "  → Step 9: Add /health endpoint"
+echo -e "  → Step 10: Create production deployment workflow"
+echo -e "  → Step 11: Update Django production settings"
+echo -e "  → Step 12: Verification & Documentation"
+echo ""
+
 # Progress summary
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}Progress Summary${NC}"
@@ -553,6 +729,10 @@ if [ $COMPLETED_STEPS -gt 0 ]; then
     if [ -n "${ECR_REPOSITORY_URI:-}" ]; then
         echo -e "  ECR Storage:          ~\$0.10/month (1-2 images)"
         # ECR cost is negligible, don't add to total
+    fi
+    if [ -n "${ALB_ARN:-}" ]; then
+        echo -e "  ALB:                  ~\$16/month (+ traffic)"
+        TOTAL_COST=$((TOTAL_COST + 16))
     fi
     echo -e "  ${CYAN}────────────────────────────${NC}"
     echo -e "  ${CYAN}Total:                ~\$${TOTAL_COST}/month${NC}"

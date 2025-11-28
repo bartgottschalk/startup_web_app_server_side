@@ -4,47 +4,53 @@ Infrastructure as Code (IaC) scripts for deploying StartupWebApp to AWS.
 
 ## ✅ Deployment Status
 
-**Current Status: Phase 5.14 In Progress - Step 7a/10 (NAT Gateway - NEXT)**
+**Current Status: Phase 5.15 In Progress - Step 6/12 (ECS Service)**
 
 - **Phase 5.13 Completed**: November 22, 2025 - RDS Infrastructure Deployed
-- **Phase 5.14 In Progress**: November 26, 2025 - ECS/CI/CD Setup
-- **Phase 5.14 Step 1**: ✅ Multi-Stage Dockerfile (Complete - November 23, 2025)
-- **Phase 5.14 Step 2**: ✅ AWS ECR Repository (Complete - November 24, 2025)
-- **Phase 5.14 Step 3**: ✅ ECS Infrastructure (Complete & Tested - November 24, 2025)
-- **Phase 5.14 Step 4**: ✅ ECS Task Definition (Complete - November 24, 2025)
-- **Phase 5.14 Step 5**: ✅ GitHub Actions Workflow (Complete - November 25, 2025)
-- **Phase 5.14 Step 6**: ✅ GitHub Secrets Configured (Complete - November 25, 2025)
-- **Phase 5.14 Step 7a**: 🚧 **NEXT: Create NAT Gateway** (scripts ready, needs manual execution)
-- **RDS Status**: Available
+- **Phase 5.14 Completed**: November 26, 2025 - ECS/CI/CD Infrastructure Complete
+- **Phase 5.15 In Progress**: November 28, 2025 - Production Deployment
+- **Phase 5.15 Steps 1-5**: ✅ Complete (ALB, ACM Certificate, HTTPS Listener, DNS, Service Task Definition)
+- **Phase 5.15 Step 6**: 🚧 **Create ECS Service** (next step)
+- **RDS Status**: Available (57 tables × 3 databases)
 - **Monitoring**: Active (4 alarms, email confirmed)
-- **Monthly Cost (Current)**: $36 (RDS: $26, Bastion: $7, Monitoring: $2, CloudWatch/ECR: $1)
-- **Monthly Cost (After NAT Gateway)**: ~$68 (adds $32/month for NAT Gateway)
+- **Monthly Cost (Current)**: ~$84 (RDS: $26, NAT Gateway: $32, ALB: $16, Monitoring: $2, CloudWatch/ECR: $1, Bastion stopped: $1)
 
 **Deployed Resources:**
 - VPC: vpc-0df90226462f00350 (startupwebapp-vpc, 10.0.0.0/16)
 - RDS PostgreSQL 16.x: startupwebapp-multi-tenant-prod.cqbgoe8omhyh.us-east-1.rds.amazonaws.com:5432
-- Security Groups: 3 (RDS, Bastion, Backend)
+- Security Groups: 4 (RDS, Bastion, Backend, ALB)
 - Secrets Manager: rds/startupwebapp/multi-tenant/master
 - CloudWatch Dashboard: StartupWebApp-RDS-MultiTenant
 - SNS Topic: StartupWebApp-RDS-Alerts
 - ECR Repository: startupwebapp-backend
 - ECS Cluster: startupwebapp-cluster (Fargate)
 - ECS IAM Roles: 2 (task execution + task role)
+- ALB: startupwebapp-alb (HTTPS enabled)
+- ACM Certificate: *.mosaicmeshai.com (issued)
+- DNS: startupwebapp-api.mosaicmeshai.com → ALB
 
-**Phase 5.14 Progress:**
+**Phase 5.14 Progress:** ✅ COMPLETE
 1. ✅ Multi-Stage Dockerfile (development + production targets)
 2. ✅ Create ECR repository (`create-ecr.sh`)
 3. ✅ Create ECS infrastructure (cluster, IAM roles, security groups)
-   - ✅ Tested: Full destroy → recreate lifecycle validated
 4. ✅ Create ECS task definition (`create-ecs-task-definition.sh`)
 5. ✅ Create GitHub Actions CI/CD workflow (`.github/workflows/run-migrations.yml`)
 6. ✅ Configure GitHub secrets (AWS credentials, 740 tests passing in CI)
-7a. 🚧 **NEXT: Create NAT Gateway** (`create-nat-gateway.sh`) - Infrastructure scripts ready
-7b. Run automated migrations on all 3 RDS databases via pipeline (blocked by 7a)
-8. Verification and documentation
+7. ✅ Create NAT Gateway (`create-nat-gateway.sh`)
+8. ✅ Run automated migrations on all 3 RDS databases via pipeline
 
-**After Phase 5.14:**
-- Phase 5.15: Full production deployment (ECS service, ALB, auto-scaling)
+**Phase 5.15 Progress:** In Progress (Steps 1-5 Complete)
+1. ✅ Create Application Load Balancer (`create-alb.sh`)
+2. ✅ Create ACM Certificate (`create-acm-certificate.sh`)
+3. ✅ Create HTTPS Listener (`create-alb-https-listener.sh`)
+4. ✅ Configure Namecheap DNS CNAME (manual)
+5. ✅ Create ECS Service Task Definition (`create-ecs-service-task-definition.sh`)
+6. 🚧 **NEXT: Create ECS Service** (`create-ecs-service.sh`)
+7. Configure Auto-Scaling
+8. Setup S3 + CloudFront (frontend)
+9-12. Health endpoint, deployment workflow, Django settings, verification
+
+**After Phase 5.15:**
 - Phase 5.16: Production hardening (WAF, monitoring, load testing)
 
 ## CRITICAL WORKFLOW RULE
@@ -137,7 +143,22 @@ scripts/infra/
 ├── create-ecs-task-definition.sh    # Create ECS task definition for migrations (Phase 5.14)
 ├── destroy-ecs-task-definition.sh   # Deregister ECS task definition
 │
-└── update-security-groups-ecs.sh    # Update security groups for ECS
+├── update-security-groups-ecs.sh    # Update security groups for ECS
+│
+├── create-alb.sh                    # Create Application Load Balancer (Phase 5.15)
+├── destroy-alb.sh                   # Delete ALB and related resources
+│
+├── create-acm-certificate.sh        # Request SSL certificate (Phase 5.15)
+├── destroy-acm-certificate.sh       # Delete ACM certificate
+│
+├── create-alb-https-listener.sh     # Create HTTPS listener on ALB (Phase 5.15)
+├── destroy-alb-https-listener.sh    # Delete HTTPS listener from ALB
+│
+├── create-ecs-service-task-definition.sh   # Create ECS service task definition (Phase 5.15)
+├── destroy-ecs-service-task-definition.sh  # Deregister ECS service task definition
+│
+├── create-ecs-service.sh                   # Create ECS Fargate service (Phase 5.15 - Step 6)
+└── destroy-ecs-service.sh                  # Delete ECS service
 ```
 
 **Security Pattern:**
@@ -236,6 +257,44 @@ Execute scripts in this order:
 #     Navigate to: https://github.com/bartgottschalk/startup_web_app_server_side/actions
 #     Select workflow: "Run Database Migrations"
 #     Click "Run workflow" → select database → Run
+
+# Check status
+./scripts/infra/status.sh
+```
+
+**Phase 5.15: Production Deployment**
+
+```bash
+# 1. ✅ Create Application Load Balancer (5 minutes)
+#    Creates ALB, Target Group, HTTP Listener, Security Groups
+#    Cost: ~$16-20/month
+./scripts/infra/create-alb.sh
+
+# 2. ✅ Create ACM Certificate (5-30 minutes)
+#    Request wildcard certificate for *.mosaicmeshai.com
+#    Requires manual DNS validation in Namecheap
+#    Cost: $0 (ACM certificates are free)
+./scripts/infra/create-acm-certificate.sh
+
+# 3. ✅ Configure Namecheap DNS (manual - 5-10 minutes)
+#    Add CNAME for ACM validation
+#    Add CNAME: startupwebapp-api -> ALB DNS name
+
+# 4. ✅ Create HTTPS Listener for ALB (after ACM cert is validated)
+./scripts/infra/create-alb-https-listener.sh
+
+# 5. ✅ Create ECS Service Task Definition (2 minutes)
+./scripts/infra/create-ecs-service-task-definition.sh
+
+# 6. 🚧 Create ECS Service (5 minutes) - NEXT STEP
+#    Long-running service with 2 tasks across 2 AZs
+./scripts/infra/create-ecs-service.sh
+
+# 7. Configure Auto-Scaling (2 minutes)
+./scripts/infra/create-ecs-autoscaling.sh
+
+# 8. Setup S3 + CloudFront for Frontend (10 minutes)
+./scripts/infra/create-frontend-hosting.sh
 
 # Check status
 ./scripts/infra/status.sh
@@ -673,6 +732,201 @@ This script:
 
 **Cost Savings:** Destroying NAT Gateway saves ~$32/month, but Phase 5.14 infrastructure (ECS tasks) will not work without it.
 
+### create-alb.sh (Phase 5.15)
+
+Creates Application Load Balancer (ALB) for production traffic:
+- **ALB Security Group**: Allow HTTP (80) and HTTPS (443) from internet
+- **Target Group**: Route traffic to ECS tasks on port 8000
+- **Application Load Balancer**: Internet-facing, in public subnets
+- **HTTP Listener**: Redirects all HTTP traffic to HTTPS
+- **Backend Security Group Update**: Allow port 8000 from ALB
+
+**Why ALB:**
+- HTTPS termination (SSL/TLS handled at load balancer level)
+- Health checks (automatically replace unhealthy ECS tasks)
+- Traffic distribution across multiple ECS tasks
+- Integration with ECS Fargate for auto-scaling
+- HTTP to HTTPS redirect for security
+
+**Prerequisites:**
+- VPC with public subnets created
+- Backend security group created
+- NAT Gateway created (for ECS tasks to reach ALB)
+
+**Usage:**
+```bash
+./scripts/infra/create-alb.sh
+```
+
+**Time:** ~5 minutes
+
+**Cost:** ~$16/month (ALB fixed) + ~$0.008/LCU-hour (traffic-based)
+
+**What Gets Created:**
+- ALB Security Group: `startupwebapp-alb-sg`
+- Target Group: `startupwebapp-tg` (port 8000, health check /health)
+- Application Load Balancer: `startupwebapp-alb`
+- HTTP Listener: Port 80 → redirect to HTTPS
+
+**Note:** HTTPS listener requires ACM certificate (Step 2 of Phase 5.15).
+
+**Health Check Configuration:**
+- Endpoint: `/health`
+- Protocol: HTTP
+- Port: 8000
+- Interval: 30 seconds
+- Timeout: 5 seconds
+- Healthy threshold: 2 consecutive successes
+- Unhealthy threshold: 3 consecutive failures
+
+**Test (HTTP only):**
+```bash
+curl -I http://<ALB_DNS_NAME>
+# Expected: HTTP 301 redirect to https://
+```
+
+**Destroy:**
+```bash
+./scripts/infra/destroy-alb.sh
+```
+
+This deletes (in reverse order):
+1. HTTPS Listener (if exists)
+2. HTTP Listener
+3. Application Load Balancer
+4. Target Group
+5. ALB Security Group
+6. Backend Security Group rule
+
+**Warning:** After destroying ALB, production traffic will NOT be routed to ECS tasks.
+
+### create-acm-certificate.sh (Phase 5.15)
+
+Requests an SSL/TLS certificate from AWS Certificate Manager (ACM):
+- **Domain**: `*.mosaicmeshai.com` (wildcard certificate)
+- **Validation Method**: DNS validation via CNAME record
+- **Cost**: $0 (ACM certificates are free for AWS services)
+
+**Prerequisites:**
+- ALB must exist (Step 1)
+- Access to DNS provider (Namecheap) to add validation CNAME
+
+**Usage:**
+```bash
+./scripts/infra/create-acm-certificate.sh
+```
+
+**Time:** ~5-30 minutes (depends on DNS propagation)
+
+**What Gets Created:**
+- ACM certificate request for `*.mosaicmeshai.com`
+- Outputs CNAME record details for DNS validation
+
+**DNS Validation (Manual Step):**
+1. Script outputs CNAME name and value
+2. Add CNAME record in Namecheap:
+   - Host: `_xxxxx.mosaicmeshai` (without .com)
+   - Value: `_xxxxx.acm-validations.aws.`
+   - TTL: Automatic
+3. Wait for certificate to transition to "ISSUED" status
+
+**Destroy:**
+```bash
+./scripts/infra/destroy-acm-certificate.sh
+```
+
+**Warning:** Must destroy HTTPS listener first before destroying certificate.
+
+### create-alb-https-listener.sh (Phase 5.15)
+
+Creates HTTPS listener on ALB with SSL/TLS termination:
+- **Port**: 443 (HTTPS)
+- **Certificate**: Uses ACM certificate from Step 2
+- **Target Group**: Routes to ECS tasks on port 8000
+- **SSL Policy**: ELBSecurityPolicy-TLS13-1-2-2021-06 (TLS 1.2/1.3)
+
+**Prerequisites:**
+- ALB must exist with target group (Step 1)
+- ACM certificate must be issued (Step 2)
+
+**Usage:**
+```bash
+./scripts/infra/create-alb-https-listener.sh
+```
+
+**Time:** ~2 minutes
+
+**What Gets Created:**
+- HTTPS listener on port 443
+- SSL/TLS termination with ACM certificate
+- Forward rule to target group
+
+**Test HTTPS:**
+```bash
+curl -I https://startupwebapp-api.mosaicmeshai.com/health
+# Expected: HTTP 200 OK (after ECS service is deployed)
+```
+
+**Destroy:**
+```bash
+./scripts/infra/destroy-alb-https-listener.sh
+```
+
+### create-ecs-service-task-definition.sh (Phase 5.15)
+
+Creates ECS task definition for the long-running web service (gunicorn):
+- **Family**: `startupwebapp-service-task`
+- **CPU**: 512 (0.5 vCPU)
+- **Memory**: 1024 MB (1 GB)
+- **Container Port**: 8000
+- **Command**: `gunicorn StartupWebApp.wsgi:application --workers 3 --timeout 30 --bind 0.0.0.0:8000`
+
+**Note:** This is different from the migration task definition. The migration task runs once and exits; this service task runs continuously.
+
+**Prerequisites:**
+- ECS cluster must exist
+- IAM roles must exist
+- ECR repository with Docker image
+- Secrets Manager secret for database credentials
+
+**Usage:**
+```bash
+./scripts/infra/create-ecs-service-task-definition.sh
+```
+
+**Time:** ~2 minutes
+
+**What Gets Created:**
+- ECS task definition: `startupwebapp-service-task`
+- CloudWatch log group: `/ecs/startupwebapp-service`
+- Container with gunicorn web server configuration
+- Health check: `curl -f http://localhost:8000/health`
+
+**Container Configuration:**
+- Gunicorn workers: 3
+- Timeout: 30 seconds
+- Bind: 0.0.0.0:8000
+- Health check interval: 30s
+- Start period: 60s (allow time for Django to start)
+
+**Secrets (from Secrets Manager):**
+- DATABASE_PASSWORD
+- DATABASE_USER
+- DATABASE_HOST
+- DATABASE_PORT
+
+**Environment Variables:**
+- DJANGO_SETTINGS_MODULE: StartupWebApp.settings_production
+- AWS_REGION: us-east-1
+- DATABASE_NAME: startupwebapp_prod
+
+**Cost:** ~$0.027/hour per task (~$39/month for 2 tasks running 24/7)
+
+**Destroy:**
+```bash
+./scripts/infra/destroy-ecs-service-task-definition.sh
+```
+
 ### show-resources.sh
 
 Displays all created resources:
@@ -688,6 +942,8 @@ Displays all created resources:
 - ECS IAM roles (Phase 5.14)
 - ECS task definition (Phase 5.14)
 - NAT Gateway status (Phase 5.14)
+- Application Load Balancer (Phase 5.15)
+- ACM Certificate (Phase 5.15)
 - Cost estimate
 - Quick links to AWS Console
 
@@ -1095,7 +1351,7 @@ aws rds restore-db-instance-from-db-snapshot \
 
 ## Next Steps After Infrastructure Deployment
 
-**Status**: Phase 5.13 complete (RDS infrastructure). Phase 5.14 in progress (ECS/CI/CD).
+**Status**: Phase 5.13 and 5.14 complete. Phase 5.15 in progress (Steps 1-5 complete).
 
 ### Phase 5.13 Complete - RDS Infrastructure (7/7 steps)
 
@@ -1108,63 +1364,37 @@ All infrastructure destroy/create cycles have been validated:
 - ✅ Databases: 3 multi-tenant databases created
 - ✅ Monitoring: create → destroy → create (tested)
 
-**Time Investment**: ~7 hours total for Phase 5.13 infrastructure deployment
+### Phase 5.14 Complete - ECS/CI/CD Infrastructure (8/8 steps)
 
-### Phase 5.14 In Progress - ECS/CI/CD Infrastructure
+All ECS infrastructure deployed and tested:
+- ✅ Multi-Stage Dockerfile (development + production targets)
+- ✅ ECR Repository: startupwebapp-backend
+- ✅ ECS Cluster: startupwebapp-cluster (Fargate)
+- ✅ IAM Roles: task execution + task roles
+- ✅ Task Definition: startupwebapp-migration-task
+- ✅ GitHub Actions: CI/CD workflow for migrations
+- ✅ NAT Gateway: ECS internet access enabled
+- ✅ Migrations: All 3 databases migrated via pipeline
+
+### Phase 5.15 In Progress - Production Deployment (Steps 1-5 Complete)
 
 **Completed:**
-1. ✅ **Step 1: Multi-Stage Dockerfile** (November 23, 2025)
-   - Development image: 1.69 GB with test dependencies
-   - Production image: 692 MB (59% smaller)
-   - See `Dockerfile` in repository root
+1. ✅ **Application Load Balancer** - ALB with HTTP redirect to HTTPS
+2. ✅ **ACM Certificate** - Wildcard cert for *.mosaicmeshai.com (issued)
+3. ✅ **HTTPS Listener** - TLS 1.2/1.3 termination on ALB
+4. ✅ **DNS Configuration** - startupwebapp-api.mosaicmeshai.com → ALB
+5. ✅ **Service Task Definition** - Gunicorn web server task (0.5 vCPU, 1 GB)
 
-2. 🚧 **Step 2: AWS ECR Repository** (Scripts ready - November 24, 2025)
-   - Run: `./scripts/infra/create-ecr.sh`
-   - Creates Docker image registry in AWS
-   - ~2 minutes, ~$0.10-$0.20/month
+**Next Steps:**
+6. 🚧 **Create ECS Service** - Deploy 2 Fargate tasks across 2 AZs
+7. **Configure Auto-Scaling** - Scale 2-10 tasks based on CPU/memory
+8. **Setup S3 + CloudFront** - Frontend static hosting
+9. **Add /health endpoint** - Django health check for ALB
+10. **Production deployment workflow** - GitHub Actions for service deploys
+11. **Django production settings** - Finalize settings_production.py
+12. **Verification** - End-to-end testing
 
-**Remaining Steps:**
-3. Create ECS Fargate cluster
-4. Create IAM roles for ECS tasks
-5. Create ECS task definition for migrations
-6. Set up GitHub Actions CI/CD workflow
-7. Configure GitHub secrets (AWS credentials)
-8. Run migrations via pipeline on all 3 databases
-9. Verification and documentation
-
-**Estimated Time Remaining**: ~5-6 hours
-
-### Manual Steps After Phase 5.14
-
-Once Phase 5.14 is complete, you can:
-
-1. **Test migrations locally against RDS:**
-   ```bash
-   export DATABASE_NAME=startupwebapp_prod
-   python manage.py migrate
-   ```
-
-2. **Create superuser:**
-   ```bash
-   python manage.py createsuperuser
-   ```
-
-3. **Build and push Docker images:**
-   ```bash
-   docker build --target production -t startupwebapp-backend:latest .
-   docker push <ECR_REPOSITORY_URI>:latest
-   ```
-
-4. **Trigger GitHub Actions workflow** to run migrations via ECS
-
-### After Phase 5.14
-
-**Phase 5.15: Full Production Deployment**
-- Long-running ECS service (not just migration tasks)
-- Application Load Balancer with HTTPS
-- Auto-scaling policies (2-10 tasks)
-- Frontend deployment (S3 + CloudFront)
-- Blue-green deployments
+### After Phase 5.15
 
 **Phase 5.16: Production Hardening**
 - AWS WAF for security
@@ -1189,7 +1419,7 @@ For issues or questions:
 
 ---
 
-**Last Updated:** November 19, 2025
-**Version:** 2.0 - Infrastructure Deployed
+**Last Updated:** November 28, 2025
+**Version:** 3.1 - Phase 5.15 Steps 1-5 Complete
 **Author:** Infrastructure as Code Scripts
-**Status:** Phase 7 Complete - 5/7 Steps Deployed
+**Status:** Phase 5.14 Complete, Phase 5.15 Step 6 (ECS Service) Next

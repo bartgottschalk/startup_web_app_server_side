@@ -1,9 +1,9 @@
 # Phase 5.15: Full Production Deployment - ECS Service, ALB, Auto-Scaling
 
-**Date**: November 26, 2025 (Planning) | November 27, 2025 (Discussions Complete)
-**Status**: 🚀 Ready to Begin - Discussions Complete
-**Branch**: `feature/phase-5-15-production-deployment` (created)
-**Version**: 1.1 (Implementation Ready)
+**Date**: November 26, 2025 (Planning) | November 27-28, 2025 (Implementation)
+**Status**: 🚧 In Progress - Steps 1-5 Complete, Step 6 Next
+**Branch**: `feature/phase-5-15-production-deployment`
+**Version**: 1.2 (Implementation In Progress)
 **Priority**: HIGH - Production deployment
 
 ## Executive Summary
@@ -140,98 +140,107 @@ Phase 5.15 deploys the full StartupWebApp application to production using AWS EC
 
 ### Estimated Timeline: 9-10 hours (implementation only, see full timeline at end)
 
-### Step 1: Create Application Load Balancer (ALB) ⏱️ 60 minutes
+---
+
+### Step 1: Create Application Load Balancer (ALB) ✅ COMPLETE (November 27, 2025)
 
 **Goal**: Create ALB in public subnets to handle HTTPS traffic
 
-**Tasks**:
-1. Create infrastructure script: `scripts/infra/create-alb.sh`
-2. Create ALB in public subnets (both AZs for high availability)
-3. Create HTTPS listener (port 443)
-4. Create HTTP listener (port 80) → redirect to HTTPS
-5. Create target group for ECS service
-6. Configure health check: `/health` endpoint
-7. Update security groups:
-   - ALB SG: Allow HTTPS (443) from internet (0.0.0.0/0)
-   - ALB SG: Allow HTTP (80) from internet (redirect to HTTPS)
-   - Backend SG: Allow port 8000 from ALB SG only
-8. Create destroy script: `scripts/infra/destroy-alb.sh`
-9. Test: Create → verify → destroy → recreate
+**Completed**:
+- ✅ Created `scripts/infra/create-alb.sh` and `destroy-alb.sh`
+- ✅ ALB created in public subnets (both AZs)
+- ✅ HTTP listener (port 80) → redirect to HTTPS
+- ✅ Target group created for ECS service (port 8000, health check `/health`)
+- ✅ Security groups configured (ALB SG, Backend SG updated)
+- ✅ Full create → destroy → recreate cycle tested
 
 **Resources Created**:
-- ALB: `startupwebapp-alb`
+- ALB: `startupwebapp-alb` (DNS: startupwebapp-alb-978036304.us-east-1.elb.amazonaws.com)
 - Target Group: `startupwebapp-tg`
-- ALB Security Group: `startupwebapp-alb-sg`
-- Listeners: HTTPS (443), HTTP (80)
+- ALB Security Group: `sg-07bb8f82ec378f6d4`
+- HTTP Listener: Port 80 → redirect to HTTPS
 
 **Cost**: ~$16/month (ALB) + ~$0.008/LCU-hour
 
 ---
 
-### Step 2: Request ACM Certificate ⏱️ 30 minutes
+### Step 2: Request ACM Certificate ✅ COMPLETE (November 27, 2025)
 
 **Goal**: Get free SSL/TLS certificate for custom domain
 
-**Tasks**:
-1. Create infrastructure script: `scripts/infra/create-acm-certificate.sh`
-2. Request certificate for: `*.mosaicmeshai.com` (wildcard)
-3. Choose DNS validation (manual CNAME in Namecheap)
-4. Wait for validation (5-30 minutes)
-5. Document certificate ARN in aws-resources.env
-6. Associate certificate with ALB HTTPS listener
+**Completed**:
+- ✅ Created `scripts/infra/create-acm-certificate.sh` and `destroy-acm-certificate.sh`
+- ✅ Requested wildcard certificate: `*.mosaicmeshai.com`
+- ✅ DNS validation CNAME added to Namecheap
+- ✅ Certificate status: ISSUED
 
 **Resources Created**:
-- ACM Certificate: `*.mosaicmeshai.com`
+- ACM Certificate: `*.mosaicmeshai.com` (ARN: arn:aws:acm:us-east-1:853463362083:certificate/51913dd1-b907-49cd-bd0e-4b04218c4d30)
 
 **Cost**: $0 (ACM certificates are free)
 
-**Note**: DNS managed via Namecheap (not Route 53). ACM validation CNAME record must be added to Namecheap manually.
+---
+
+### Step 3: Create HTTPS Listener ✅ COMPLETE (November 28, 2025)
+
+**Goal**: Add HTTPS listener to ALB with TLS termination
+
+**Completed**:
+- ✅ Created `scripts/infra/create-alb-https-listener.sh` and `destroy-alb-https-listener.sh`
+- ✅ HTTPS listener on port 443 with ACM certificate
+- ✅ SSL Policy: ELBSecurityPolicy-TLS13-1-2-2021-06 (TLS 1.2/1.3)
+- ✅ Routes to target group on port 8000
+- ✅ Full destroy → recreate cycle tested
+
+**Resources Created**:
+- HTTPS Listener: Port 443 with TLS termination
+
+**Cost**: Included in ALB cost
 
 ---
 
-### Step 3: Configure Namecheap DNS ⏱️ 30 minutes
+### Step 4: Configure Namecheap DNS ✅ COMPLETE (November 28, 2025)
 
 **Goal**: Point custom subdomains to AWS resources
 
-**Tasks**:
-1. Get ALB DNS name from AWS (after ALB created)
-2. In Namecheap dashboard for mosaicmeshai.com:
-   - Add CNAME: `startupwebapp-api` → ALB DNS name
-   - Add CNAME: `startupwebapp` → CloudFront distribution domain
-   - Add ACM validation CNAME (from Step 2)
-3. Test DNS propagation: `dig startupwebapp-api.mosaicmeshai.com`
-4. Verify HTTPS: `curl https://startupwebapp-api.mosaicmeshai.com/health`
+**Completed**:
+- ✅ Added CNAME: `startupwebapp-api` → `startupwebapp-alb-978036304.us-east-1.elb.amazonaws.com`
+- ✅ TTL: Automatic
+- ✅ Verified via nslookup: `startupwebapp-api.mosaicmeshai.com` resolves to ALB
 
 **Resources Created**:
-- CNAME records in Namecheap (no AWS resources)
+- CNAME record in Namecheap (no AWS resources)
 
 **Cost**: $0 (no AWS charges for DNS queries to Namecheap)
 
+**Note**: CloudFront CNAME (`startupwebapp` → CloudFront) will be added in Step 7.
+
 ---
 
-### Step 4: Create ECS Service Task Definition ⏱️ 45 minutes
+### Step 5: Create ECS Service Task Definition ✅ COMPLETE (November 28, 2025)
 
 **Goal**: Define long-running service task (not migration task)
 
-**Tasks**:
-1. Create infrastructure script: `scripts/infra/create-ecs-service-task-definition.sh`
-2. Base on existing migration task definition
-3. Update command: `gunicorn StartupWebApp.wsgi:application --bind 0.0.0.0:8000 --workers 3`
-4. Update resources: 0.5 vCPU, 1 GB memory (more than migration task)
-5. Update port mappings: containerPort 8000
-6. Keep Secrets Manager integration
-7. Add environment variables: DJANGO_SETTINGS_MODULE, DATABASE_NAME
-8. Register task definition family: `startupwebapp-service-task`
-9. Create destroy script: `scripts/infra/destroy-ecs-service-task-definition.sh`
+**Completed**:
+- ✅ Created `scripts/infra/create-ecs-service-task-definition.sh` and `destroy-ecs-service-task-definition.sh`
+- ✅ Task family: `startupwebapp-service-task`
+- ✅ Command: `gunicorn StartupWebApp.wsgi:application --workers 3 --timeout 30 --bind 0.0.0.0:8000`
+- ✅ Resources: 0.5 vCPU, 1 GB memory
+- ✅ Port mappings: containerPort 8000
+- ✅ Secrets Manager integration (DATABASE_PASSWORD, DATABASE_USER, DATABASE_HOST, DATABASE_PORT)
+- ✅ Health check: `curl -f http://localhost:8000/health`
+- ✅ CloudWatch log group: `/ecs/startupwebapp-service`
+- ✅ Full destroy → recreate cycle tested
 
 **Resources Created**:
-- Task Definition: `startupwebapp-service-task:1`
+- Task Definition: `startupwebapp-service-task:2`
+- CloudWatch Log Group: `/ecs/startupwebapp-service`
 
 **Cost**: $0 (task definition free; tasks cost ~$0.027/hour)
 
 ---
 
-### Step 5: Create ECS Service ⏱️ 60 minutes
+### Step 6: Create ECS Service 🚧 NEXT
 
 **Goal**: Deploy long-running service with 2 tasks across 2 AZs
 
@@ -868,8 +877,8 @@ After Phase 5.15, the next phase will focus on:
 
 ---
 
-**Document Status**: 🚀 Ready for Implementation - All Discussions Complete
+**Document Status**: 🚧 Implementation In Progress - Steps 1-5 Complete
 **Author**: Claude Code (AI Assistant) & Bart Gottschalk
-**Last Updated**: November 27, 2025
-**Version**: 1.1 (Implementation Ready)
-**Next Step**: Begin Step 1 - Create Application Load Balancer (ALB)
+**Last Updated**: November 28, 2025
+**Version**: 1.2 (Implementation In Progress)
+**Next Step**: Step 6 - Create ECS Service

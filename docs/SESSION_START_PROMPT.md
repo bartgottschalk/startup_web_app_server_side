@@ -27,25 +27,35 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ## Current State
 
-**Project Status:** ✅ Phase 5.14 Complete - ECS Infrastructure, CI/CD, and RDS Migrations
+**Project Status:** 🚧 Phase 5.15 In Progress - Steps 1-5 Complete, Step 6 Next
 
-### Recent Completion: Phase 5.14 (November 23-26, 2025)
+### Current Work: Phase 5.15 (November 27-28, 2025)
 
-**What Was Built:**
+**What's Been Built (Steps 1-5):**
+- Application Load Balancer with HTTP→HTTPS redirect
+- ACM wildcard certificate for `*.mosaicmeshai.com` (issued)
+- HTTPS listener with TLS 1.2/1.3 termination
+- DNS CNAME: `startupwebapp-api.mosaicmeshai.com` → ALB
+- ECS Service Task Definition (gunicorn, 0.5 vCPU, 1GB)
+
+**Next Step (Step 6):**
+- Create ECS Service - Deploy 2 Fargate tasks across 2 AZs
+
+**Key Results:**
+- ✅ All 740 tests passing in CI
+- ✅ HTTPS endpoint ready: `https://startupwebapp-api.mosaicmeshai.com`
+- ✅ Infrastructure cost: ~$84/month (base $68 + ALB $16)
+
+**See detailed documentation:** `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
+
+### Previous: Phase 5.14 Complete (November 23-26, 2025)
+
 - Multi-stage Dockerfile (development + production, 59% size reduction)
 - AWS ECR repository with image scanning
 - ECS Fargate cluster with IAM roles
 - GitHub Actions CI/CD pipeline (test → build → push → migrate)
 - NAT Gateway for private subnet internet access
 - Multi-tenant RDS migrations (57 tables × 3 databases)
-
-**Key Results:**
-- ✅ All 740 tests passing in CI
-- ✅ All 3 databases operational (startupwebapp_prod, healthtech_experiment, fintech_experiment)
-- ✅ Zero linting errors, zero security vulnerabilities
-- ✅ Infrastructure cost: $68/month
-
-**See detailed documentation:** `docs/technical-notes/2025-11-23-phase-5-14-ecs-cicd-migrations.md`
 
 ### Other Completed Phases
 
@@ -65,7 +75,7 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ### Current Branch
 
-📍 **master** (latest: afba202 - Phase 5.14 complete)
+📍 **feature/phase-5-15-production-deployment** (Phase 5.15 Steps 1-5 complete)
 
 **For detailed history**, see: `docs/PROJECT_HISTORY.md`
 
@@ -162,10 +172,13 @@ docker-compose exec -d backend python manage.py runserver 0.0.0.0:8000
 - Bastion: i-0d8d746dd8059de2c (connect: `aws ssm start-session --target i-0d8d746dd8059de2c`)
 - ECS Cluster: startupwebapp-cluster (Fargate)
 - ECR Repository: startupwebapp-backend (URI: 853463362083.dkr.ecr.us-east-1.amazonaws.com/startupwebapp-backend)
+- ALB: startupwebapp-alb (DNS: startupwebapp-alb-978036304.us-east-1.elb.amazonaws.com)
+- ACM Certificate: *.mosaicmeshai.com (issued)
+- DNS: startupwebapp-api.mosaicmeshai.com → ALB
 - Secrets: rds/startupwebapp/multi-tenant/master
 - Monitoring: CloudWatch dashboard + 4 alarms
 
-**Cost**: $68/month running ($62/month with bastion stopped)
+**Cost**: ~$84/month running (~$78/month with bastion stopped)
 
 ### Documentation Requirements
 
@@ -206,8 +219,50 @@ Every commit MUST include documentation updates:
 ## 🚧 Phase 5.15 IN PROGRESS - Production Deployment
 
 **Branch**: `feature/phase-5-15-production-deployment`
-**Status**: Implementation in progress
+**Status**: Steps 1-5 Complete, Step 6 Next
 **Goal**: Deploy full-stack application to production with continuous deployment
+
+### Current Implementation Status (November 28, 2025)
+
+**✅ Steps 1-5 Complete:**
+1. ✅ **Application Load Balancer** - `startupwebapp-alb` created with HTTP→HTTPS redirect
+2. ✅ **ACM Certificate** - `*.mosaicmeshai.com` wildcard certificate issued
+3. ✅ **HTTPS Listener** - TLS 1.2/1.3 termination on ALB port 443
+4. ✅ **DNS Configuration** - `startupwebapp-api.mosaicmeshai.com` CNAME → ALB
+5. ✅ **Service Task Definition** - `startupwebapp-service-task` (0.5 vCPU, 1GB, gunicorn)
+
+**🚧 Step 6 Next: Create ECS Service**
+- Deploy 2 Fargate tasks across 2 AZs for high availability
+- Connect to ALB target group
+- Script: `./scripts/infra/create-ecs-service.sh` (to be created)
+
+**Remaining Steps (7-12):**
+7. Configure Auto-Scaling (2-10 tasks based on CPU/memory)
+8. Setup S3 + CloudFront (frontend static hosting)
+9. Add `/health` endpoint (Django health check for ALB)
+10. Production deployment workflow (GitHub Actions for service deploys)
+11. Django production settings (finalize settings_production.py)
+12. Verification and documentation
+
+### Infrastructure Scripts Created (Phase 5.15)
+
+```bash
+# Step 1: ALB
+./scripts/infra/create-alb.sh
+./scripts/infra/destroy-alb.sh
+
+# Step 2: ACM Certificate
+./scripts/infra/create-acm-certificate.sh
+./scripts/infra/destroy-acm-certificate.sh
+
+# Step 3: HTTPS Listener
+./scripts/infra/create-alb-https-listener.sh
+./scripts/infra/destroy-alb-https-listener.sh
+
+# Step 5: Service Task Definition
+./scripts/infra/create-ecs-service-task-definition.sh
+./scripts/infra/destroy-ecs-service-task-definition.sh
+```
 
 ### Production Architecture Decisions
 
@@ -215,7 +270,7 @@ Every commit MUST include documentation updates:
 - **Backend API**: `startupwebapp-api.mosaicmeshai.com` (ALB → ECS Fargate)
 - **Frontend**: `startupwebapp.mosaicmeshai.com` (CloudFront → S3)
 - **DNS**: Managed via Namecheap (not Route 53)
-- **SSL**: ACM wildcard certificate `*.mosaicmeshai.com`
+- **SSL**: ACM wildcard certificate `*.mosaicmeshai.com` (ISSUED)
 - **Pattern for forks**: `{fork}-api.mosaicmeshai.com` / `{fork}.mosaicmeshai.com`
 
 **Deployment Strategy:**
@@ -254,36 +309,6 @@ Every commit MUST include documentation updates:
 
 **For frontend-only changes:** Manual trigger of frontend deployment workflow
 
-### Current Implementation Status
-
-**Planning**: ✅ Complete (all architectural decisions documented)
-**Discussions**: ✅ Complete (November 27, 2025 - cost optimization and automation decisions made)
-**Implementation**: 🚀 Ready to begin Step 1
-
-### Pre-Implementation Discussions Complete ✅ (November 27, 2025)
-
-**Cost Decision**: Pragmatic approach - Keep current architecture ($122-154/month)
-- Bastion stopped when not needed (saves $6/month)
-- Keep NAT Gateway, 2 ECS tasks for HA, on-demand pricing
-- Defer optimizations (VPC Endpoints, Reserved Instances) to Phase 5.16
-
-**Automation Decision**: Pragmatic automation - Automate where it matters
-- Keep bash scripts (consistent with Phase 5.14)
-- Manual DNS/ACM (infrequent, 5-10 minutes each)
-- Add rollback workflow (manual trigger, automated execution)
-- No CloudFront invalidation needed (versioning strategy already optimal)
-
-**Next**: Begin Step 1 - Create Application Load Balancer (ALB)
-
-### Implementation Steps Summary
-
-Follow the 11 steps in the technical note:
-1-7. Infrastructure (ALB, ACM, DNS, ECS, S3+CloudFront)
-8. Add `/health` endpoint (for ALB health checks)
-9-11. Workflows, Django settings, verification
-
-**Note**: `/health` endpoint (Step 8) can be developed/tested locally before deployment
-
 ### Technical Details
 
 See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
@@ -292,7 +317,18 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
 ## Next Steps
 
-**Current Task**: Implementing Phase 5.15 (see branch `feature/phase-5-15-production-deployment`)
+**Current Task**: Phase 5.15 Step 6 - Create ECS Service
+- Script to create: `./scripts/infra/create-ecs-service.sh`
+- Deploys 2 Fargate tasks across 2 AZs
+- Connects to ALB target group for load balancing
+
+**Remaining Phase 5.15 Steps (7-12):**
+- Step 7: Configure Auto-Scaling
+- Step 8: Setup S3 + CloudFront (frontend)
+- Step 9: Add `/health` endpoint
+- Step 10: Production deployment workflow
+- Step 11: Django production settings
+- Step 12: Verification
 
 **After Phase 5.15:**
 - **Phase 5.16**: Production Hardening (WAF, enhanced monitoring, load testing)

@@ -810,12 +810,93 @@ See [Phase 5.14 Technical Note](technical-notes/2025-11-23-phase-5-14-ecs-cicd-m
 
 ---
 
-#### Phase 5.15: Full Production Deployment (Planned)
-- Deploy long-running ECS service (not just one-time tasks)
-- Application Load Balancer with HTTPS
-- Auto-scaling policies
-- Frontend deployment (S3 + CloudFront)
-- Enhanced monitoring and observability
+#### Phase 5.15: Full Production Deployment (In Progress - November 27-28, 2025)
+
+**Status**: Steps 1-5 Complete, Step 6 Next
+**Branch**: `feature/phase-5-15-production-deployment`
+
+**Step 1: Application Load Balancer (ALB)** ✅ (November 27, 2025)
+- ✅ Created `scripts/infra/create-alb.sh` and `destroy-alb.sh`
+- ✅ ALB Security Group: `startupwebapp-alb-sg` (allows HTTP/HTTPS from internet)
+- ✅ Target Group: `startupwebapp-tg` (port 8000, health check `/health`)
+- ✅ Application Load Balancer: `startupwebapp-alb` (internet-facing)
+- ✅ HTTP Listener: Port 80 → redirect to HTTPS (HTTP 301)
+- ✅ Backend Security Group updated: Allow port 8000 from ALB
+- ✅ Cost: ~$16/month (ALB fixed) + traffic-based charges
+
+**Step 2: ACM Certificate** ✅ (November 27, 2025)
+- ✅ Created `scripts/infra/create-acm-certificate.sh` and `destroy-acm-certificate.sh`
+- ✅ Requested wildcard certificate: `*.mosaicmeshai.com`
+- ✅ DNS validation via CNAME record in Namecheap
+- ✅ Certificate status: ISSUED
+- ✅ Cost: $0 (ACM certificates are free for AWS services)
+
+**Step 3: HTTPS Listener** ✅ (November 28, 2025)
+- ✅ Created `scripts/infra/create-alb-https-listener.sh` and `destroy-alb-https-listener.sh`
+- ✅ HTTPS Listener on port 443 with TLS 1.2/1.3 termination
+- ✅ SSL Policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+- ✅ Routes to target group on port 8000
+- ✅ Full destroy/recreate cycle tested successfully
+
+**Step 4: DNS Configuration** ✅ (November 28, 2025)
+- ✅ Configured Namecheap CNAME: `startupwebapp-api` → ALB DNS name
+- ✅ TTL: Automatic
+- ✅ Verified via nslookup: `startupwebapp-api.mosaicmeshai.com` resolves to ALB
+
+**Step 5: ECS Service Task Definition** ✅ (November 28, 2025)
+- ✅ Created `scripts/infra/create-ecs-service-task-definition.sh` and `destroy-ecs-service-task-definition.sh`
+- ✅ Task family: `startupwebapp-service-task`
+- ✅ Configuration: 0.5 vCPU, 1 GB memory, port 8000
+- ✅ Command: gunicorn with 3 workers, 30s timeout
+- ✅ Health check: `curl -f http://localhost:8000/health`
+- ✅ Secrets from AWS Secrets Manager (DATABASE_PASSWORD, DATABASE_USER, DATABASE_HOST, DATABASE_PORT)
+- ✅ CloudWatch log group: `/ecs/startupwebapp-service`
+- ✅ Full destroy/recreate cycle tested successfully
+- ✅ Cost: ~$0.027/hour per task (~$39/month for 2 tasks)
+
+**Files Created (Phase 5.15 Steps 1-5)**:
+- `scripts/infra/create-alb.sh` - ALB, target group, HTTP listener, security groups
+- `scripts/infra/destroy-alb.sh` - Clean teardown of ALB resources
+- `scripts/infra/create-acm-certificate.sh` - Request ACM certificate with DNS validation
+- `scripts/infra/destroy-acm-certificate.sh` - Delete ACM certificate
+- `scripts/infra/create-alb-https-listener.sh` - HTTPS listener with TLS termination
+- `scripts/infra/destroy-alb-https-listener.sh` - Remove HTTPS listener
+- `scripts/infra/create-ecs-service-task-definition.sh` - Service task definition for gunicorn
+- `scripts/infra/destroy-ecs-service-task-definition.sh` - Deregister service task definition
+
+**Files Modified**:
+- `scripts/infra/aws-resources.env.template` - Added ALB, ACM, service task definition fields
+- `scripts/infra/status.sh` - Added Phase 5.15 status sections
+- `scripts/infra/show-resources.sh` - Added ALB, ACM, service task definition display
+- `scripts/infra/README.md` - Updated with Phase 5.15 progress and new script documentation
+
+**Resources Created**:
+- ALB: `startupwebapp-alb` (DNS: startupwebapp-alb-978036304.us-east-1.elb.amazonaws.com)
+- ALB Security Group: `sg-07bb8f82ec378f6d4`
+- Target Group: `startupwebapp-tg`
+- ACM Certificate: `*.mosaicmeshai.com` (arn:aws:acm:us-east-1:853463362083:certificate/51913dd1-b907-49cd-bd0e-4b04218c4d30)
+- Service Task Definition: `startupwebapp-service-task:2`
+- CloudWatch Log Group: `/ecs/startupwebapp-service`
+
+**Infrastructure Cost Update**:
+- Previous (Phase 5.14): $68/month
+- ALB: +$16/month
+- **Current Total: ~$84/month**
+
+**Step 6: Create ECS Service** 🚧 (Next)
+- Deploy 2 Fargate tasks across 2 AZs for high availability
+- Connect to ALB target group
+- Script to create: `create-ecs-service.sh`
+
+**Remaining Steps (7-12)**:
+- Step 7: Configure Auto-Scaling (2-10 tasks based on CPU/memory)
+- Step 8: Setup S3 + CloudFront (frontend static hosting)
+- Step 9: Add `/health` endpoint (Django health check for ALB)
+- Step 10: Production deployment workflow (GitHub Actions)
+- Step 11: Django production settings (finalize settings_production.py)
+- Step 12: Verification and documentation
+
+See [Technical Note](technical-notes/2025-11-26-phase-5-15-production-deployment.md) for full implementation plan.
 
 #### Phase 5.16: Production Hardening (Future)
 - AWS WAF for security
