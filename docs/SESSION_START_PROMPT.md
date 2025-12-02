@@ -27,28 +27,38 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ## Current State
 
-**Project Status:** 🚧 Phase 5.15 In Progress - Steps 1-6 Scripts Ready, Deploy Next
+**Project Status:** 🚧 Phase 5.15 In Progress - Backend Deployed, Debugging Health Checks
 
-### Current Work: Phase 5.15 (November 27-28, 2025)
+### Current Work: Phase 5.15 (December 2, 2025)
 
-**What's Been Built (Steps 1-5):**
-- Application Load Balancer with HTTP→HTTPS redirect
-- ACM wildcard certificate for `*.mosaicmeshai.com` (issued)
-- HTTPS listener with TLS 1.2/1.3 termination
-- DNS CNAME: `startupwebapp-api.mosaicmeshai.com` → ALB
-- ECS Service Task Definition (gunicorn, 0.5 vCPU, 1GB)
+**What's Working:**
+- ✅ ECS Service deployed with 2/2 tasks running
+- ✅ GitHub Actions `deploy-production.yml` workflow runs successfully (tests → migrate → deploy)
+- ✅ Docker image pushed to ECR with ALLOWED_HOSTS fix
+- ✅ TLS 1.3 working on `https://startupwebapp-api.mosaicmeshai.com`
+- ✅ All 740 tests passing in CI
 
-**Step 6 Scripts Ready (November 28, 2025):**
-- `create-ecs-service.sh` - Creates ECS service with 2 tasks across 2 AZs
-- `destroy-ecs-service.sh` - Graceful teardown of service
+**Current Issues (December 2, 2025):**
+1. **Health endpoint returning 301** - `/health` returns redirect, need to investigate
+   - May need to create `/health` endpoint (Step 9 in plan)
+   - Or may be APPEND_SLASH issue
+2. **FRONTEND_REPO_TOKEN permissions** - Fine-grained PAT needs additional permissions
+   - Error: "Resource not accessible by personal access token"
+   - Need to add **Contents: Read and write** permission (not just Actions)
 
-**Next Action (Step 6):**
-- Run `./scripts/infra/create-ecs-service.sh` to deploy ECS service
+**Recent Fixes Applied:**
+- Fixed `ALLOWED_HOSTS` in `settings_production.py` to accept VPC internal IPs (10.0.x.x) for ALB health checks
+- Fixed flake8 linting errors (import order, blank lines, line length)
+- Fixed workflow conditional logic (deployment now stops if tests fail)
+
+**GitHub Actions Workflows Created:**
+- `.github/workflows/deploy-production.yml` - Auto-deploy on push to master
+- `.github/workflows/rollback-production.yml` - Manual rollback workflow
 
 **Key Results:**
 - ✅ All 740 tests passing in CI
-- ✅ HTTPS endpoint ready: `https://startupwebapp-api.mosaicmeshai.com`
-- ✅ Infrastructure cost: ~$84/month (base $68 + ALB $16)
+- ✅ Backend ECS service running (2 tasks)
+- ✅ Infrastructure cost: ~$123/month (base $68 + ALB $16 + ECS $39)
 
 **See detailed documentation:** `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
@@ -79,7 +89,7 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ### Current Branch
 
-📍 **feature/phase-5-15-production-deployment** (Phase 5.15 Steps 1-5 complete)
+📍 **master** (Phase 5.15 in progress, auto-deploy enabled)
 
 **For detailed history**, see: `docs/PROJECT_HISTORY.md`
 
@@ -222,31 +232,33 @@ Every commit MUST include documentation updates:
 
 ## 🚧 Phase 5.15 IN PROGRESS - Production Deployment
 
-**Branch**: `feature/phase-5-15-production-deployment`
-**Status**: Steps 1-5 Complete, Step 6 Next
+**Branch**: `master` (auto-deploy enabled)
+**Status**: Backend deployed, debugging health checks
 **Goal**: Deploy full-stack application to production with continuous deployment
 
-### Current Implementation Status (November 28, 2025)
+### Current Implementation Status (December 2, 2025)
 
-**✅ Steps 1-5 Complete:**
+**✅ Steps 1-6 Complete:**
 1. ✅ **Application Load Balancer** - `startupwebapp-alb` created with HTTP→HTTPS redirect
 2. ✅ **ACM Certificate** - `*.mosaicmeshai.com` wildcard certificate issued
 3. ✅ **HTTPS Listener** - TLS 1.2/1.3 termination on ALB port 443
 4. ✅ **DNS Configuration** - `startupwebapp-api.mosaicmeshai.com` CNAME → ALB
 5. ✅ **Service Task Definition** - `startupwebapp-service-task` (0.5 vCPU, 1GB, gunicorn)
+6. ✅ **ECS Service** - 2 tasks running across 2 AZs
 
-**🚧 Step 6 Next: Deploy ECS Service**
-- Scripts ready: `create-ecs-service.sh` and `destroy-ecs-service.sh`
-- Deploy 2 Fargate tasks across 2 AZs for high availability
-- Connect to ALB target group
-- Run: `./scripts/infra/create-ecs-service.sh`
+**✅ Step 10 Complete (moved up):**
+- `deploy-production.yml` - Auto-deploy on push to master (tests → migrate → deploy backend → trigger frontend)
+- `rollback-production.yml` - Manual rollback workflow
 
-**Remaining Steps (7-12):**
-7. Configure Auto-Scaling (2-10 tasks based on CPU/memory)
+**🚧 Current Issues to Fix:**
+1. **Health endpoint 301 redirect** - Need to create `/health` endpoint or fix redirect
+2. **FRONTEND_REPO_TOKEN permissions** - Need to add Contents: Read and write to fine-grained PAT
+
+**Remaining Steps:**
+7. Configure Auto-Scaling (1-4 tasks based on CPU/memory)
 8. Setup S3 + CloudFront (frontend static hosting)
-9. Add `/health` endpoint (Django health check for ALB)
-10. Production deployment workflow (GitHub Actions for service deploys)
-11. Django production settings (finalize settings_production.py)
+9. Add `/health` endpoint (Django health check for ALB) - **NEEDED NOW**
+11. Django production settings - mostly done, may need tweaks
 12. Verification and documentation
 
 ### Infrastructure Scripts Created (Phase 5.15)
@@ -326,19 +338,28 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
 ## Next Steps
 
-**Current Task**: Phase 5.15 Step 6 - Deploy ECS Service
-- Scripts ready: `create-ecs-service.sh` and `destroy-ecs-service.sh`
-- Run: `./scripts/infra/create-ecs-service.sh`
-- Deploys 2 Fargate tasks across 2 AZs
-- Connects to ALB target group for load balancing
+**Immediate Tasks:**
 
-**Remaining Phase 5.15 Steps (7-12):**
+1. **Fix `/health` endpoint** - Currently returns 301 redirect
+   - Option A: Create Django `/health` view that returns 200 OK (Step 9)
+   - Option B: Check if existing endpoint exists and fix APPEND_SLASH
+   - ALB health checks need this to pass
+
+2. **Fix FRONTEND_REPO_TOKEN** - Fine-grained PAT needs more permissions
+   - Go to: https://github.com/settings/tokens?type=beta
+   - Edit the token for `startup_web_app_client_side`
+   - Add **Contents: Read and write** permission (in addition to Actions)
+
+3. **Verify ALB target health** - Check if tasks are healthy
+   ```bash
+   aws elbv2 describe-target-health --target-group-arn <TARGET_GROUP_ARN>
+   ```
+
+**Remaining Phase 5.15 Steps:**
 - Step 7: Configure Auto-Scaling
 - Step 8: Setup S3 + CloudFront (frontend)
-- Step 9: Add `/health` endpoint
-- Step 10: Production deployment workflow
-- Step 11: Django production settings
-- Step 12: Verification
+- Step 12: Verification and documentation
+- Update `GITHUB_ACTIONS_GUIDE.md` with new workflows
 
 **After Phase 5.15:**
 - **Phase 5.16**: Production Hardening (WAF, enhanced monitoring, load testing)
