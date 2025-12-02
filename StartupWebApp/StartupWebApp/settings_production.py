@@ -13,9 +13,10 @@ Usage:
     export ALLOWED_HOSTS=www.mosaicmeshai.com
     python manage.py migrate
 """
-import os
 import json
 import logging
+import os
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -110,9 +111,11 @@ else:
 # Allow internal VPC IP addresses for ALB health checks
 # ALB sends health check requests with the task's private IP as the Host header
 # VPC CIDR: 10.0.0.0/16, Private subnets: 10.0.10.0/24 and 10.0.11.0/24
-import re
+
+
 class AllowedHostsWithVPC(list):
     """Custom list that allows VPC internal IPs for health checks"""
+
     def __contains__(self, host):
         # Strip port if present (e.g., '10.0.11.240:8000' -> '10.0.11.240')
         host_without_port = host.split(':')[0] if ':' in host else host
@@ -123,6 +126,7 @@ class AllowedHostsWithVPC(list):
         if re.match(r'^10\.0\.\d{1,3}\.\d{1,3}$', host_without_port):
             return True
         return False
+
 
 ALLOWED_HOSTS = AllowedHostsWithVPC(ALLOWED_HOSTS)
 
