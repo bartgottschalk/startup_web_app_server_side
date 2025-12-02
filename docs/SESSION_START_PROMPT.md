@@ -27,25 +27,39 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ## Current State
 
-**Project Status:** ✅ Phase 5.14 Complete - ECS Infrastructure, CI/CD, and RDS Migrations
+**Project Status:** 🚧 Phase 5.15 In Progress - Steps 1-6 Scripts Ready, Deploy Next
 
-### Recent Completion: Phase 5.14 (November 23-26, 2025)
+### Current Work: Phase 5.15 (November 27-28, 2025)
 
-**What Was Built:**
+**What's Been Built (Steps 1-5):**
+- Application Load Balancer with HTTP→HTTPS redirect
+- ACM wildcard certificate for `*.mosaicmeshai.com` (issued)
+- HTTPS listener with TLS 1.2/1.3 termination
+- DNS CNAME: `startupwebapp-api.mosaicmeshai.com` → ALB
+- ECS Service Task Definition (gunicorn, 0.5 vCPU, 1GB)
+
+**Step 6 Scripts Ready (November 28, 2025):**
+- `create-ecs-service.sh` - Creates ECS service with 2 tasks across 2 AZs
+- `destroy-ecs-service.sh` - Graceful teardown of service
+
+**Next Action (Step 6):**
+- Run `./scripts/infra/create-ecs-service.sh` to deploy ECS service
+
+**Key Results:**
+- ✅ All 740 tests passing in CI
+- ✅ HTTPS endpoint ready: `https://startupwebapp-api.mosaicmeshai.com`
+- ✅ Infrastructure cost: ~$84/month (base $68 + ALB $16)
+
+**See detailed documentation:** `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
+
+### Previous: Phase 5.14 Complete (November 23-26, 2025)
+
 - Multi-stage Dockerfile (development + production, 59% size reduction)
 - AWS ECR repository with image scanning
 - ECS Fargate cluster with IAM roles
 - GitHub Actions CI/CD pipeline (test → build → push → migrate)
 - NAT Gateway for private subnet internet access
 - Multi-tenant RDS migrations (57 tables × 3 databases)
-
-**Key Results:**
-- ✅ All 740 tests passing in CI
-- ✅ All 3 databases operational (startupwebapp_prod, healthtech_experiment, fintech_experiment)
-- ✅ Zero linting errors, zero security vulnerabilities
-- ✅ Infrastructure cost: $68/month
-
-**See detailed documentation:** `docs/technical-notes/2025-11-23-phase-5-14-ecs-cicd-migrations.md`
 
 ### Other Completed Phases
 
@@ -65,25 +79,50 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ### Current Branch
 
-📍 **master** (latest: afba202 - Phase 5.14 complete)
+📍 **feature/phase-5-15-production-deployment** (Phase 5.15 Steps 1-5 complete)
 
 **For detailed history**, see: `docs/PROJECT_HISTORY.md`
+
+## ⚠️ CRITICAL: Auto-Deploy on Master Branch
+
+**🚨 AUTOMATIC DEPLOYMENT TO PRODUCTION IS ENABLED 🚨**
+
+- **Merging to `master` automatically deploys to production** (after Phase 5.15)
+- **ALL work MUST be done in feature/bugfix branches** - NEVER commit directly to master
+- **All 740 tests MUST pass** before merging to master
+- **Breaking production = test failure** - If something breaks in production, the tests need improvement
+- **This is intentional** - Continuous deployment enforces a high bar for test quality
+- **PR review is your last checkpoint** - Review code and test results carefully before merging
+
+**Branch Strategy (MANDATORY):**
+1. Create feature branch: `git checkout -b feature/descriptive-name`
+2. Make changes, commit, push: `git push -u origin feature/descriptive-name`
+3. Create PR and verify all 740 tests pass in GitHub Actions
+4. Review code and test results carefully
+5. Merge to master → **automatic deployment to production**
 
 ## Pre-Session Checklist
 
 Before starting work:
 1. **HUMAN: START DOCKER DESKTOP FIRST!** - Required for docker-compose commands
-2. Verify on master branch with clean working tree
+2. Verify on master branch with clean working tree (then create feature branch immediately)
 3. Read `docs/PROJECT_HISTORY.md` for recent changes
 4. Review relevant technical notes in `docs/technical-notes/`
+5. **Create feature branch before making ANY changes** - Never work directly on master
 
 ## Development Workflow
 
-### Branch Strategy
-- All changes in feature/bugfix branches (never directly on master)
+### Branch Strategy (CRITICAL - Production Auto-Deploy Enabled)
+
+**⚠️ MANDATORY: All changes MUST be in feature/bugfix branches**
+
+- **NEVER commit directly to master** - Merging to master triggers automatic deployment to production
 - Branch naming: `feature/descriptive-name` or `bugfix/descriptive-name`
-- Run full test suite before committing
-- Create PR after pushing, wait for approval before merging
+- Run full test suite (all 740 tests) before committing
+- Verify zero linting errors before committing
+- Create PR after pushing, verify all tests pass in GitHub Actions
+- Review code carefully - PR approval is the last checkpoint before production
+- **After merge to master**: Automatic deployment begins (tests → build → deploy)
 
 ### Testing Requirements
 
@@ -137,10 +176,13 @@ docker-compose exec -d backend python manage.py runserver 0.0.0.0:8000
 - Bastion: i-0d8d746dd8059de2c (connect: `aws ssm start-session --target i-0d8d746dd8059de2c`)
 - ECS Cluster: startupwebapp-cluster (Fargate)
 - ECR Repository: startupwebapp-backend (URI: 853463362083.dkr.ecr.us-east-1.amazonaws.com/startupwebapp-backend)
+- ALB: startupwebapp-alb (DNS: startupwebapp-alb-978036304.us-east-1.elb.amazonaws.com)
+- ACM Certificate: *.mosaicmeshai.com (issued)
+- DNS: startupwebapp-api.mosaicmeshai.com → ALB
 - Secrets: rds/startupwebapp/multi-tenant/master
 - Monitoring: CloudWatch dashboard + 4 alarms
 
-**Cost**: $68/month running ($62/month with bastion stopped)
+**Cost**: ~$84/month running (~$78/month with bastion stopped)
 
 ### Documentation Requirements
 
@@ -178,16 +220,129 @@ Every commit MUST include documentation updates:
 - **Users**: Handle both `Member` and `Prospect` models
 - **Validation**: Use `unittest_utilities.validate_response_is_OK_and_JSON()`
 
+## 🚧 Phase 5.15 IN PROGRESS - Production Deployment
+
+**Branch**: `feature/phase-5-15-production-deployment`
+**Status**: Steps 1-5 Complete, Step 6 Next
+**Goal**: Deploy full-stack application to production with continuous deployment
+
+### Current Implementation Status (November 28, 2025)
+
+**✅ Steps 1-5 Complete:**
+1. ✅ **Application Load Balancer** - `startupwebapp-alb` created with HTTP→HTTPS redirect
+2. ✅ **ACM Certificate** - `*.mosaicmeshai.com` wildcard certificate issued
+3. ✅ **HTTPS Listener** - TLS 1.2/1.3 termination on ALB port 443
+4. ✅ **DNS Configuration** - `startupwebapp-api.mosaicmeshai.com` CNAME → ALB
+5. ✅ **Service Task Definition** - `startupwebapp-service-task` (0.5 vCPU, 1GB, gunicorn)
+
+**🚧 Step 6 Next: Deploy ECS Service**
+- Scripts ready: `create-ecs-service.sh` and `destroy-ecs-service.sh`
+- Deploy 2 Fargate tasks across 2 AZs for high availability
+- Connect to ALB target group
+- Run: `./scripts/infra/create-ecs-service.sh`
+
+**Remaining Steps (7-12):**
+7. Configure Auto-Scaling (2-10 tasks based on CPU/memory)
+8. Setup S3 + CloudFront (frontend static hosting)
+9. Add `/health` endpoint (Django health check for ALB)
+10. Production deployment workflow (GitHub Actions for service deploys)
+11. Django production settings (finalize settings_production.py)
+12. Verification and documentation
+
+### Infrastructure Scripts Created (Phase 5.15)
+
+```bash
+# Step 1: ALB
+./scripts/infra/create-alb.sh
+./scripts/infra/destroy-alb.sh
+
+# Step 2: ACM Certificate
+./scripts/infra/create-acm-certificate.sh
+./scripts/infra/destroy-acm-certificate.sh
+
+# Step 3: HTTPS Listener
+./scripts/infra/create-alb-https-listener.sh
+./scripts/infra/destroy-alb-https-listener.sh
+
+# Step 5: Service Task Definition
+./scripts/infra/create-ecs-service-task-definition.sh
+./scripts/infra/destroy-ecs-service-task-definition.sh
+
+# Step 6: ECS Service
+./scripts/infra/create-ecs-service.sh
+./scripts/infra/destroy-ecs-service.sh
+```
+
+### Production Architecture Decisions
+
+**Domain Configuration:**
+- **Backend API**: `startupwebapp-api.mosaicmeshai.com` (ALB → ECS Fargate)
+- **Frontend**: `startupwebapp.mosaicmeshai.com` (CloudFront → S3)
+- **DNS**: Managed via Namecheap (not Route 53)
+- **SSL**: ACM wildcard certificate `*.mosaicmeshai.com` (ISSUED)
+- **Pattern for forks**: `{fork}-api.mosaicmeshai.com` / `{fork}.mosaicmeshai.com`
+
+**Deployment Strategy:**
+- Backend: Auto-deploy on merge to `master`
+- Frontend: Backend-triggered or manual only (NO auto-deploy on frontend merge)
+- Migrations: Run automatically in deploy workflow (backward compatible only)
+- Default database: `startupwebapp_prod`
+
+### Migration Development Rules (CRITICAL)
+
+**✅ Allowed (Backward Compatible):**
+- ADD COLUMN (new columns, old code ignores them)
+- CREATE TABLE (new tables, old code doesn't use them)
+- ADD INDEX with CONCURRENTLY (no table locks)
+
+**❌ NOT Allowed in Phase 5.15:**
+- DROP COLUMN (breaks old code during rollback)
+- RENAME COLUMN (breaks old code during rollback)
+- ALTER COLUMN TYPE (can break old code)
+
+**Best Practices:**
+- Keep migrations fast (<30 seconds ideally, <5 minutes max)
+- Test migrations on production snapshot before merging PR
+- Use `CREATE INDEX CONCURRENTLY` to avoid table locks
+
+### Coordinated Deployment Workflow
+
+**For changes requiring both backend + frontend updates:**
+
+1. **Develop both PRs** (backend + frontend with same feature name)
+2. **Merge frontend FIRST** to master (does NOT auto-deploy)
+3. **Backend PR runs tests** against frontend master (validates compatibility)
+4. **Merge backend** → auto-deploys both backend + frontend
+
+**For backend-only changes:** Just merge backend (triggers frontend deploy anyway)
+
+**For frontend-only changes:** Manual trigger of frontend deployment workflow
+
+### Technical Details
+
+See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
+
+---
+
 ## Next Steps
 
-**✅ Phase 5.14 COMPLETE** - ECS Infrastructure, GitHub Actions CI/CD, and RDS Migrations
+**Current Task**: Phase 5.15 Step 6 - Deploy ECS Service
+- Scripts ready: `create-ecs-service.sh` and `destroy-ecs-service.sh`
+- Run: `./scripts/infra/create-ecs-service.sh`
+- Deploys 2 Fargate tasks across 2 AZs
+- Connects to ALB target group for load balancing
 
-**Next Phase Options:**
-- **Phase 5.15**: Full Production Deployment (ECS service, ALB, auto-scaling, domain/SSL)
+**Remaining Phase 5.15 Steps (7-12):**
+- Step 7: Configure Auto-Scaling
+- Step 8: Setup S3 + CloudFront (frontend)
+- Step 9: Add `/health` endpoint
+- Step 10: Production deployment workflow
+- Step 11: Django production settings
+- Step 12: Verification
+
+**After Phase 5.15:**
 - **Phase 5.16**: Production Hardening (WAF, enhanced monitoring, load testing)
 - **Other Work**: Stripe library upgrade, Selenium 4 upgrade, feature development
-
-**For Phase 5.15 details**, see: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
 ## Key Documentation
 

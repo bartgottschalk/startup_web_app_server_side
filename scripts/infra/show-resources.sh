@@ -263,6 +263,138 @@ else
 fi
 echo ""
 
+# Application Load Balancer (Phase 5.15)
+echo -e "${GREEN}Application Load Balancer (Phase 5.15):${NC}"
+if [ -n "${ALB_ARN:-}" ]; then
+    # Get ALB status
+    ALB_STATE=$(aws elbv2 describe-load-balancers \
+        --load-balancer-arns "${ALB_ARN}" \
+        --region "${AWS_REGION}" \
+        --query 'LoadBalancers[0].State.Code' \
+        --output text 2>/dev/null || echo "unknown")
+
+    echo -e "  ${GREEN}✓${NC} ALB DNS:              ${ALB_DNS_NAME:-unknown}"
+    echo -e "  ${GREEN}✓${NC} ALB ARN:              ${ALB_ARN}"
+    echo -e "  ${GREEN}✓${NC} Status:               ${ALB_STATE}"
+    echo -e "  ${GREEN}✓${NC} ALB Security Group:   ${ALB_SECURITY_GROUP_ID:-unknown}"
+    echo -e "  ${GREEN}✓${NC} Target Group:         ${TARGET_GROUP_ARN:-unknown}"
+    echo -e "  ${GREEN}✓${NC} HTTP Listener:        ${HTTP_LISTENER_ARN:-unknown}"
+    if [ -n "${HTTPS_LISTENER_ARN:-}" ]; then
+        echo -e "  ${GREEN}✓${NC} HTTPS Listener:       ${HTTPS_LISTENER_ARN}"
+    else
+        echo -e "  ${YELLOW}⚠${NC} HTTPS Listener:       Not configured (needs ACM certificate)"
+    fi
+else
+    echo -e "  ${YELLOW}⚠${NC} ALB not created (run: ./scripts/infra/create-alb.sh)"
+fi
+echo ""
+
+# ACM Certificate (Phase 5.15)
+echo -e "${GREEN}ACM Certificate (Phase 5.15):${NC}"
+if [ -n "${ACM_CERTIFICATE_ARN:-}" ]; then
+    # Get certificate status
+    CERT_STATUS=$(aws acm describe-certificate \
+        --certificate-arn "${ACM_CERTIFICATE_ARN}" \
+        --region "${AWS_REGION}" \
+        --query 'Certificate.Status' \
+        --output text 2>/dev/null || echo "unknown")
+
+    CERT_DOMAIN=$(aws acm describe-certificate \
+        --certificate-arn "${ACM_CERTIFICATE_ARN}" \
+        --region "${AWS_REGION}" \
+        --query 'Certificate.DomainName' \
+        --output text 2>/dev/null || echo "unknown")
+
+    echo -e "  ${GREEN}✓${NC} Certificate ARN:      ${ACM_CERTIFICATE_ARN}"
+    echo -e "  ${GREEN}✓${NC} Domain:               ${CERT_DOMAIN}"
+    echo -e "  ${GREEN}✓${NC} Status:               ${CERT_STATUS}"
+else
+    echo -e "  ${YELLOW}⚠${NC} ACM Certificate not created (run: ./scripts/infra/create-acm-certificate.sh)"
+fi
+echo ""
+
+# ECS Service Task Definition (Phase 5.15)
+echo -e "${GREEN}ECS Service Task Definition (Phase 5.15):${NC}"
+if [ -n "${ECS_SERVICE_TASK_DEFINITION_ARN:-}" ]; then
+    # Get task definition details
+    SERVICE_TASK_DEF_STATUS=$(aws ecs describe-task-definition \
+        --task-definition "${ECS_SERVICE_TASK_DEFINITION_FAMILY:-startupwebapp-service-task}" \
+        --region "${AWS_REGION}" \
+        --query 'taskDefinition.status' \
+        --output text 2>/dev/null || echo "UNKNOWN")
+
+    SERVICE_TASK_DEF_CPU=$(aws ecs describe-task-definition \
+        --task-definition "${ECS_SERVICE_TASK_DEFINITION_FAMILY:-startupwebapp-service-task}" \
+        --region "${AWS_REGION}" \
+        --query 'taskDefinition.cpu' \
+        --output text 2>/dev/null || echo "unknown")
+
+    SERVICE_TASK_DEF_MEMORY=$(aws ecs describe-task-definition \
+        --task-definition "${ECS_SERVICE_TASK_DEFINITION_FAMILY:-startupwebapp-service-task}" \
+        --region "${AWS_REGION}" \
+        --query 'taskDefinition.memory' \
+        --output text 2>/dev/null || echo "unknown")
+
+    echo -e "  ${GREEN}✓${NC} Family:               ${ECS_SERVICE_TASK_DEFINITION_FAMILY:-startupwebapp-service-task}"
+    echo -e "  ${GREEN}✓${NC} Revision:             ${ECS_SERVICE_TASK_DEFINITION_REVISION:-1}"
+    echo -e "  ${GREEN}✓${NC} ARN:                  ${ECS_SERVICE_TASK_DEFINITION_ARN}"
+    echo -e "  ${GREEN}✓${NC} Status:               ${SERVICE_TASK_DEF_STATUS}"
+    echo -e "  ${GREEN}✓${NC} CPU:                  ${SERVICE_TASK_DEF_CPU} (0.5 vCPU)"
+    echo -e "  ${GREEN}✓${NC} Memory:               ${SERVICE_TASK_DEF_MEMORY} MB"
+    echo -e "  ${GREEN}✓${NC} Log Group:            ${ECS_SERVICE_LOG_GROUP:-/ecs/startupwebapp-service}"
+else
+    echo -e "  ${YELLOW}⚠${NC} Service Task Definition not created (run: ./scripts/infra/create-ecs-service-task-definition.sh)"
+fi
+echo ""
+
+# ECS Service (Phase 5.15)
+echo -e "${GREEN}ECS Service (Phase 5.15):${NC}"
+if [ -n "${ECS_SERVICE_NAME:-}" ]; then
+    # Get service status
+    SERVICE_STATUS=$(aws ecs describe-services \
+        --cluster "${ECS_CLUSTER_NAME:-startupwebapp-cluster}" \
+        --services "${ECS_SERVICE_NAME}" \
+        --region "${AWS_REGION}" \
+        --query 'services[0].{status: status, running: runningCount, desired: desiredCount, pending: pendingCount}' \
+        --output json 2>/dev/null || echo '{}')
+
+    SERVICE_STATE=$(echo "$SERVICE_STATUS" | jq -r '.status // "UNKNOWN"')
+    SERVICE_RUNNING=$(echo "$SERVICE_STATUS" | jq -r '.running // "0"')
+    SERVICE_DESIRED=$(echo "$SERVICE_STATUS" | jq -r '.desired // "0"')
+    SERVICE_PENDING=$(echo "$SERVICE_STATUS" | jq -r '.pending // "0"')
+
+    echo -e "  ${GREEN}✓${NC} Service Name:         ${ECS_SERVICE_NAME}"
+    echo -e "  ${GREEN}✓${NC} Service ARN:          ${ECS_SERVICE_ARN:-unknown}"
+    echo -e "  ${GREEN}✓${NC} Status:               ${SERVICE_STATE}"
+    echo -e "  ${GREEN}✓${NC} Running Tasks:        ${SERVICE_RUNNING}/${SERVICE_DESIRED}"
+    if [ "$SERVICE_PENDING" != "0" ]; then
+        echo -e "  ${YELLOW}⚠${NC} Pending Tasks:        ${SERVICE_PENDING}"
+    fi
+
+    # Get target health
+    if [ -n "${TARGET_GROUP_ARN:-}" ]; then
+        HEALTHY_TARGETS=$(aws elbv2 describe-target-health \
+            --target-group-arn "${TARGET_GROUP_ARN}" \
+            --region "${AWS_REGION}" \
+            --query 'TargetHealthDescriptions[?TargetHealth.State==`healthy`] | length(@)' \
+            --output text 2>/dev/null || echo "0")
+        TOTAL_TARGETS=$(aws elbv2 describe-target-health \
+            --target-group-arn "${TARGET_GROUP_ARN}" \
+            --region "${AWS_REGION}" \
+            --query 'TargetHealthDescriptions | length(@)' \
+            --output text 2>/dev/null || echo "0")
+        echo -e "  ${GREEN}✓${NC} Target Health:        ${HEALTHY_TARGETS}/${TOTAL_TARGETS} healthy"
+    fi
+
+    echo ""
+    echo -e "  ${GREEN}Access URLs:${NC}"
+    echo -e "    HTTPS:              https://startupwebapp-api.mosaicmeshai.com"
+    echo -e "    Health Check:       https://startupwebapp-api.mosaicmeshai.com/health"
+else
+    echo -e "  ${YELLOW}⚠${NC} ECS Service not created (run: ./scripts/infra/create-ecs-service.sh)"
+fi
+echo ""
+
 # Cost Estimate
 echo -e "${GREEN}Estimated Monthly Cost:${NC}"
 TOTAL_COST=0
@@ -297,6 +429,26 @@ fi
 if [ -n "${ECR_REPOSITORY_URI:-}" ]; then
     echo -e "  ECR Storage:          ~\$0.10/month (1-2 images)"
     # ECR cost is negligible, don't add to total
+fi
+if [ -n "${ALB_ARN:-}" ]; then
+    echo -e "  ALB:                  ~\$16/month (+ traffic)"
+    TOTAL_COST=$((TOTAL_COST + 16))
+fi
+if [ -n "${ECS_SERVICE_NAME:-}" ]; then
+    # Get actual running task count for cost estimate
+    SERVICE_RUNNING=$(aws ecs describe-services \
+        --cluster "${ECS_CLUSTER_NAME:-startupwebapp-cluster}" \
+        --services "${ECS_SERVICE_NAME}" \
+        --region "${AWS_REGION}" \
+        --query 'services[0].runningCount' \
+        --output text 2>/dev/null || echo "0")
+    if [ "$SERVICE_RUNNING" != "0" ] && [ "$SERVICE_RUNNING" != "None" ]; then
+        TASK_COST=$((SERVICE_RUNNING * 20))  # ~$20/task/month at 0.5 vCPU, 1GB
+        echo -e "  ECS Service Tasks:    ~\$${TASK_COST}/month (${SERVICE_RUNNING} tasks @ ~\$20/task)"
+        TOTAL_COST=$((TOTAL_COST + TASK_COST))
+    else
+        echo -e "  ECS Service Tasks:    \$0 (no running tasks)"
+    fi
 fi
 if [ $TOTAL_COST -gt 0 ]; then
     echo -e "  ${GREEN}─────────────────────────────${NC}"
@@ -334,6 +486,33 @@ if [ -n "${RDS_ENDPOINT:-}" ] || [ -n "${ECR_REPOSITORY_URI:-}" ]; then
         echo ""
         echo -e "  ECS CloudWatch Logs:"
         echo -e "    https://console.aws.amazon.com/cloudwatch/home?region=${AWS_REGION}#logsV2:log-groups/log-group/${ECS_LOG_GROUP_NAME}"
+        echo ""
+    fi
+
+    if [ -n "${ALB_ARN:-}" ]; then
+        echo -e "  Application Load Balancer:"
+        echo -e "    https://console.aws.amazon.com/ec2/home?region=${AWS_REGION}#LoadBalancers:"
+        echo ""
+        echo -e "  ALB Target Group:"
+        echo -e "    https://console.aws.amazon.com/ec2/home?region=${AWS_REGION}#TargetGroups:"
+        echo ""
+    fi
+
+    if [ -n "${ACM_CERTIFICATE_ARN:-}" ]; then
+        echo -e "  ACM Certificates:"
+        echo -e "    https://console.aws.amazon.com/acm/home?region=${AWS_REGION}#/certificates"
+        echo ""
+    fi
+
+    if [ -n "${ECS_SERVICE_LOG_GROUP:-}" ]; then
+        echo -e "  ECS Service Logs:"
+        echo -e "    https://console.aws.amazon.com/cloudwatch/home?region=${AWS_REGION}#logsV2:log-groups/log-group/${ECS_SERVICE_LOG_GROUP}"
+        echo ""
+    fi
+
+    if [ -n "${ECS_SERVICE_NAME:-}" ]; then
+        echo -e "  ECS Service:"
+        echo -e "    https://console.aws.amazon.com/ecs/home?region=${AWS_REGION}#/clusters/${ECS_CLUSTER_NAME:-startupwebapp-cluster}/services/${ECS_SERVICE_NAME}"
         echo ""
     fi
 fi
