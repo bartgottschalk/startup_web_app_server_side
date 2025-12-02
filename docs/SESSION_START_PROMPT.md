@@ -27,7 +27,7 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ## Current State
 
-**Project Status:** 🚧 Phase 5.15 In Progress - Steps 1-5 Complete, Step 6 Next
+**Project Status:** 🚧 Phase 5.15 In Progress - Steps 1-6 Scripts Ready, Deploy Next
 
 ### Current Work: Phase 5.15 (November 27-28, 2025)
 
@@ -38,8 +38,12 @@ Hi Claude. I want to continue working on these two repositories together:
 - DNS CNAME: `startupwebapp-api.mosaicmeshai.com` → ALB
 - ECS Service Task Definition (gunicorn, 0.5 vCPU, 1GB)
 
-**Next Step (Step 6):**
-- Create ECS Service - Deploy 2 Fargate tasks across 2 AZs
+**Step 6 Scripts Ready (November 28, 2025):**
+- `create-ecs-service.sh` - Creates ECS service with 2 tasks across 2 AZs
+- `destroy-ecs-service.sh` - Graceful teardown of service
+
+**Next Action (Step 6):**
+- Run `./scripts/infra/create-ecs-service.sh` to deploy ECS service
 
 **Key Results:**
 - ✅ All 740 tests passing in CI
@@ -231,10 +235,11 @@ Every commit MUST include documentation updates:
 4. ✅ **DNS Configuration** - `startupwebapp-api.mosaicmeshai.com` CNAME → ALB
 5. ✅ **Service Task Definition** - `startupwebapp-service-task` (0.5 vCPU, 1GB, gunicorn)
 
-**🚧 Step 6 Next: Create ECS Service**
+**🚧 Step 6 Next: Deploy ECS Service**
+- Scripts ready: `create-ecs-service.sh` and `destroy-ecs-service.sh`
 - Deploy 2 Fargate tasks across 2 AZs for high availability
 - Connect to ALB target group
-- Script: `./scripts/infra/create-ecs-service.sh` (to be created)
+- Run: `./scripts/infra/create-ecs-service.sh`
 
 **Remaining Steps (7-12):**
 7. Configure Auto-Scaling (2-10 tasks based on CPU/memory)
@@ -262,6 +267,10 @@ Every commit MUST include documentation updates:
 # Step 5: Service Task Definition
 ./scripts/infra/create-ecs-service-task-definition.sh
 ./scripts/infra/destroy-ecs-service-task-definition.sh
+
+# Step 6: ECS Service
+./scripts/infra/create-ecs-service.sh
+./scripts/infra/destroy-ecs-service.sh
 ```
 
 ### Production Architecture Decisions
@@ -317,8 +326,9 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
 ## Next Steps
 
-**Current Task**: Phase 5.15 Step 6 - Create ECS Service
-- Script to create: `./scripts/infra/create-ecs-service.sh`
+**Current Task**: Phase 5.15 Step 6 - Deploy ECS Service
+- Scripts ready: `create-ecs-service.sh` and `destroy-ecs-service.sh`
+- Run: `./scripts/infra/create-ecs-service.sh`
 - Deploys 2 Fargate tasks across 2 AZs
 - Connects to ALB target group for load balancing
 

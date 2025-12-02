@@ -927,6 +927,82 @@ Creates ECS task definition for the long-running web service (gunicorn):
 ./scripts/infra/destroy-ecs-service-task-definition.sh
 ```
 
+### create-ecs-service.sh (Phase 5.15)
+
+Creates ECS Fargate service that runs the web application continuously:
+- **Service Name**: `startupwebapp-service`
+- **Desired Count**: 2 tasks (one per AZ for high availability)
+- **Launch Type**: Fargate
+- **Network Mode**: awsvpc (each task gets own ENI)
+- **Load Balancer**: Connected to ALB target group
+- **Deployment**: Rolling update with circuit breaker
+
+**Key Features:**
+- **High Availability**: 2 tasks across 2 Availability Zones
+- **Zero-Downtime Deployments**: Rolling update (100% min healthy, 200% max)
+- **Auto-Rollback**: Circuit breaker automatically reverts failed deployments
+- **ECS Exec Enabled**: Debug running containers when needed
+- **Health Check Grace Period**: 120 seconds (allows time for Django startup)
+
+**Prerequisites:**
+- ECS cluster must exist
+- Service task definition must exist
+- ALB and target group must exist
+- HTTPS listener must exist
+
+**Usage:**
+```bash
+./scripts/infra/create-ecs-service.sh
+```
+
+**Time:** ~5 minutes (includes waiting for tasks to stabilize)
+
+**What Gets Created:**
+- ECS Service: `startupwebapp-service`
+- 2 Fargate tasks running across 2 AZs
+- Target group registration for ALB health checks
+
+**Deployment Configuration:**
+- Minimum Healthy Percent: 100% (keep all tasks running during deploy)
+- Maximum Percent: 200% (can double tasks during deploy)
+- Circuit Breaker: Enabled with automatic rollback
+- Health Check Grace: 120 seconds
+
+**Cost:** ~$39/month for 2 tasks (0.5 vCPU + 1 GB each)
+
+**Access URLs:**
+- HTTPS: `https://startupwebapp-api.mosaicmeshai.com`
+- Health Check: `https://startupwebapp-api.mosaicmeshai.com/health`
+
+**Useful Commands:**
+```bash
+# View service status
+aws ecs describe-services --cluster startupwebapp-cluster --services startupwebapp-service
+
+# List running tasks
+aws ecs list-tasks --cluster startupwebapp-cluster --service-name startupwebapp-service
+
+# View logs
+aws logs tail /ecs/startupwebapp-service --follow
+
+# Check target health
+aws elbv2 describe-target-health --target-group-arn <TARGET_GROUP_ARN>
+```
+
+**Destroy:**
+```bash
+./scripts/infra/destroy-ecs-service.sh
+```
+
+This script:
+1. Scales service to 0 tasks (graceful shutdown)
+2. Waits for tasks to stop
+3. Deletes the ECS service
+4. Clears aws-resources.env
+
+**Warning:** After destroying the service, the application will be unavailable.
+The task definition and other infrastructure remain intact for quick recovery.
+
 ### show-resources.sh
 
 Displays all created resources:
@@ -944,7 +1020,9 @@ Displays all created resources:
 - NAT Gateway status (Phase 5.14)
 - Application Load Balancer (Phase 5.15)
 - ACM Certificate (Phase 5.15)
-- Cost estimate
+- ECS Service Task Definition (Phase 5.15)
+- ECS Service (Phase 5.15) with running task count and target health
+- Cost estimate (including ECS tasks)
 - Quick links to AWS Console
 
 **Usage:**

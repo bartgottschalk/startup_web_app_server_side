@@ -1,0 +1,694 @@
+# ============================================================================
+# GitHub Actions Workflow: Deploy to Production
+# ============================================================================
+#
+# PURPOSE:
+# This workflow automates the full production deployment of StartupWebApp.
+# It runs tests, migrations, deploys backend to ECS, and triggers frontend
+# deployment to S3/CloudFront.
+#
+# WORKFLOW OVERVIEW:
+# 1. Automatic trigger on merge to master branch (enforces test quality)
+# 2. Run full test suite (740 tests) including functional tests with frontend
+# 3. Run database migrations on RDS (startupwebapp_prod)
+# 4. Build and push Docker image to ECR
+# 5. Deploy backend to ECS service
+# 6. Trigger frontend deployment via repository_dispatch
+# 7. Verify deployment with health checks
+#
+# COORDINATION STRATEGY:
+# - Frontend merges first (no auto-deploy)
+# - Backend tests validate compatibility (clones frontend master)
+# - Backend merge deploys BOTH backend and frontend atomically
+# - This ensures API and frontend are always in sync
+#
+# REQUIRED GITHUB SECRETS:
+# - AWS_ACCESS_KEY_ID: IAM user access key with ECR/ECS permissions
+# - AWS_SECRET_ACCESS_KEY: IAM user secret access key
+# - FRONTEND_REPO_TOKEN: GitHub PAT with repo scope for triggering frontend workflow
+#
+# TIMEOUT: 20 minutes (handles long migrations)
+#
+# ============================================================================
+
+name: Deploy to Production
+
+# ============================================================================
+# TRIGGER CONFIGURATION
+# ============================================================================
+on:
+  # Automatic trigger on push to master branch
+  push:
+    branches:
+      - master
+    # Only trigger on changes to backend code (not docs, etc.)
+    paths:
+      - 'StartupWebApp/**'
+      - 'Dockerfile'
+      - 'requirements.txt'
+      - '.github/workflows/deploy-production.yml'
+
+  # Manual trigger for re-deployments or hotfixes
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip test suite (use only for urgent hotfixes)'
+        required: false
+        type: boolean
+        default: false
+      skip_migrations:
+        description: 'Skip database migrations'
+        required: false
+        type: boolean
+        default: false
+      skip_frontend:
+        description: 'Skip frontend deployment'
+        required: false
+        type: boolean
+        default: false
+
+# ============================================================================
+# ENVIRONMENT VARIABLES
+# ============================================================================
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: startupwebapp-backend
+  ECS_CLUSTER: startupwebapp-cluster
+  ECS_SERVICE: startupwebapp-service
+  ECS_TASK_DEFINITION: startupwebapp-service-task
+  ECS_MIGRATION_TASK_DEFINITION: startupwebapp-migration-task
+  DB_SECRET_NAME: rds/startupwebapp/multi-tenant/master
+  DATABASE_NAME: startupwebapp_prod
+
+# Global timeout: 20 minutes for entire workflow
+# This allows time for long migrations while preventing runaway jobs
+defaults:
+  run:
+    shell: bash
+
+# ============================================================================
+# JOBS
+# ============================================================================
+
+jobs:
+  # ==========================================================================
+  # JOB 1: Run Tests
+  # ==========================================================================
+  #
+  # PURPOSE: Validate code quality and backend+frontend compatibility
+  # DURATION: ~7-10 minutes
+  #
+  # WHY: Tests run against frontend master branch, validating that the
+  # backend changes work with the latest frontend code (which may have
+  # been merged but not yet deployed).
+  #
+  test:
+    name: Run Test Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Skip if manual trigger with skip_tests=true
+    if: ${{ github.event.inputs.skip_tests != 'true' }}
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: startupwebapp_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create settings_secret.py for CI
+        run: |
+          cat > StartupWebApp/StartupWebApp/settings_secret.py << 'EOF'
+          # CI/CD Test Settings (auto-generated by GitHub Actions)
+          import os
+
+          SECRET_KEY = 'test-secret-key-for-ci-only-not-secure'
+          ALLOWED_HOSTS = ['localhost', 'backend', 'testserver', 'localliveservertestcase.startupwebapp.com', 'localliveservertestcaseapi.startupwebapp.com']
+          SESSION_COOKIE_SECURE = False
+          SESSION_COOKIE_DOMAIN = None
+          CSRF_COOKIE_SECURE = False
+          CSRF_COOKIE_DOMAIN = ".startupwebapp.com"
+          CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://localhost.startupwebapp.com:8080', 'http://testserver', 'http://localliveservertestcase.startupwebapp.com', 'http://localliveservertestcase.startupwebapp.com:8080', 'http://localliveservertestcaseapi.startupwebapp.com', 'http://localliveservertestcaseapi.startupwebapp.com:60767']
+          DEBUG = True
+          ENVIRONMENT_DOMAIN = 'http://localhost'
+          EMAIL_HOST = 'localhost'
+          EMAIL_PORT = 1025
+          EMAIL_USE_TLS = False
+          EMAIL_HOST_USER = ''
+          EMAIL_HOST_PASSWORD = ''
+          EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+          DATABASES = {
+              'default': {
+                  'ENGINE': 'django.db.backends.postgresql',
+                  'NAME': os.environ.get('DATABASE_NAME', 'startupwebapp_test'),
+                  'USER': os.environ.get('DATABASE_USER', 'postgres'),
+                  'PASSWORD': os.environ.get('DATABASE_PASSWORD', 'postgres'),
+                  'HOST': os.environ.get('DATABASE_HOST', 'localhost'),
+                  'PORT': os.environ.get('DATABASE_PORT', '5432'),
+                  'CONN_MAX_AGE': 600,
+              }
+          }
+          STRIPE_SERVER_SECRET_KEY = 'sk_test_ci_placeholder'
+          STRIPE_PUBLISHABLE_SECRET_KEY = 'pk_test_ci_placeholder'
+          STRIPE_LOG_LEVEL = 'debug'
+          CORS_ORIGIN_WHITELIST = ('http://localhost:8080', 'http://localhost.startupwebapp.com:8080', 'http://localliveservertestcase.startupwebapp.com', 'http://localliveservertestcase.startupwebapp.com:8080', 'http://frontend', 'http://testserver')
+          CORS_ALLOW_CREDENTIALS = True
+          EOF
+
+      - name: Run flake8 linting
+        run: |
+          cd StartupWebApp
+          flake8 user order clientevent StartupWebApp --max-line-length=120 --exclude=*/migrations/* --statistics
+
+      - name: Run unit tests
+        env:
+          DATABASE_ENGINE: postgresql
+          DATABASE_NAME: startupwebapp_test
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: postgres
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+        run: |
+          cd StartupWebApp
+          python manage.py test order.tests user.tests clientevent.tests StartupWebApp.tests --parallel=4
+
+      - name: Set up Firefox
+        run: |
+          firefox --version || sudo snap install firefox
+          firefox --version
+
+      - name: Install geckodriver
+        run: |
+          wget https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-linux64.tar.gz
+          tar -xzf geckodriver-v0.33.0-linux64.tar.gz
+          sudo mv geckodriver /usr/local/bin/
+          sudo chmod +x /usr/local/bin/geckodriver
+
+      # Clone frontend master branch - validates backend+frontend compatibility
+      - name: Clone frontend repository
+        run: |
+          cd /tmp
+          git clone https://github.com/bartgottschalk/startup_web_app_client_side.git frontend
+          sudo chown -R www-data:www-data frontend
+          echo "Frontend cloned from master branch"
+
+      - name: Install and configure nginx
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nginx
+          sudo cp nginx.conf /etc/nginx/sites-available/startupwebapp
+          sudo sed -i 's|/usr/share/nginx/html|/tmp/frontend|g' /etc/nginx/sites-available/startupwebapp
+          sudo sed -i 's|listen 80;|listen 8080;|g' /etc/nginx/sites-available/startupwebapp
+          sudo ln -sf /etc/nginx/sites-available/startupwebapp /etc/nginx/sites-enabled/
+          sudo rm -f /etc/nginx/sites-enabled/default
+          sudo nginx -t
+          echo "127.0.0.1    localliveservertestcase.startupwebapp.com" | sudo tee -a /etc/hosts
+          echo "127.0.0.1    localliveservertestcaseapi.startupwebapp.com" | sudo tee -a /etc/hosts
+          sudo systemctl restart nginx
+
+      - name: Run functional tests
+        env:
+          DATABASE_ENGINE: postgresql
+          DATABASE_NAME: startupwebapp_test
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: postgres
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          HEADLESS: "TRUE"
+          CI_ENV: "true"
+        run: |
+          cd StartupWebApp
+          python manage.py test functional_tests
+
+  # ==========================================================================
+  # JOB 2: Run Database Migrations
+  # ==========================================================================
+  #
+  # PURPOSE: Apply pending migrations to production database BEFORE deploying code
+  # DURATION: ~2-5 minutes
+  #
+  # WHY: Migrations must run first so new code has the expected schema.
+  # If migration fails, deployment stops (fail-fast).
+  #
+  migrate:
+    name: Run Database Migrations
+    runs-on: ubuntu-latest
+    needs: test
+    timeout-minutes: 10
+
+    # Skip if tests failed or if manual trigger with skip_migrations=true
+    if: |
+      always() &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
+      github.event.inputs.skip_migrations != 'true'
+
+    outputs:
+      image: ${{ steps.build-image.outputs.image }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            --target production \
+            --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            --tag $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            --file Dockerfile \
+            .
+
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Get migration task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.ECS_MIGRATION_TASK_DEFINITION }} \
+            --query 'taskDefinition' \
+            --output json > task-definition.json
+
+      - name: Update task definition with new image
+        id: update-task-def
+        run: |
+          TASK_DEF=$(cat task-definition.json)
+
+          UPDATED_TASK_DEF=$(echo $TASK_DEF | jq \
+            --arg IMAGE "${{ steps.build-image.outputs.image }}" \
+            --arg DB_NAME "${{ env.DATABASE_NAME }}" \
+            '
+            .containerDefinitions[0].image = $IMAGE |
+            .containerDefinitions[0].environment |= (
+              if any(.[]; .name == "DATABASE_NAME") then
+                map(if .name == "DATABASE_NAME" then .value = $DB_NAME else . end)
+              else
+                . + [{"name": "DATABASE_NAME", "value": $DB_NAME}]
+              end
+            )
+            ')
+
+          CLEAN_TASK_DEF=$(echo $UPDATED_TASK_DEF | jq '
+            del(
+              .taskDefinitionArn,
+              .revision,
+              .status,
+              .requiresAttributes,
+              .compatibilities,
+              .registeredAt,
+              .registeredBy
+            )
+          ')
+
+          echo "$CLEAN_TASK_DEF" > updated-task-definition.json
+
+          TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://updated-task-definition.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+          echo "task-def-arn=$TASK_DEF_ARN" >> $GITHUB_OUTPUT
+
+      - name: Run ECS migration task
+        id: run-task
+        run: |
+          SUBNETS=$(aws ec2 describe-subnets \
+            --filters "Name=tag:Name,Values=startupwebapp-private-subnet-*" \
+            --query 'Subnets[*].SubnetId' \
+            --output text | tr '\t' ',')
+
+          SECURITY_GROUP=$(aws ec2 describe-security-groups \
+            --filters "Name=tag:Name,Values=startupwebapp-backend-sg" \
+            --query 'SecurityGroups[0].GroupId' \
+            --output text)
+
+          TASK_ARN=$(aws ecs run-task \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --task-definition ${{ steps.update-task-def.outputs.task-def-arn }} \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SECURITY_GROUP],assignPublicIp=DISABLED}" \
+            --query 'tasks[0].taskArn' \
+            --output text)
+
+          echo "task-arn=$TASK_ARN" >> $GITHUB_OUTPUT
+          echo "Migration task launched: $TASK_ARN"
+
+      - name: Wait for migration to complete
+        id: wait-task
+        run: |
+          echo "Waiting for migration task to complete..."
+
+          aws ecs wait tasks-stopped \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --tasks ${{ steps.run-task.outputs.task-arn }}
+
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --tasks ${{ steps.run-task.outputs.task-arn }} \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text)
+
+          echo "exit-code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          echo "Migration task completed with exit code: $EXIT_CODE"
+
+      - name: Fetch migration logs
+        if: always()
+        run: |
+          echo "Fetching CloudWatch logs..."
+          TASK_ID=$(echo "${{ steps.run-task.outputs.task-arn }}" | awk -F'/' '{print $NF}')
+
+          aws logs get-log-events \
+            --log-group-name /ecs/startupwebapp-migrations \
+            --log-stream-name migration/$TASK_ID \
+            --query 'events[*].message' \
+            --output text || echo "No logs available yet"
+
+      - name: Check migration success
+        run: |
+          EXIT_CODE="${{ steps.wait-task.outputs.exit-code }}"
+
+          if [ -z "$EXIT_CODE" ]; then
+            echo "::error::Failed to retrieve migration exit code"
+            exit 1
+          elif [ "$EXIT_CODE" != "0" ]; then
+            echo "::error::Migration failed with exit code $EXIT_CODE"
+            exit 1
+          else
+            echo "Migration completed successfully"
+          fi
+
+  # ==========================================================================
+  # JOB 3: Deploy Backend to ECS
+  # ==========================================================================
+  #
+  # PURPOSE: Deploy new Docker image to ECS service
+  # DURATION: ~3-5 minutes
+  #
+  # WHY: After migrations succeed, deploy the new code that expects the
+  # updated schema. ECS performs a rolling deployment (zero downtime).
+  #
+  deploy-backend:
+    name: Deploy Backend to ECS
+    runs-on: ubuntu-latest
+    needs: migrate
+    timeout-minutes: 10
+
+    # Run if migration succeeded (or was skipped)
+    if: always() && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get service task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.ECS_TASK_DEFINITION }} \
+            --query 'taskDefinition' \
+            --output json > task-definition.json
+
+      - name: Update service task definition with new image
+        id: update-service-task
+        env:
+          IMAGE: ${{ needs.migrate.outputs.image }}
+        run: |
+          # If migration was skipped, we need to get the image from ECR
+          if [ -z "$IMAGE" ]; then
+            ECR_REGISTRY="853463362083.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
+            IMAGE="$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"
+            echo "Using image: $IMAGE"
+          fi
+
+          TASK_DEF=$(cat task-definition.json)
+
+          UPDATED_TASK_DEF=$(echo $TASK_DEF | jq \
+            --arg IMAGE "$IMAGE" \
+            '.containerDefinitions[0].image = $IMAGE')
+
+          CLEAN_TASK_DEF=$(echo $UPDATED_TASK_DEF | jq '
+            del(
+              .taskDefinitionArn,
+              .revision,
+              .status,
+              .requiresAttributes,
+              .compatibilities,
+              .registeredAt,
+              .registeredBy
+            )
+          ')
+
+          echo "$CLEAN_TASK_DEF" > updated-task-definition.json
+
+          TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://updated-task-definition.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+          echo "task-def-arn=$TASK_DEF_ARN" >> $GITHUB_OUTPUT
+          echo "Registered service task definition: $TASK_DEF_ARN"
+
+      - name: Update ECS service
+        run: |
+          echo "Updating ECS service with new task definition..."
+
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --task-definition ${{ steps.update-service-task.outputs.task-def-arn }} \
+            --force-new-deployment \
+            --query 'service.{serviceName: serviceName, desiredCount: desiredCount}' \
+            --output json
+
+      - name: Wait for service to stabilize
+        run: |
+          echo "Waiting for ECS service to stabilize..."
+          echo "This may take 3-5 minutes..."
+
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }}
+
+          echo "Service stabilized"
+
+      - name: Verify backend deployment
+        run: |
+          SERVICE_STATUS=$(aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --query 'services[0].{running: runningCount, desired: desiredCount}' \
+            --output json)
+
+          echo "Service status: $SERVICE_STATUS"
+
+          RUNNING=$(echo $SERVICE_STATUS | jq -r '.running')
+          DESIRED=$(echo $SERVICE_STATUS | jq -r '.desired')
+
+          if [ "$RUNNING" != "$DESIRED" ]; then
+            echo "::error::Running count ($RUNNING) does not match desired count ($DESIRED)"
+            exit 1
+          fi
+
+          echo "Backend deployment successful: $RUNNING/$DESIRED tasks running"
+
+  # ==========================================================================
+  # JOB 4: Deploy Frontend
+  # ==========================================================================
+  #
+  # PURPOSE: Trigger frontend deployment to S3/CloudFront
+  # DURATION: ~2-3 minutes
+  #
+  # WHY: Frontend is deployed AFTER backend so API is ready when users
+  # load the new frontend. Uses repository_dispatch to trigger frontend workflow.
+  #
+  deploy-frontend:
+    name: Deploy Frontend
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    timeout-minutes: 5
+
+    # Skip if manual trigger with skip_frontend=true
+    if: |
+      always() &&
+      needs.deploy-backend.result == 'success' &&
+      github.event.inputs.skip_frontend != 'true'
+
+    steps:
+      - name: Trigger frontend deployment
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.FRONTEND_REPO_TOKEN }}
+          repository: bartgottschalk/startup_web_app_client_side
+          event-type: deploy-production
+          client-payload: '{"triggered_by": "backend", "commit": "${{ github.sha }}"}'
+
+      - name: Log frontend trigger
+        run: |
+          echo "Frontend deployment triggered"
+          echo "Triggered by backend commit: ${{ github.sha }}"
+          echo ""
+          echo "Note: Frontend workflow runs independently."
+          echo "Check frontend repo for deployment status."
+
+  # ==========================================================================
+  # JOB 5: Verify Deployment
+  # ==========================================================================
+  #
+  # PURPOSE: Run smoke tests to verify production is healthy
+  # DURATION: ~1-2 minutes
+  #
+  verify:
+    name: Verify Deployment
+    runs-on: ubuntu-latest
+    needs: [deploy-backend, deploy-frontend]
+    timeout-minutes: 5
+
+    # Run even if frontend was skipped
+    if: always() && needs.deploy-backend.result == 'success'
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Check health endpoint
+        run: |
+          echo "Checking health endpoint..."
+
+          # Wait a moment for DNS propagation if needed
+          sleep 10
+
+          HEALTH_URL="https://startupwebapp-api.mosaicmeshai.com/health"
+
+          # Retry up to 5 times with 10 second intervals
+          for i in {1..5}; do
+            echo "Attempt $i: Checking $HEALTH_URL"
+
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000")
+
+            if [ "$HTTP_CODE" == "200" ]; then
+              echo "Health check passed (HTTP $HTTP_CODE)"
+              exit 0
+            fi
+
+            echo "Health check returned HTTP $HTTP_CODE, retrying in 10 seconds..."
+            sleep 10
+          done
+
+          echo "::error::Health check failed after 5 attempts"
+          exit 1
+
+      - name: Check target group health
+        run: |
+          echo "Checking ALB target health..."
+
+          TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups \
+            --names startupwebapp-tg \
+            --query 'TargetGroups[0].TargetGroupArn' \
+            --output text 2>/dev/null || echo "")
+
+          if [ -n "$TARGET_GROUP_ARN" ]; then
+            HEALTH=$(aws elbv2 describe-target-health \
+              --target-group-arn $TARGET_GROUP_ARN \
+              --query 'TargetHealthDescriptions[*].{Target: Target.Id, Health: TargetHealth.State}' \
+              --output json)
+
+            echo "Target health: $HEALTH"
+
+            HEALTHY_COUNT=$(echo $HEALTH | jq '[.[] | select(.Health == "healthy")] | length')
+            TOTAL_COUNT=$(echo $HEALTH | jq '. | length')
+
+            echo "Healthy targets: $HEALTHY_COUNT / $TOTAL_COUNT"
+
+            if [ "$HEALTHY_COUNT" == "0" ]; then
+              echo "::warning::No healthy targets in target group"
+            fi
+          fi
+
+  # ==========================================================================
+  # JOB 6: Summary
+  # ==========================================================================
+  summary:
+    name: Deployment Summary
+    runs-on: ubuntu-latest
+    needs: [test, migrate, deploy-backend, deploy-frontend, verify]
+    if: always()
+
+    steps:
+      - name: Display summary
+        run: |
+          echo "=========================================="
+          echo "Production Deployment Summary"
+          echo "=========================================="
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Triggered by: ${{ github.actor }}"
+          echo ""
+          echo "Job Results:"
+          echo "  Tests:      ${{ needs.test.result }}"
+          echo "  Migrations: ${{ needs.migrate.result }}"
+          echo "  Backend:    ${{ needs.deploy-backend.result }}"
+          echo "  Frontend:   ${{ needs.deploy-frontend.result }}"
+          echo "  Verify:     ${{ needs.verify.result }}"
+          echo "=========================================="
+
+          # Determine overall status
+          if [ "${{ needs.verify.result }}" == "success" ]; then
+            echo ""
+            echo "DEPLOYMENT SUCCESSFUL"
+            echo ""
+            echo "Application URLs:"
+            echo "  Backend:  https://startupwebapp-api.mosaicmeshai.com"
+            echo "  Health:   https://startupwebapp-api.mosaicmeshai.com/health"
+            echo "  Frontend: https://startupwebapp.mosaicmeshai.com"
+          else
+            echo ""
+            echo "::error::DEPLOYMENT FAILED - Check job logs above"
+            exit 1
+          fi

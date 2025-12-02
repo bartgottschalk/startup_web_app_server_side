@@ -142,13 +142,34 @@ SERVICE_LOG_GROUP="/ecs/${PROJECT_NAME}-service"
 echo ""
 echo -e "${YELLOW}Step 1: Creating CloudWatch log group (if not exists)...${NC}"
 
-aws logs create-log-group \
-    --log-group-name "${SERVICE_LOG_GROUP}" \
+# Check if log group exists
+LOG_GROUP_EXISTS=$(aws logs describe-log-groups \
+    --log-group-name-prefix "${SERVICE_LOG_GROUP}" \
     --region "${AWS_REGION}" \
-    --tags "Key=Name,Value=${PROJECT_NAME}-service-logs" "Key=Environment,Value=${ENVIRONMENT}" \
-    2>/dev/null || echo -e "${YELLOW}  Log group already exists${NC}"
+    --query "logGroups[?logGroupName=='${SERVICE_LOG_GROUP}'].logGroupName" \
+    --output text 2>/dev/null || echo "")
 
-echo -e "${GREEN}✓ Log group ready: ${SERVICE_LOG_GROUP}${NC}"
+if [ -z "$LOG_GROUP_EXISTS" ]; then
+    aws logs create-log-group \
+        --log-group-name "${SERVICE_LOG_GROUP}" \
+        --region "${AWS_REGION}"
+
+    # Set retention policy (7 days to match migration logs)
+    aws logs put-retention-policy \
+        --log-group-name "${SERVICE_LOG_GROUP}" \
+        --retention-in-days 7 \
+        --region "${AWS_REGION}"
+
+    # Tag the log group (tags are key=value pairs)
+    aws logs tag-log-group \
+        --log-group-name "${SERVICE_LOG_GROUP}" \
+        --tags Name="${PROJECT_NAME}-service-logs" Environment="${ENVIRONMENT}" Project="${PROJECT_NAME}" \
+        --region "${AWS_REGION}"
+
+    echo -e "${GREEN}✓ Log group created: ${SERVICE_LOG_GROUP}${NC}"
+else
+    echo -e "${GREEN}✓ Log group already exists: ${SERVICE_LOG_GROUP}${NC}"
+fi
 
 # Create task definition JSON
 echo ""

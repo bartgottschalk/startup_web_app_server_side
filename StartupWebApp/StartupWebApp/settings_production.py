@@ -98,7 +98,33 @@ if ALLOWED_HOSTS_ENV:
     ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',')]  # noqa: F405
 else:
     # Default for StartupWebApp production
-    ALLOWED_HOSTS = ['www.mosaicmeshai.com']  # noqa: F405
+    # Include API subdomain and localhost for ALB health checks
+    # ALB health checker uses private IP as Host header, so we allow internal VPC ranges
+    ALLOWED_HOSTS = [  # noqa: F405
+        'www.mosaicmeshai.com',
+        'startupwebapp-api.mosaicmeshai.com',
+        'localhost',
+        '127.0.0.1',
+    ]
+
+# Allow internal VPC IP addresses for ALB health checks
+# ALB sends health check requests with the task's private IP as the Host header
+# VPC CIDR: 10.0.0.0/16, Private subnets: 10.0.10.0/24 and 10.0.11.0/24
+import re
+class AllowedHostsWithVPC(list):
+    """Custom list that allows VPC internal IPs for health checks"""
+    def __contains__(self, host):
+        # Strip port if present (e.g., '10.0.11.240:8000' -> '10.0.11.240')
+        host_without_port = host.split(':')[0] if ':' in host else host
+        # Check explicit allowed hosts
+        if super().__contains__(host_without_port):
+            return True
+        # Allow VPC internal IPs (10.0.x.x)
+        if re.match(r'^10\.0\.\d{1,3}\.\d{1,3}$', host_without_port):
+            return True
+        return False
+
+ALLOWED_HOSTS = AllowedHostsWithVPC(ALLOWED_HOSTS)
 
 # Database configuration for AWS RDS PostgreSQL
 DATABASES = {
@@ -143,19 +169,22 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
 # Session and CSRF cookies for production
-SESSION_COOKIE_DOMAIN = "www.mosaicmeshai.com"
+# Use domain prefix dot to allow sharing across subdomains (www, api)
+SESSION_COOKIE_DOMAIN = ".mosaicmeshai.com"
 CSRF_COOKIE_DOMAIN = ".mosaicmeshai.com"  # Share CSRF cookies across subdomains
 
 # CSRF Configuration for production
 CSRF_TRUSTED_ORIGINS = [
     'https://www.mosaicmeshai.com',
     'https://mosaicmeshai.com',
+    'https://startupwebapp-api.mosaicmeshai.com',
 ]
 
 # CORS Configuration for production
 CORS_ORIGIN_WHITELIST = (
     'https://www.mosaicmeshai.com',
     'https://mosaicmeshai.com',
+    'https://startupwebapp-api.mosaicmeshai.com',
 )
 
 # Logging configuration for production (CloudWatch compatible)

@@ -347,6 +347,54 @@ else
 fi
 echo ""
 
+# ECS Service (Phase 5.15)
+echo -e "${GREEN}ECS Service (Phase 5.15):${NC}"
+if [ -n "${ECS_SERVICE_NAME:-}" ]; then
+    # Get service status
+    SERVICE_STATUS=$(aws ecs describe-services \
+        --cluster "${ECS_CLUSTER_NAME:-startupwebapp-cluster}" \
+        --services "${ECS_SERVICE_NAME}" \
+        --region "${AWS_REGION}" \
+        --query 'services[0].{status: status, running: runningCount, desired: desiredCount, pending: pendingCount}' \
+        --output json 2>/dev/null || echo '{}')
+
+    SERVICE_STATE=$(echo "$SERVICE_STATUS" | jq -r '.status // "UNKNOWN"')
+    SERVICE_RUNNING=$(echo "$SERVICE_STATUS" | jq -r '.running // "0"')
+    SERVICE_DESIRED=$(echo "$SERVICE_STATUS" | jq -r '.desired // "0"')
+    SERVICE_PENDING=$(echo "$SERVICE_STATUS" | jq -r '.pending // "0"')
+
+    echo -e "  ${GREEN}✓${NC} Service Name:         ${ECS_SERVICE_NAME}"
+    echo -e "  ${GREEN}✓${NC} Service ARN:          ${ECS_SERVICE_ARN:-unknown}"
+    echo -e "  ${GREEN}✓${NC} Status:               ${SERVICE_STATE}"
+    echo -e "  ${GREEN}✓${NC} Running Tasks:        ${SERVICE_RUNNING}/${SERVICE_DESIRED}"
+    if [ "$SERVICE_PENDING" != "0" ]; then
+        echo -e "  ${YELLOW}⚠${NC} Pending Tasks:        ${SERVICE_PENDING}"
+    fi
+
+    # Get target health
+    if [ -n "${TARGET_GROUP_ARN:-}" ]; then
+        HEALTHY_TARGETS=$(aws elbv2 describe-target-health \
+            --target-group-arn "${TARGET_GROUP_ARN}" \
+            --region "${AWS_REGION}" \
+            --query 'TargetHealthDescriptions[?TargetHealth.State==`healthy`] | length(@)' \
+            --output text 2>/dev/null || echo "0")
+        TOTAL_TARGETS=$(aws elbv2 describe-target-health \
+            --target-group-arn "${TARGET_GROUP_ARN}" \
+            --region "${AWS_REGION}" \
+            --query 'TargetHealthDescriptions | length(@)' \
+            --output text 2>/dev/null || echo "0")
+        echo -e "  ${GREEN}✓${NC} Target Health:        ${HEALTHY_TARGETS}/${TOTAL_TARGETS} healthy"
+    fi
+
+    echo ""
+    echo -e "  ${GREEN}Access URLs:${NC}"
+    echo -e "    HTTPS:              https://startupwebapp-api.mosaicmeshai.com"
+    echo -e "    Health Check:       https://startupwebapp-api.mosaicmeshai.com/health"
+else
+    echo -e "  ${YELLOW}⚠${NC} ECS Service not created (run: ./scripts/infra/create-ecs-service.sh)"
+fi
+echo ""
+
 # Cost Estimate
 echo -e "${GREEN}Estimated Monthly Cost:${NC}"
 TOTAL_COST=0
@@ -385,6 +433,22 @@ fi
 if [ -n "${ALB_ARN:-}" ]; then
     echo -e "  ALB:                  ~\$16/month (+ traffic)"
     TOTAL_COST=$((TOTAL_COST + 16))
+fi
+if [ -n "${ECS_SERVICE_NAME:-}" ]; then
+    # Get actual running task count for cost estimate
+    SERVICE_RUNNING=$(aws ecs describe-services \
+        --cluster "${ECS_CLUSTER_NAME:-startupwebapp-cluster}" \
+        --services "${ECS_SERVICE_NAME}" \
+        --region "${AWS_REGION}" \
+        --query 'services[0].runningCount' \
+        --output text 2>/dev/null || echo "0")
+    if [ "$SERVICE_RUNNING" != "0" ] && [ "$SERVICE_RUNNING" != "None" ]; then
+        TASK_COST=$((SERVICE_RUNNING * 20))  # ~$20/task/month at 0.5 vCPU, 1GB
+        echo -e "  ECS Service Tasks:    ~\$${TASK_COST}/month (${SERVICE_RUNNING} tasks @ ~\$20/task)"
+        TOTAL_COST=$((TOTAL_COST + TASK_COST))
+    else
+        echo -e "  ECS Service Tasks:    \$0 (no running tasks)"
+    fi
 fi
 if [ $TOTAL_COST -gt 0 ]; then
     echo -e "  ${GREEN}─────────────────────────────${NC}"
@@ -443,6 +507,12 @@ if [ -n "${RDS_ENDPOINT:-}" ] || [ -n "${ECR_REPOSITORY_URI:-}" ]; then
     if [ -n "${ECS_SERVICE_LOG_GROUP:-}" ]; then
         echo -e "  ECS Service Logs:"
         echo -e "    https://console.aws.amazon.com/cloudwatch/home?region=${AWS_REGION}#logsV2:log-groups/log-group/${ECS_SERVICE_LOG_GROUP}"
+        echo ""
+    fi
+
+    if [ -n "${ECS_SERVICE_NAME:-}" ]; then
+        echo -e "  ECS Service:"
+        echo -e "    https://console.aws.amazon.com/ecs/home?region=${AWS_REGION}#/clusters/${ECS_CLUSTER_NAME:-startupwebapp-cluster}/services/${ECS_SERVICE_NAME}"
         echo ""
     fi
 fi

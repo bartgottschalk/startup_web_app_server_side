@@ -1,0 +1,298 @@
+# ============================================================================
+# GitHub Actions Workflow: Rollback Production
+# ============================================================================
+#
+# PURPOSE:
+# This workflow provides a manual rollback mechanism for production deployments.
+# It reverts the ECS service to a previous task definition revision.
+#
+# WHEN TO USE:
+# - Production deployment succeeded but application is broken
+# - Need to quickly revert to a known-good state
+# - Post-deploy smoke tests failed
+#
+# IMPORTANT NOTES:
+# - This workflow is MANUAL TRIGGER ONLY (safety)
+# - Database migrations are NOT automatically rolled back
+# - If migration was backward-compatible, code rollback is safe
+# - If migration was destructive, manual DB intervention may be needed
+#
+# REQUIRED GITHUB SECRETS:
+# - AWS_ACCESS_KEY_ID: IAM user access key with ECR/ECS permissions
+# - AWS_SECRET_ACCESS_KEY: IAM user secret access key
+#
+# ============================================================================
+
+name: Rollback Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      rollback_type:
+        description: 'Rollback type'
+        required: true
+        type: choice
+        options:
+          - backend_only
+          - backend_and_frontend
+        default: 'backend_only'
+
+      revisions_back:
+        description: 'Number of task definition revisions to roll back (1 = previous, 2 = two versions ago)'
+        required: true
+        type: number
+        default: 1
+
+      confirm:
+        description: 'Type "ROLLBACK" to confirm'
+        required: true
+        type: string
+
+env:
+  AWS_REGION: us-east-1
+  ECS_CLUSTER: startupwebapp-cluster
+  ECS_SERVICE: startupwebapp-service
+  ECS_TASK_DEFINITION: startupwebapp-service-task
+
+jobs:
+  # ==========================================================================
+  # JOB 1: Validate Rollback Request
+  # ==========================================================================
+  validate:
+    name: Validate Rollback Request
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Confirm rollback
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "ROLLBACK" ]; then
+            echo "::error::Rollback not confirmed. You must type 'ROLLBACK' to proceed."
+            exit 1
+          fi
+
+          echo "Rollback confirmed by: ${{ github.actor }}"
+          echo "Rollback type: ${{ github.event.inputs.rollback_type }}"
+          echo "Revisions back: ${{ github.event.inputs.revisions_back }}"
+
+  # ==========================================================================
+  # JOB 2: Rollback Backend
+  # ==========================================================================
+  rollback-backend:
+    name: Rollback Backend
+    runs-on: ubuntu-latest
+    needs: validate
+    timeout-minutes: 10
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get current service info
+        id: current
+        run: |
+          echo "Getting current service information..."
+
+          CURRENT_TASK_DEF=$(aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --query 'services[0].taskDefinition' \
+            --output text)
+
+          echo "Current task definition: $CURRENT_TASK_DEF"
+          echo "current-task-def=$CURRENT_TASK_DEF" >> $GITHUB_OUTPUT
+
+          # Extract current revision number
+          CURRENT_REVISION=$(echo $CURRENT_TASK_DEF | awk -F: '{print $NF}')
+          echo "Current revision: $CURRENT_REVISION"
+          echo "current-revision=$CURRENT_REVISION" >> $GITHUB_OUTPUT
+
+      - name: Calculate target revision
+        id: target
+        run: |
+          CURRENT_REVISION=${{ steps.current.outputs.current-revision }}
+          REVISIONS_BACK=${{ github.event.inputs.revisions_back }}
+
+          TARGET_REVISION=$((CURRENT_REVISION - REVISIONS_BACK))
+
+          if [ $TARGET_REVISION -lt 1 ]; then
+            echo "::error::Cannot roll back $REVISIONS_BACK revisions. Current revision is $CURRENT_REVISION."
+            exit 1
+          fi
+
+          TARGET_TASK_DEF="${{ env.ECS_TASK_DEFINITION }}:$TARGET_REVISION"
+
+          echo "Target revision: $TARGET_REVISION"
+          echo "Target task definition: $TARGET_TASK_DEF"
+          echo "target-task-def=$TARGET_TASK_DEF" >> $GITHUB_OUTPUT
+
+      - name: Verify target task definition exists
+        run: |
+          echo "Verifying target task definition exists..."
+
+          aws ecs describe-task-definition \
+            --task-definition ${{ steps.target.outputs.target-task-def }} \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text
+
+          echo "Target task definition verified"
+
+      - name: Display rollback plan
+        run: |
+          echo "=========================================="
+          echo "ROLLBACK PLAN"
+          echo "=========================================="
+          echo "FROM: ${{ steps.current.outputs.current-task-def }}"
+          echo "TO:   ${{ steps.target.outputs.target-task-def }}"
+          echo "=========================================="
+
+      - name: Execute rollback
+        run: |
+          echo "Executing rollback..."
+
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --task-definition ${{ steps.target.outputs.target-task-def }} \
+            --force-new-deployment \
+            --query 'service.{serviceName: serviceName, taskDefinition: taskDefinition}' \
+            --output json
+
+          echo "Rollback initiated"
+
+      - name: Wait for service to stabilize
+        run: |
+          echo "Waiting for service to stabilize..."
+
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }}
+
+          echo "Service stabilized"
+
+      - name: Verify rollback
+        run: |
+          SERVICE_STATUS=$(aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --query 'services[0].{running: runningCount, desired: desiredCount, taskDef: taskDefinition}' \
+            --output json)
+
+          echo "Service status after rollback:"
+          echo "$SERVICE_STATUS"
+
+          RUNNING=$(echo $SERVICE_STATUS | jq -r '.running')
+          DESIRED=$(echo $SERVICE_STATUS | jq -r '.desired')
+
+          if [ "$RUNNING" != "$DESIRED" ]; then
+            echo "::warning::Running count ($RUNNING) does not match desired count ($DESIRED)"
+          else
+            echo "Rollback successful: $RUNNING/$DESIRED tasks running"
+          fi
+
+  # ==========================================================================
+  # JOB 3: Rollback Frontend (Optional)
+  # ==========================================================================
+  rollback-frontend:
+    name: Rollback Frontend
+    runs-on: ubuntu-latest
+    needs: rollback-backend
+    if: github.event.inputs.rollback_type == 'backend_and_frontend'
+
+    steps:
+      - name: Trigger frontend rollback
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.FRONTEND_REPO_TOKEN }}
+          repository: bartgottschalk/startup_web_app_client_side
+          event-type: rollback-production
+          client-payload: '{"triggered_by": "backend-rollback", "revisions_back": "${{ github.event.inputs.revisions_back }}"}'
+
+      - name: Log frontend rollback trigger
+        run: |
+          echo "Frontend rollback triggered"
+          echo "Note: Frontend workflow runs independently."
+          echo "Check frontend repo for rollback status."
+
+  # ==========================================================================
+  # JOB 4: Verify Rollback
+  # ==========================================================================
+  verify:
+    name: Verify Rollback
+    runs-on: ubuntu-latest
+    needs: [rollback-backend, rollback-frontend]
+    if: always() && needs.rollback-backend.result == 'success'
+    timeout-minutes: 5
+
+    steps:
+      - name: Check health endpoint
+        run: |
+          echo "Checking health endpoint after rollback..."
+
+          sleep 10
+
+          HEALTH_URL="https://startupwebapp-api.mosaicmeshai.com/health"
+
+          for i in {1..5}; do
+            echo "Attempt $i: Checking $HEALTH_URL"
+
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000")
+
+            if [ "$HTTP_CODE" == "200" ]; then
+              echo "Health check passed (HTTP $HTTP_CODE)"
+              exit 0
+            fi
+
+            echo "Health check returned HTTP $HTTP_CODE, retrying in 10 seconds..."
+            sleep 10
+          done
+
+          echo "::error::Health check failed after rollback"
+          exit 1
+
+  # ==========================================================================
+  # JOB 5: Summary
+  # ==========================================================================
+  summary:
+    name: Rollback Summary
+    runs-on: ubuntu-latest
+    needs: [validate, rollback-backend, rollback-frontend, verify]
+    if: always()
+
+    steps:
+      - name: Display summary
+        run: |
+          echo "=========================================="
+          echo "Production Rollback Summary"
+          echo "=========================================="
+          echo "Initiated by: ${{ github.actor }}"
+          echo "Rollback type: ${{ github.event.inputs.rollback_type }}"
+          echo "Revisions back: ${{ github.event.inputs.revisions_back }}"
+          echo ""
+          echo "Job Results:"
+          echo "  Validate:  ${{ needs.validate.result }}"
+          echo "  Backend:   ${{ needs.rollback-backend.result }}"
+          echo "  Frontend:  ${{ needs.rollback-frontend.result }}"
+          echo "  Verify:    ${{ needs.verify.result }}"
+          echo "=========================================="
+
+          if [ "${{ needs.verify.result }}" == "success" ]; then
+            echo ""
+            echo "ROLLBACK SUCCESSFUL"
+            echo ""
+            echo "Application URL: https://startupwebapp-api.mosaicmeshai.com"
+            echo ""
+            echo "IMPORTANT: If database migrations were applied, they have NOT been"
+            echo "automatically rolled back. Manual intervention may be required if"
+            echo "the migration was not backward-compatible."
+          else
+            echo ""
+            echo "::error::ROLLBACK FAILED OR INCOMPLETE"
+            echo ""
+            echo "Manual intervention may be required."
+            echo "Check CloudWatch logs and ECS console for details."
+            exit 1
+          fi

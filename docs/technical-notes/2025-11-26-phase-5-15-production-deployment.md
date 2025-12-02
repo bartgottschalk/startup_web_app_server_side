@@ -240,28 +240,40 @@ Phase 5.15 deploys the full StartupWebApp application to production using AWS EC
 
 ---
 
-### Step 6: Create ECS Service 🚧 NEXT
+### Step 6: Create ECS Service 🚧 SCRIPTS READY - DEPLOY NEXT
 
 **Goal**: Deploy long-running service with 2 tasks across 2 AZs
 
-**Tasks**:
-1. Create infrastructure script: `scripts/infra/create-ecs-service.sh`
-2. Create ECS service in existing cluster
-3. Configure:
-   - Desired count: 2 (one per AZ for HA)
-   - Launch type: Fargate
-   - Network: Private subnets, backend security group
-   - Load balancer: Connect to target group
-   - Health check grace period: 120 seconds
-4. Configure deployment:
-   - Rolling update: 100% minimum, 200% maximum
-   - Circuit breaker: Enable (auto rollback on failure)
-5. Create destroy script: `scripts/infra/destroy-ecs-service.sh`
-6. Test: Deploy → verify tasks running → health check passing
+**Scripts Created** (November 28, 2025):
+- ✅ `scripts/infra/create-ecs-service.sh` - Creates ECS service with full configuration
+- ✅ `scripts/infra/destroy-ecs-service.sh` - Graceful teardown of service
+
+**Configuration**:
+- Service Name: `startupwebapp-service`
+- Desired count: 2 (one per AZ for HA)
+- Launch type: Fargate
+- Network: Private subnets, backend security group
+- Load balancer: Connected to target group
+- Health check grace period: 120 seconds
+
+**Deployment Configuration**:
+- Rolling update: 100% minimum healthy, 200% maximum
+- Circuit breaker: Enabled with automatic rollback
+- ECS Exec: Enabled (for debugging)
+
+**To Deploy**:
+```bash
+./scripts/infra/create-ecs-service.sh
+```
 
 **Resources Created**:
 - ECS Service: `startupwebapp-service`
 - Running Tasks: 2 (one per AZ)
+- Target group registration for ALB health checks
+
+**Access URLs** (after deployment):
+- HTTPS: `https://startupwebapp-api.mosaicmeshai.com`
+- Health Check: `https://startupwebapp-api.mosaicmeshai.com/health`
 
 **Cost**: ~$39/month (2 tasks × 0.5 vCPU × 1GB × $0.027/hour × 730 hours)
 
