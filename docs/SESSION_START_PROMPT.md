@@ -27,28 +27,52 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ## Current State
 
-**Project Status:** 🚧 Phase 5.15 In Progress - Steps 1-6 Scripts Ready, Deploy Next
+**Project Status:** 🚧 Phase 5.15 In Progress - ALB Health Check Fix (Phase 4 of 6)
 
-### Current Work: Phase 5.15 (November 27-28, 2025)
+### Current Work: Phase 5.15 (December 3, 2025)
 
-**What's Been Built (Steps 1-5):**
-- Application Load Balancer with HTTP→HTTPS redirect
-- ACM wildcard certificate for `*.mosaicmeshai.com` (issued)
-- HTTPS listener with TLS 1.2/1.3 termination
-- DNS CNAME: `startupwebapp-api.mosaicmeshai.com` → ALB
-- ECS Service Task Definition (gunicorn, 0.5 vCPU, 1GB)
+**Progress on ALB Health Check Fix:**
+- ✅ **Phase 1 COMPLETE**: Code & script changes made
+- ✅ **Phase 2 COMPLETE**: PR #40 created and pushed
+- ✅ **Phase 3 COMPLETE**: Infrastructure destroyed (ALB, ECS service, task definition)
+- 🔄 **Phase 4 IN PROGRESS**: Waiting for CI checks to pass, then merge PR
+- ⏳ **Phase 5 PENDING**: Recreate infrastructure
+- ⏳ **Phase 6 PENDING**: Update Namecheap DNS
 
-**Step 6 Scripts Ready (November 28, 2025):**
-- `create-ecs-service.sh` - Creates ECS service with 2 tasks across 2 AZs
-- `destroy-ecs-service.sh` - Graceful teardown of service
+**PR #40:** https://github.com/bartgottschalk/startup_web_app_server_side/pull/40
+- Contains 2 commits:
+  1. Fix ALB health check failures (3 root causes)
+  2. Add PR validation workflow for linting and tests
+- CI "Lint and Test" job running (takes ~10 min)
 
-**Next Action (Step 6):**
-- Run `./scripts/infra/create-ecs-service.sh` to deploy ECS service
+**New: PR Validation Workflow Added**
+- Created `.github/workflows/pr-validation.yml`
+- Runs on all PRs to master: flake8 linting + unit tests + functional tests
+- Catches issues before merge (prevents broken code reaching master which auto-deploys)
 
-**Key Results:**
-- ✅ All 740 tests passing in CI
-- ✅ HTTPS endpoint ready: `https://startupwebapp-api.mosaicmeshai.com`
-- ✅ Infrastructure cost: ~$84/month (base $68 + ALB $16)
+**Infrastructure Status (after Phase 3 destroy):**
+- ALB: ✗ Destroyed
+- ECS Service: ✗ Destroyed
+- ECS Service Task Definition: ✗ Destroyed
+- ACM Certificate: ✓ Still exists (kept)
+- ECR Repository: ✓ Still exists
+- ECS Cluster: ✓ Still exists
+- RDS Database: ✓ Still exists
+
+**Root Causes Fixed in PR #40:**
+1. **`SECURE_PROXY_SSL_HEADER`** - Added to settings_production.py (fixes 301 redirect loop)
+2. **`ALLOWED_HOSTS` VPC IPs** - Replaced AllowedHostsWithVPC with ECS metadata IP fetching
+3. **Trailing slash** - Changed `/order/products` to `/order/products/` in all infra scripts
+
+**Health Check Endpoint Rationale (now documented in create-alb.sh):**
+- `/order/products/` validates Django is running
+- Validates database connectivity (queries Product table)
+- Does NOT require authentication
+- Lightweight query suitable for frequent health checks (every 30s)
+
+**FRONTEND_REPO_TOKEN** - Still needs fix (separate issue):
+- Fine-grained PAT needs **Contents: Read and write** permission
+- Go to: https://github.com/settings/tokens?type=beta
 
 **See detailed documentation:** `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
@@ -79,7 +103,7 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ### Current Branch
 
-📍 **feature/phase-5-15-production-deployment** (Phase 5.15 Steps 1-5 complete)
+📍 **master** (Phase 5.15 in progress, auto-deploy enabled)
 
 **For detailed history**, see: `docs/PROJECT_HISTORY.md`
 
@@ -176,7 +200,7 @@ docker-compose exec -d backend python manage.py runserver 0.0.0.0:8000
 - Bastion: i-0d8d746dd8059de2c (connect: `aws ssm start-session --target i-0d8d746dd8059de2c`)
 - ECS Cluster: startupwebapp-cluster (Fargate)
 - ECR Repository: startupwebapp-backend (URI: 853463362083.dkr.ecr.us-east-1.amazonaws.com/startupwebapp-backend)
-- ALB: startupwebapp-alb (DNS: startupwebapp-alb-978036304.us-east-1.elb.amazonaws.com)
+- ALB: startupwebapp-alb (DNS: startupwebapp-alb-152031950.us-east-1.elb.amazonaws.com)
 - ACM Certificate: *.mosaicmeshai.com (issued)
 - DNS: startupwebapp-api.mosaicmeshai.com → ALB
 - Secrets: rds/startupwebapp/multi-tenant/master
@@ -222,31 +246,34 @@ Every commit MUST include documentation updates:
 
 ## 🚧 Phase 5.15 IN PROGRESS - Production Deployment
 
-**Branch**: `feature/phase-5-15-production-deployment`
-**Status**: Steps 1-5 Complete, Step 6 Next
+**Branch**: `master` (auto-deploy enabled)
+**Status**: Backend deployed, debugging health checks
 **Goal**: Deploy full-stack application to production with continuous deployment
 
-### Current Implementation Status (November 28, 2025)
+### Current Implementation Status (December 2, 2025)
 
-**✅ Steps 1-5 Complete:**
+**✅ Steps 1-6 Complete:**
 1. ✅ **Application Load Balancer** - `startupwebapp-alb` created with HTTP→HTTPS redirect
 2. ✅ **ACM Certificate** - `*.mosaicmeshai.com` wildcard certificate issued
 3. ✅ **HTTPS Listener** - TLS 1.2/1.3 termination on ALB port 443
 4. ✅ **DNS Configuration** - `startupwebapp-api.mosaicmeshai.com` CNAME → ALB
 5. ✅ **Service Task Definition** - `startupwebapp-service-task` (0.5 vCPU, 1GB, gunicorn)
+6. ✅ **ECS Service** - 2 tasks running across 2 AZs
 
-**🚧 Step 6 Next: Deploy ECS Service**
-- Scripts ready: `create-ecs-service.sh` and `destroy-ecs-service.sh`
-- Deploy 2 Fargate tasks across 2 AZs for high availability
-- Connect to ALB target group
-- Run: `./scripts/infra/create-ecs-service.sh`
+**✅ Step 10 Complete (moved up):**
+- `deploy-production.yml` - Auto-deploy on push to master (tests → migrate → deploy backend → trigger frontend)
+- `rollback-production.yml` - Manual rollback workflow
 
-**Remaining Steps (7-12):**
-7. Configure Auto-Scaling (2-10 tasks based on CPU/memory)
+**🚧 Current Issues to Fix (see "Next Steps" section for details):**
+1. **Missing `SECURE_PROXY_SSL_HEADER`** - Causes 301 redirect loop
+2. **`ALLOWED_HOSTS` doesn't accept VPC IPs** - Causes 400 error on health checks
+3. **Health check path needs trailing slash** - `/order/products` → `/order/products/`
+4. **FRONTEND_REPO_TOKEN permissions** - Need to add Contents: Read and write to fine-grained PAT
+
+**Remaining Steps (after health checks fixed):**
+7. Configure Auto-Scaling (1-4 tasks based on CPU/memory)
 8. Setup S3 + CloudFront (frontend static hosting)
-9. Add `/health` endpoint (Django health check for ALB)
-10. Production deployment workflow (GitHub Actions for service deploys)
-11. Django production settings (finalize settings_production.py)
+11. Django production settings - mostly done, may need tweaks
 12. Verification and documentation
 
 ### Infrastructure Scripts Created (Phase 5.15)
@@ -326,19 +353,69 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
 ## Next Steps
 
-**Current Task**: Phase 5.15 Step 6 - Deploy ECS Service
-- Scripts ready: `create-ecs-service.sh` and `destroy-ecs-service.sh`
-- Run: `./scripts/infra/create-ecs-service.sh`
-- Deploys 2 Fargate tasks across 2 AZs
-- Connects to ALB target group for load balancing
+**🚨 IMMEDIATE: Complete ALB Health Check Fix (Phases 4-6 remaining)**
 
-**Remaining Phase 5.15 Steps (7-12):**
+### Progress Summary
+
+- ✅ **Phase 1 COMPLETE**: Code & script changes made
+- ✅ **Phase 2 COMPLETE**: PR #40 created (https://github.com/bartgottschalk/startup_web_app_server_side/pull/40)
+- ✅ **Phase 3 COMPLETE**: Infrastructure destroyed
+
+### Remaining Steps
+
+**Phase 4: Merge to Master** ← START HERE
+1. Ensure GitHub CLI is using correct account:
+   ```bash
+   gh auth status  # Should show bartgottschalk as active
+   gh auth switch --user bartgottschalk  # If needed
+   ```
+2. Check PR #40 CI status: `gh pr checks 40`
+3. Once "Lint and Test" passes, merge the PR:
+   ```bash
+   gh pr merge 40 --merge
+   ```
+4. Auto-deploy will:
+   - Build new Docker image with Django fixes
+   - Push to ECR as `:latest`
+   - Migration job will run
+   - ECS deploy step will fail/skip (no service exists) - **that's expected**
+
+**Phase 5: Recreate Infrastructure (Manual, in separate terminal)**
+```bash
+./scripts/infra/create-alb.sh
+./scripts/infra/create-alb-https-listener.sh
+./scripts/infra/create-ecs-service-task-definition.sh
+./scripts/infra/create-ecs-service.sh
+```
+- **IMPORTANT**: Note the new ALB DNS name from create-alb.sh output (needed for Phase 6)
+- Task definition pulls `:latest` image (which now has Django fixes)
+- Health check paths have trailing slash
+
+**Phase 6: Update Namecheap DNS**
+- Go to Namecheap DNS settings for `mosaicmeshai.com`
+- Update CNAME for `startupwebapp-api` → new ALB DNS name from Phase 5
+- DNS propagation may take a few minutes
+
+**Verify health checks pass:**
+```bash
+# Get the new target group ARN from aws-resources.env after create-alb.sh
+source scripts/infra/aws-resources.env
+aws elbv2 describe-target-health --target-group-arn $TARGET_GROUP_ARN
+```
+
+Expected result: 2/2 targets healthy
+
+---
+
+**Separate Issue: FRONTEND_REPO_TOKEN permissions**
+- Go to: https://github.com/settings/tokens?type=beta
+- Edit token for `startup_web_app_client_side`
+- Add **Contents: Read and write** permission
+
+**Remaining Phase 5.15 Steps (after health checks work):**
 - Step 7: Configure Auto-Scaling
 - Step 8: Setup S3 + CloudFront (frontend)
-- Step 9: Add `/health` endpoint
-- Step 10: Production deployment workflow
-- Step 11: Django production settings
-- Step 12: Verification
+- Step 12: Verification and documentation
 
 **After Phase 5.15:**
 - **Phase 5.16**: Production Hardening (WAF, enhanced monitoring, load testing)

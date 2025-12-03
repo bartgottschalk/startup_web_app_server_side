@@ -16,7 +16,6 @@ Usage:
 import json
 import logging
 import os
-import re
 
 logger = logging.getLogger(__name__)
 
@@ -108,27 +107,37 @@ else:
         '127.0.0.1',
     ]
 
-# Allow internal VPC IP addresses for ALB health checks
+# Fetch container's own IP from ECS metadata for ALB health checks
 # ALB sends health check requests with the task's private IP as the Host header
 # VPC CIDR: 10.0.0.0/16, Private subnets: 10.0.10.0/24 and 10.0.11.0/24
 
 
-class AllowedHostsWithVPC(list):
-    """Custom list that allows VPC internal IPs for health checks"""
+def get_ecs_container_ip():
+    """Fetch container IP from ECS metadata endpoint (Fargate only)"""
+    import urllib.request
+    metadata_uri = os.environ.get('ECS_CONTAINER_METADATA_URI_V4')
+    if not metadata_uri:
+        return None
+    try:
+        with urllib.request.urlopen(f"{metadata_uri}/task", timeout=2) as response:
+            data = json.loads(response.read().decode())
+            # Navigate to: Containers[0].Networks[0].IPv4Addresses[0]
+            containers = data.get('Containers', [])
+            if containers:
+                networks = containers[0].get('Networks', [])
+                if networks:
+                    ipv4_addresses = networks[0].get('IPv4Addresses', [])
+                    if ipv4_addresses:
+                        return ipv4_addresses[0]
+    except Exception as e:
+        logger.warning(f"Could not fetch ECS container IP: {e}")
+    return None
 
-    def __contains__(self, host):
-        # Strip port if present (e.g., '10.0.11.240:8000' -> '10.0.11.240')
-        host_without_port = host.split(':')[0] if ':' in host else host
-        # Check explicit allowed hosts
-        if super().__contains__(host_without_port):
-            return True
-        # Allow VPC internal IPs (10.0.x.x)
-        if re.match(r'^10\.0\.\d{1,3}\.\d{1,3}$', host_without_port):
-            return True
-        return False
 
-
-ALLOWED_HOSTS = AllowedHostsWithVPC(ALLOWED_HOSTS)
+container_ip = get_ecs_container_ip()
+if container_ip:
+    ALLOWED_HOSTS.append(container_ip)
+    logger.info(f"Added container IP to ALLOWED_HOSTS: {container_ip}")
 
 # Database configuration for AWS RDS PostgreSQL
 DATABASES = {
@@ -161,6 +170,9 @@ EMAIL_HOST_PASSWORD = secrets.get('email_password', '')
 
 # Production Security Settings (enforced when DEBUG=False)
 SECURE_SSL_REDIRECT = True
+# Tell Django to trust X-Forwarded-Proto header from ALB (which terminates SSL)
+# Without this, Django sees HTTP requests and tries to redirect to HTTPS, causing a loop
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True
