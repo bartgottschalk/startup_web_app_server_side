@@ -27,45 +27,48 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ## Current State
 
-**Project Status:** 🚧 Phase 5.15 In Progress - Fixing ALB Health Checks
+**Project Status:** 🚧 Phase 5.15 In Progress - ALB Health Check Fix (Phase 4 of 6)
 
-### Current Work: Phase 5.15 (December 2, 2025)
+### Current Work: Phase 5.15 (December 3, 2025)
 
-**What's Working:**
-- ✅ ECS Service deployed with 2/2 tasks running
-- ✅ GitHub Actions `deploy-production.yml` workflow runs successfully (tests → migrate → deploy)
-- ✅ TLS 1.3 certificate working
-- ✅ All 740 tests passing in CI
-- ✅ ALB recreated with health check path `/order/products`
-- ✅ DNS updated in Namecheap to new ALB DNS: `startupwebapp-alb-152031950.us-east-1.elb.amazonaws.com`
+**Progress on ALB Health Check Fix:**
+- ✅ **Phase 1 COMPLETE**: Code & script changes made
+- ✅ **Phase 2 COMPLETE**: PR #40 created and pushed
+- ✅ **Phase 3 COMPLETE**: Infrastructure destroyed (ALB, ECS service, task definition)
+- 🔄 **Phase 4 IN PROGRESS**: Waiting for CI checks to pass, then merge PR
+- ⏳ **Phase 5 PENDING**: Recreate infrastructure
+- ⏳ **Phase 6 PENDING**: Update Namecheap DNS
 
-**🚨 CRITICAL: ALB Health Checks Failing (0/2 healthy)**
+**PR #40:** https://github.com/bartgottschalk/startup_web_app_server_side/pull/40
+- Contains 2 commits:
+  1. Fix ALB health check failures (3 root causes)
+  2. Add PR validation workflow for linting and tests
+- CI "Lint and Test" job running (takes ~10 min)
 
-Three issues were identified during debugging:
+**New: PR Validation Workflow Added**
+- Created `.github/workflows/pr-validation.yml`
+- Runs on all PRs to master: flake8 linting + unit tests + functional tests
+- Catches issues before merge (prevents broken code reaching master which auto-deploys)
 
-**Issue 1: Missing `SECURE_PROXY_SSL_HEADER` (causes 301 redirect loop)**
-- ALB terminates SSL and forwards HTTP to backend
-- Django has `SECURE_SSL_REDIRECT=True`, sees HTTP, tries to redirect to HTTPS
-- Django ignores `X-Forwarded-Proto` header without `SECURE_PROXY_SSL_HEADER`
-- **Fix**: Add to `settings_production.py`:
-  ```python
-  SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-  ```
+**Infrastructure Status (after Phase 3 destroy):**
+- ALB: ✗ Destroyed
+- ECS Service: ✗ Destroyed
+- ECS Service Task Definition: ✗ Destroyed
+- ACM Certificate: ✓ Still exists (kept)
+- ECR Repository: ✓ Still exists
+- ECS Cluster: ✓ Still exists
+- RDS Database: ✓ Still exists
 
-**Issue 2: `ALLOWED_HOSTS` doesn't accept VPC IPs (causes 400 error)**
-- ALB health checks send target's private IP as Host header (e.g., `10.0.10.230:8000`)
-- The existing `AllowedHostsWithVPC` class uses `__contains__` but Django's `validate_host()` ITERATES through the list - it never calls `__contains__`
-- CloudWatch logs show: `Invalid HTTP_HOST header: '10.0.10.230:8000'`
-- **Fix**: Fetch container's own IP at startup (via ECS metadata) and add to `ALLOWED_HOSTS`
+**Root Causes Fixed in PR #40:**
+1. **`SECURE_PROXY_SSL_HEADER`** - Added to settings_production.py (fixes 301 redirect loop)
+2. **`ALLOWED_HOSTS` VPC IPs** - Replaced AllowedHostsWithVPC with ECS metadata IP fetching
+3. **Trailing slash** - Changed `/order/products` to `/order/products/` in all infra scripts
 
-**Issue 3: Health check path needs trailing slash**
-- `/order/products` returns 301 redirect to `/order/products/` (Django's `APPEND_SLASH`)
-- **Fix**: Update `create-alb.sh` to use `/order/products/` (with trailing slash)
-
-**Uncommitted Local Changes (in `scripts/infra/`):**
-- Health check path changed from `/health` to `/order/products` in multiple files
-- These changes are GOOD but need trailing slash added
-- Files: `create-alb.sh`, `create-ecs-service-task-definition.sh`, `create-ecs-service.sh`, `show-resources.sh`, `status.sh`, `README.md`
+**Health Check Endpoint Rationale (now documented in create-alb.sh):**
+- `/order/products/` validates Django is running
+- Validates database connectivity (queries Product table)
+- Does NOT require authentication
+- Lightweight query suitable for frequent health checks (every 30s)
 
 **FRONTEND_REPO_TOKEN** - Still needs fix (separate issue):
 - Fine-grained PAT needs **Contents: Read and write** permission
@@ -350,77 +353,32 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
 ## Next Steps
 
-**🚨 IMMEDIATE: Fix ALB Health Checks (3 root causes, 6 phases to fix)**
+**🚨 IMMEDIATE: Complete ALB Health Check Fix (Phases 4-6 remaining)**
 
-### Root Causes Identified
+### Progress Summary
 
-1. **Missing `SECURE_PROXY_SSL_HEADER`** - Django ignores `X-Forwarded-Proto` header, causing 301 redirect loops
-2. **`ALLOWED_HOSTS` doesn't accept VPC IPs** - The `AllowedHostsWithVPC.__contains__` approach doesn't work because Django iterates the list (never calls `__contains__`)
-3. **Health check path needs trailing slash** - `/order/products` redirects to `/order/products/` (Django's `APPEND_SLASH`)
+- ✅ **Phase 1 COMPLETE**: Code & script changes made
+- ✅ **Phase 2 COMPLETE**: PR #40 created (https://github.com/bartgottschalk/startup_web_app_server_side/pull/40)
+- ✅ **Phase 3 COMPLETE**: Infrastructure destroyed
 
-### Fix Plan (6 Phases)
+### Remaining Steps
 
-**Phase 1: Code & Script Changes**
-
-*Django settings (`settings_production.py`):*
-1. Add `SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')` after `SECURE_SSL_REDIRECT = True`
-2. Remove `AllowedHostsWithVPC` class entirely
-3. Add ECS metadata IP fetching to get container's own IP at startup:
-
-```python
-# Fetch container's own IP from ECS metadata for ALB health checks
-# ALB sends health checks with target's private IP as Host header
-def get_ecs_container_ip():
-    """Fetch container IP from ECS metadata endpoint (Fargate only)"""
-    import urllib.request
-    import json
-    metadata_uri = os.environ.get('ECS_CONTAINER_METADATA_URI_V4')
-    if not metadata_uri:
-        return None
-    try:
-        with urllib.request.urlopen(f"{metadata_uri}/task", timeout=2) as response:
-            data = json.loads(response.read().decode())
-            # Navigate to: Containers[0].Networks[0].IPv4Addresses[0]
-            containers = data.get('Containers', [])
-            if containers:
-                networks = containers[0].get('Networks', [])
-                if networks:
-                    ipv4_addresses = networks[0].get('IPv4Addresses', [])
-                    if ipv4_addresses:
-                        return ipv4_addresses[0]
-    except Exception as e:
-        logger.warning(f"Could not fetch ECS container IP: {e}")
-    return None
-
-container_ip = get_ecs_container_ip()
-if container_ip:
-    ALLOWED_HOSTS.append(container_ip)
-    logger.info(f"Added container IP to ALLOWED_HOSTS: {container_ip}")
-```
-
-*Infra scripts (change `/order/products` to `/order/products/`):*
-- `scripts/infra/create-alb.sh` - target group health check config
-- `scripts/infra/create-ecs-service-task-definition.sh` - container health check
-- `scripts/infra/create-ecs-service.sh` - display text
-- `scripts/infra/show-resources.sh` - display text
-- `scripts/infra/status.sh` - display text
-
-**Phase 2: Commit (but don't merge yet)**
-1. Commit all changes to feature branch
-2. Push and create PR
-3. **Wait** - don't merge yet (infrastructure must be destroyed first)
-
-**Phase 3: Destroy Infrastructure (Manual, in separate terminal)**
-```bash
-./scripts/infra/destroy-ecs-service.sh
-./scripts/infra/destroy-ecs-service-task-definition.sh
-./scripts/infra/destroy-alb.sh
-```
-
-**Phase 4: Merge to Master**
-- Merge PR → auto-deploy builds new Docker image with Django fixes
-- Pushes to ECR as `:latest`
-- ECS deploy step may fail/skip (no service exists) - that's expected
+**Phase 4: Merge to Master** ← START HERE
+1. Ensure GitHub CLI is using correct account:
+   ```bash
+   gh auth status  # Should show bartgottschalk as active
+   gh auth switch --user bartgottschalk  # If needed
+   ```
+2. Check PR #40 CI status: `gh pr checks 40`
+3. Once "Lint and Test" passes, merge the PR:
+   ```bash
+   gh pr merge 40 --merge
+   ```
+4. Auto-deploy will:
+   - Build new Docker image with Django fixes
+   - Push to ECR as `:latest`
+   - Migration job will run
+   - ECS deploy step will fail/skip (no service exists) - **that's expected**
 
 **Phase 5: Recreate Infrastructure (Manual, in separate terminal)**
 ```bash
@@ -429,18 +387,23 @@ if container_ip:
 ./scripts/infra/create-ecs-service-task-definition.sh
 ./scripts/infra/create-ecs-service.sh
 ```
-- New ALB gets new DNS name (note it for Phase 6)
+- **IMPORTANT**: Note the new ALB DNS name from create-alb.sh output (needed for Phase 6)
 - Task definition pulls `:latest` image (which now has Django fixes)
 - Health check paths have trailing slash
 
 **Phase 6: Update Namecheap DNS**
 - Go to Namecheap DNS settings for `mosaicmeshai.com`
 - Update CNAME for `startupwebapp-api` → new ALB DNS name from Phase 5
+- DNS propagation may take a few minutes
 
 **Verify health checks pass:**
 ```bash
-aws elbv2 describe-target-health --target-group-arn <new-target-group-arn>
+# Get the new target group ARN from aws-resources.env after create-alb.sh
+source scripts/infra/aws-resources.env
+aws elbv2 describe-target-health --target-group-arn $TARGET_GROUP_ARN
 ```
+
+Expected result: 2/2 targets healthy
 
 ---
 
