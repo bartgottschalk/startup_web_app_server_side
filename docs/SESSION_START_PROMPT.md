@@ -27,38 +27,49 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ## Current State
 
-**Project Status:** 🚧 Phase 5.15 In Progress - Backend Deployed, Debugging Health Checks
+**Project Status:** 🚧 Phase 5.15 In Progress - Fixing ALB Health Checks
 
 ### Current Work: Phase 5.15 (December 2, 2025)
 
 **What's Working:**
 - ✅ ECS Service deployed with 2/2 tasks running
 - ✅ GitHub Actions `deploy-production.yml` workflow runs successfully (tests → migrate → deploy)
-- ✅ Docker image pushed to ECR with ALLOWED_HOSTS fix
-- ✅ TLS 1.3 working on `https://startupwebapp-api.mosaicmeshai.com`
+- ✅ TLS 1.3 certificate working
 - ✅ All 740 tests passing in CI
+- ✅ ALB recreated with health check path `/order/products`
+- ✅ DNS updated in Namecheap to new ALB DNS: `startupwebapp-alb-152031950.us-east-1.elb.amazonaws.com`
 
-**Current Issues (December 2, 2025):**
-1. **Health endpoint returning 301** - `/health` returns redirect, need to investigate
-   - May need to create `/health` endpoint (Step 9 in plan)
-   - Or may be APPEND_SLASH issue
-2. **FRONTEND_REPO_TOKEN permissions** - Fine-grained PAT needs additional permissions
-   - Error: "Resource not accessible by personal access token"
-   - Need to add **Contents: Read and write** permission (not just Actions)
+**🚨 CRITICAL: ALB Health Checks Failing (0/2 healthy)**
 
-**Recent Fixes Applied:**
-- Fixed `ALLOWED_HOSTS` in `settings_production.py` to accept VPC internal IPs (10.0.x.x) for ALB health checks
-- Fixed flake8 linting errors (import order, blank lines, line length)
-- Fixed workflow conditional logic (deployment now stops if tests fail)
+Three issues were identified during debugging:
 
-**GitHub Actions Workflows Created:**
-- `.github/workflows/deploy-production.yml` - Auto-deploy on push to master
-- `.github/workflows/rollback-production.yml` - Manual rollback workflow
+**Issue 1: Missing `SECURE_PROXY_SSL_HEADER` (causes 301 redirect loop)**
+- ALB terminates SSL and forwards HTTP to backend
+- Django has `SECURE_SSL_REDIRECT=True`, sees HTTP, tries to redirect to HTTPS
+- Django ignores `X-Forwarded-Proto` header without `SECURE_PROXY_SSL_HEADER`
+- **Fix**: Add to `settings_production.py`:
+  ```python
+  SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+  ```
 
-**Key Results:**
-- ✅ All 740 tests passing in CI
-- ✅ Backend ECS service running (2 tasks)
-- ✅ Infrastructure cost: ~$123/month (base $68 + ALB $16 + ECS $39)
+**Issue 2: `ALLOWED_HOSTS` doesn't accept VPC IPs (causes 400 error)**
+- ALB health checks send target's private IP as Host header (e.g., `10.0.10.230:8000`)
+- The existing `AllowedHostsWithVPC` class uses `__contains__` but Django's `validate_host()` ITERATES through the list - it never calls `__contains__`
+- CloudWatch logs show: `Invalid HTTP_HOST header: '10.0.10.230:8000'`
+- **Fix**: Fetch container's own IP at startup (via ECS metadata) and add to `ALLOWED_HOSTS`
+
+**Issue 3: Health check path needs trailing slash**
+- `/order/products` returns 301 redirect to `/order/products/` (Django's `APPEND_SLASH`)
+- **Fix**: Update `create-alb.sh` to use `/order/products/` (with trailing slash)
+
+**Uncommitted Local Changes (in `scripts/infra/`):**
+- Health check path changed from `/health` to `/order/products` in multiple files
+- These changes are GOOD but need trailing slash added
+- Files: `create-alb.sh`, `create-ecs-service-task-definition.sh`, `create-ecs-service.sh`, `show-resources.sh`, `status.sh`, `README.md`
+
+**FRONTEND_REPO_TOKEN** - Still needs fix (separate issue):
+- Fine-grained PAT needs **Contents: Read and write** permission
+- Go to: https://github.com/settings/tokens?type=beta
 
 **See detailed documentation:** `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
@@ -186,7 +197,7 @@ docker-compose exec -d backend python manage.py runserver 0.0.0.0:8000
 - Bastion: i-0d8d746dd8059de2c (connect: `aws ssm start-session --target i-0d8d746dd8059de2c`)
 - ECS Cluster: startupwebapp-cluster (Fargate)
 - ECR Repository: startupwebapp-backend (URI: 853463362083.dkr.ecr.us-east-1.amazonaws.com/startupwebapp-backend)
-- ALB: startupwebapp-alb (DNS: startupwebapp-alb-978036304.us-east-1.elb.amazonaws.com)
+- ALB: startupwebapp-alb (DNS: startupwebapp-alb-152031950.us-east-1.elb.amazonaws.com)
 - ACM Certificate: *.mosaicmeshai.com (issued)
 - DNS: startupwebapp-api.mosaicmeshai.com → ALB
 - Secrets: rds/startupwebapp/multi-tenant/master
@@ -250,14 +261,15 @@ Every commit MUST include documentation updates:
 - `deploy-production.yml` - Auto-deploy on push to master (tests → migrate → deploy backend → trigger frontend)
 - `rollback-production.yml` - Manual rollback workflow
 
-**🚧 Current Issues to Fix:**
-1. **Health endpoint 301 redirect** - Need to create `/health` endpoint or fix redirect
-2. **FRONTEND_REPO_TOKEN permissions** - Need to add Contents: Read and write to fine-grained PAT
+**🚧 Current Issues to Fix (see "Next Steps" section for details):**
+1. **Missing `SECURE_PROXY_SSL_HEADER`** - Causes 301 redirect loop
+2. **`ALLOWED_HOSTS` doesn't accept VPC IPs** - Causes 400 error on health checks
+3. **Health check path needs trailing slash** - `/order/products` → `/order/products/`
+4. **FRONTEND_REPO_TOKEN permissions** - Need to add Contents: Read and write to fine-grained PAT
 
-**Remaining Steps:**
+**Remaining Steps (after health checks fixed):**
 7. Configure Auto-Scaling (1-4 tasks based on CPU/memory)
 8. Setup S3 + CloudFront (frontend static hosting)
-9. Add `/health` endpoint (Django health check for ALB) - **NEEDED NOW**
 11. Django production settings - mostly done, may need tweaks
 12. Verification and documentation
 
@@ -338,28 +350,109 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
 ## Next Steps
 
-**Immediate Tasks:**
+**🚨 IMMEDIATE: Fix ALB Health Checks (3 root causes, 6 phases to fix)**
 
-1. **Fix `/health` endpoint** - Currently returns 301 redirect
-   - Option A: Create Django `/health` view that returns 200 OK (Step 9)
-   - Option B: Check if existing endpoint exists and fix APPEND_SLASH
-   - ALB health checks need this to pass
+### Root Causes Identified
 
-2. **Fix FRONTEND_REPO_TOKEN** - Fine-grained PAT needs more permissions
-   - Go to: https://github.com/settings/tokens?type=beta
-   - Edit the token for `startup_web_app_client_side`
-   - Add **Contents: Read and write** permission (in addition to Actions)
+1. **Missing `SECURE_PROXY_SSL_HEADER`** - Django ignores `X-Forwarded-Proto` header, causing 301 redirect loops
+2. **`ALLOWED_HOSTS` doesn't accept VPC IPs** - The `AllowedHostsWithVPC.__contains__` approach doesn't work because Django iterates the list (never calls `__contains__`)
+3. **Health check path needs trailing slash** - `/order/products` redirects to `/order/products/` (Django's `APPEND_SLASH`)
 
-3. **Verify ALB target health** - Check if tasks are healthy
-   ```bash
-   aws elbv2 describe-target-health --target-group-arn <TARGET_GROUP_ARN>
-   ```
+### Fix Plan (6 Phases)
 
-**Remaining Phase 5.15 Steps:**
+**Phase 1: Code & Script Changes**
+
+*Django settings (`settings_production.py`):*
+1. Add `SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')` after `SECURE_SSL_REDIRECT = True`
+2. Remove `AllowedHostsWithVPC` class entirely
+3. Add ECS metadata IP fetching to get container's own IP at startup:
+
+```python
+# Fetch container's own IP from ECS metadata for ALB health checks
+# ALB sends health checks with target's private IP as Host header
+def get_ecs_container_ip():
+    """Fetch container IP from ECS metadata endpoint (Fargate only)"""
+    import urllib.request
+    import json
+    metadata_uri = os.environ.get('ECS_CONTAINER_METADATA_URI_V4')
+    if not metadata_uri:
+        return None
+    try:
+        with urllib.request.urlopen(f"{metadata_uri}/task", timeout=2) as response:
+            data = json.loads(response.read().decode())
+            # Navigate to: Containers[0].Networks[0].IPv4Addresses[0]
+            containers = data.get('Containers', [])
+            if containers:
+                networks = containers[0].get('Networks', [])
+                if networks:
+                    ipv4_addresses = networks[0].get('IPv4Addresses', [])
+                    if ipv4_addresses:
+                        return ipv4_addresses[0]
+    except Exception as e:
+        logger.warning(f"Could not fetch ECS container IP: {e}")
+    return None
+
+container_ip = get_ecs_container_ip()
+if container_ip:
+    ALLOWED_HOSTS.append(container_ip)
+    logger.info(f"Added container IP to ALLOWED_HOSTS: {container_ip}")
+```
+
+*Infra scripts (change `/order/products` to `/order/products/`):*
+- `scripts/infra/create-alb.sh` - target group health check config
+- `scripts/infra/create-ecs-service-task-definition.sh` - container health check
+- `scripts/infra/create-ecs-service.sh` - display text
+- `scripts/infra/show-resources.sh` - display text
+- `scripts/infra/status.sh` - display text
+
+**Phase 2: Commit (but don't merge yet)**
+1. Commit all changes to feature branch
+2. Push and create PR
+3. **Wait** - don't merge yet (infrastructure must be destroyed first)
+
+**Phase 3: Destroy Infrastructure (Manual, in separate terminal)**
+```bash
+./scripts/infra/destroy-ecs-service.sh
+./scripts/infra/destroy-ecs-service-task-definition.sh
+./scripts/infra/destroy-alb.sh
+```
+
+**Phase 4: Merge to Master**
+- Merge PR → auto-deploy builds new Docker image with Django fixes
+- Pushes to ECR as `:latest`
+- ECS deploy step may fail/skip (no service exists) - that's expected
+
+**Phase 5: Recreate Infrastructure (Manual, in separate terminal)**
+```bash
+./scripts/infra/create-alb.sh
+./scripts/infra/create-alb-https-listener.sh
+./scripts/infra/create-ecs-service-task-definition.sh
+./scripts/infra/create-ecs-service.sh
+```
+- New ALB gets new DNS name (note it for Phase 6)
+- Task definition pulls `:latest` image (which now has Django fixes)
+- Health check paths have trailing slash
+
+**Phase 6: Update Namecheap DNS**
+- Go to Namecheap DNS settings for `mosaicmeshai.com`
+- Update CNAME for `startupwebapp-api` → new ALB DNS name from Phase 5
+
+**Verify health checks pass:**
+```bash
+aws elbv2 describe-target-health --target-group-arn <new-target-group-arn>
+```
+
+---
+
+**Separate Issue: FRONTEND_REPO_TOKEN permissions**
+- Go to: https://github.com/settings/tokens?type=beta
+- Edit token for `startup_web_app_client_side`
+- Add **Contents: Read and write** permission
+
+**Remaining Phase 5.15 Steps (after health checks work):**
 - Step 7: Configure Auto-Scaling
 - Step 8: Setup S3 + CloudFront (frontend)
 - Step 12: Verification and documentation
-- Update `GITHUB_ACTIONS_GUIDE.md` with new workflows
 
 **After Phase 5.15:**
 - **Phase 5.16**: Production Hardening (WAF, enhanced monitoring, load testing)

@@ -653,7 +653,7 @@ fi
 
 echo -e "  → Step 7: Configure Auto-Scaling"
 echo -e "  → Step 8: Setup S3 + CloudFront (frontend)"
-echo -e "  → Step 9: Add /health endpoint"
+echo -e "  → Step 9: Health endpoint configured (/order/products/)"
 echo -e "  → Step 10: Create production deployment workflow"
 echo -e "  → Step 11: Update Django production settings"
 echo -e "  → Step 12: Verification & Documentation"

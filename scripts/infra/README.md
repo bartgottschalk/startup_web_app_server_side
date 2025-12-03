@@ -764,14 +764,14 @@ Creates Application Load Balancer (ALB) for production traffic:
 
 **What Gets Created:**
 - ALB Security Group: `startupwebapp-alb-sg`
-- Target Group: `startupwebapp-tg` (port 8000, health check /health)
+- Target Group: `startupwebapp-tg` (port 8000, health check /order/products)
 - Application Load Balancer: `startupwebapp-alb`
 - HTTP Listener: Port 80 → redirect to HTTPS
 
 **Note:** HTTPS listener requires ACM certificate (Step 2 of Phase 5.15).
 
 **Health Check Configuration:**
-- Endpoint: `/health`
+- Endpoint: `/order/products`
 - Protocol: HTTP
 - Port: 8000
 - Interval: 30 seconds
@@ -863,7 +863,7 @@ Creates HTTPS listener on ALB with SSL/TLS termination:
 
 **Test HTTPS:**
 ```bash
-curl -I https://startupwebapp-api.mosaicmeshai.com/health
+curl -I https://startupwebapp-api.mosaicmeshai.com/order/products
 # Expected: HTTP 200 OK (after ECS service is deployed)
 ```
 
@@ -900,7 +900,7 @@ Creates ECS task definition for the long-running web service (gunicorn):
 - ECS task definition: `startupwebapp-service-task`
 - CloudWatch log group: `/ecs/startupwebapp-service`
 - Container with gunicorn web server configuration
-- Health check: `curl -f http://localhost:8000/health`
+- Health check: `curl -f http://localhost:8000/order/products`
 
 **Container Configuration:**
 - Gunicorn workers: 3
@@ -972,7 +972,7 @@ Creates ECS Fargate service that runs the web application continuously:
 
 **Access URLs:**
 - HTTPS: `https://startupwebapp-api.mosaicmeshai.com`
-- Health Check: `https://startupwebapp-api.mosaicmeshai.com/health`
+- Health Check: `https://startupwebapp-api.mosaicmeshai.com/order/products`
 
 **Useful Commands:**
 ```bash
@@ -1467,7 +1467,7 @@ All ECS infrastructure deployed and tested:
 6. 🚧 **Create ECS Service** - Deploy 2 Fargate tasks across 2 AZs
 7. **Configure Auto-Scaling** - Scale 2-10 tasks based on CPU/memory
 8. **Setup S3 + CloudFront** - Frontend static hosting
-9. **Add /health endpoint** - Django health check for ALB
+9. **Health endpoint** - Using existing `/order/products` endpoint for ALB health checks
 10. **Production deployment workflow** - GitHub Actions for service deploys
 11. **Django production settings** - Finalize settings_production.py
 12. **Verification** - End-to-end testing
