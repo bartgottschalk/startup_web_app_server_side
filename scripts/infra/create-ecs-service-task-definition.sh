@@ -160,10 +160,10 @@ if [ -z "$LOG_GROUP_EXISTS" ]; then
         --retention-in-days 7 \
         --region "${AWS_REGION}"
 
-    # Tag the log group (tags are key=value pairs)
+    # Tag the log group (tags must be comma-separated, no spaces)
     aws logs tag-log-group \
         --log-group-name "${SERVICE_LOG_GROUP}" \
-        --tags Name="${PROJECT_NAME}-service-logs" Environment="${ENVIRONMENT}" Project="${PROJECT_NAME}" \
+        --tags "Name=${PROJECT_NAME}-service-logs,Environment=${ENVIRONMENT},Project=${PROJECT_NAME}" \
         --region "${AWS_REGION}"
 
     echo -e "${GREEN}✓ Log group created: ${SERVICE_LOG_GROUP}${NC}"
