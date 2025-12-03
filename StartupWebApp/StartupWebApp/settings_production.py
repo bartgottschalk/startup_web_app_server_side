@@ -175,7 +175,7 @@ SECURE_SSL_REDIRECT = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # Exempt health check path from SSL redirect - ALB health checks hit port 8000 directly
 # over HTTP and don't include X-Forwarded-Proto header
-SECURE_REDIRECT_EXEMPT = [r'^order/products/$']
+SECURE_REDIRECT_EXEMPT = [r'^order/products$']
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True

@@ -810,10 +810,10 @@ See [Phase 5.14 Technical Note](technical-notes/2025-11-23-phase-5-14-ecs-cicd-m
 
 ---
 
-#### Phase 5.15: Full Production Deployment (In Progress - November 27-28, 2025)
+#### Phase 5.15: Full Production Deployment (In Progress - November 27 - December 3, 2025)
 
-**Status**: Steps 1-5 Complete, Step 6 Next
-**Branch**: `feature/phase-5-15-production-deployment`
+**Status**: Steps 1-6 Complete, Health Check Fix Deployed, Awaiting Verification
+**Branch**: `master` (auto-deploy enabled)
 
 **Step 1: Application Load Balancer (ALB)** ✅ (November 27, 2025)
 - ✅ Created `scripts/infra/create-alb.sh` and `destroy-alb.sh`
@@ -883,18 +883,80 @@ See [Phase 5.14 Technical Note](technical-notes/2025-11-23-phase-5-14-ecs-cicd-m
 - ALB: +$16/month
 - **Current Total: ~$84/month**
 
-**Step 6: Create ECS Service** 🚧 (Next)
-- Deploy 2 Fargate tasks across 2 AZs for high availability
-- Connect to ALB target group
-- Script to create: `create-ecs-service.sh`
+**Step 6: Create ECS Service** ✅ (November 28, 2025 - December 3, 2025)
+- ✅ Created `scripts/infra/create-ecs-service.sh` and `destroy-ecs-service.sh`
+- ✅ Deployed 2 Fargate tasks across 2 AZs for high availability
+- ✅ Connected to ALB target group
+- ✅ Created PR validation workflow (`.github/workflows/pr-validation.yml`)
+- ✅ Created production deployment workflow (`.github/workflows/deploy-production.yml`)
+
+**Step 6b: ALB Health Check Debugging & Fixes** ✅ (December 2-3, 2025)
+
+**Initial Deployment Issues** (December 2, 2025):
+- Health checks failing with 301 redirect and 400 errors
+- Required destroy/recreate cycle to apply Django fixes
+
+**PR #40: ALB Health Check Fixes** ✅ (December 3, 2025)
+- Created bugfix branch, identified 3 root causes, merged to master
+- **Root Cause 1**: Missing `SECURE_PROXY_SSL_HEADER` - Django didn't trust ALB's X-Forwarded-Proto header
+  - Fix: Added `SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')` to settings_production.py
+- **Root Cause 2**: `ALLOWED_HOSTS` didn't include container IPs - ALB health checks use private IP as Host header
+  - Fix: Added ECS metadata IP fetching function to dynamically add container IP to ALLOWED_HOSTS
+- **Root Cause 3**: Health check path missing trailing slash - `/order/products` vs `/order/products/`
+  - Fix: Updated all infra scripts to use `/order/products/` with trailing slash
+
+**Infrastructure Recreated** (December 3, 2025):
+- Destroyed ALB, ECS service, task definition (kept ACM certificate, ECR, ECS cluster, RDS)
+- Merged PR #40 to master (auto-deploy built new Docker image with fixes)
+- Recreated: ALB, HTTPS listener, service task definition, ECS service
+- New ALB DNS: `startupwebapp-alb-102070760.us-east-1.elb.amazonaws.com`
+- Updated Namecheap DNS CNAME
+
+**Health Check Still Failing - Additional Fixes Required** (December 3, 2025):
+
+**Root Cause 4: SSL Redirect on Health Checks** (Fixed)
+- After infrastructure recreation, health checks returned 301 redirects
+- ALB health checks bypass HTTPS listener entirely
+  - User traffic: User → ALB (443) → Container (8000) with `X-Forwarded-Proto: https` header
+  - Health checks: ALB → Container (8000) directly over HTTP, NO `X-Forwarded-Proto` header
+  - Django's `SECURE_SSL_REDIRECT` redirects health check requests to HTTPS
+- **Fix Applied**: Added `SECURE_REDIRECT_EXEMPT` to settings_production.py
+
+**Root Cause 5: Trailing Slash Mismatch** (Fixed)
+- After SSL redirect fix deployed, health checks returned 404 errors
+- Investigation revealed Django URL pattern mismatch:
+  - URL pattern in `order/urls.py`: `path('products', ...)` - NO trailing slash
+  - Health check path: `/order/products/` - WITH trailing slash
+  - Django's `APPEND_SLASH` only redirects if URL WITH slash exists (it doesn't)
+- **Original assumption was wrong**: We added trailing slash thinking `APPEND_SLASH` would redirect, but 301s were actually from `SECURE_SSL_REDIRECT`, not `APPEND_SLASH`
+- **Fix Applied**:
+  - Changed health check path to `/order/products` (no trailing slash)
+  - Updated `SECURE_REDIRECT_EXEMPT` regex to `r'^order/products$'`
+  - Updated all infra scripts for consistency
+
+**Also Fixed**: AWS CLI tags syntax in `create-ecs-service-task-definition.sh`
+- Tags must be comma-separated, not space-separated
+- Changed from `--tags Key1=Val1 Key2=Val2` to `--tags "Key1=Val1,Key2=Val2"`
+
+**Commits**:
+- PR #40 merge: `e35ed31` - Initial health check fixes (root causes 1-3)
+- Direct to master: `21f53ca` - SECURE_REDIRECT_EXEMPT fix (root cause 4)
+- Direct to master: (pending) - Trailing slash fix (root cause 5)
+
+**Current Status**: Awaiting commit, then destroy/recreate ALB infrastructure
+
+**Future Task: URL Pattern Standardization**
+- All Django URL patterns should consistently use trailing slashes
+- This is a codebase-wide refactor to be done separately
+- Will make `APPEND_SLASH` work correctly and follow Django conventions
 
 **Remaining Steps (7-12)**:
-- Step 7: Configure Auto-Scaling (2-10 tasks based on CPU/memory)
+- Step 7: Configure Auto-Scaling (1-4 tasks based on CPU/memory)
 - Step 8: Setup S3 + CloudFront (frontend static hosting)
-- Step 9: Add `/health` endpoint (Django health check for ALB)
-- Step 10: Production deployment workflow (GitHub Actions)
-- Step 11: Django production settings (finalize settings_production.py)
-- Step 12: Verification and documentation
+- Step 9: Health endpoint using `/order/products` (validates Django + database)
+- Step 10: Production deployment workflows created (deploy-production.yml, pr-validation.yml)
+- Step 11: Django production settings (settings_production.py updated)
+- Step 12: Verification and documentation (in progress)
 
 See [Technical Note](technical-notes/2025-11-26-phase-5-15-production-deployment.md) for full implementation plan.
 

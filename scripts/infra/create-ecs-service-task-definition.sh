@@ -250,7 +250,7 @@ TASK_DEF_JSON=$(cat <<EOF
         }
       },
       "healthCheck": {
-        "command": ["CMD-SHELL", "curl -f http://localhost:${CONTAINER_PORT}/order/products/ || exit 1"],
+        "command": ["CMD-SHELL", "curl -f http://localhost:${CONTAINER_PORT}/order/products || exit 1"],
         "interval": 30,
         "timeout": 5,
         "retries": 3,
@@ -324,7 +324,7 @@ echo -e "  Timeout:             30 seconds"
 echo -e "  Bind:                0.0.0.0:${CONTAINER_PORT}"
 echo ""
 echo -e "${GREEN}Container Health Check:${NC}"
-echo -e "  Command:             curl -f http://localhost:${CONTAINER_PORT}/order/products/"
+echo -e "  Command:             curl -f http://localhost:${CONTAINER_PORT}/order/products"
 echo -e "  Interval:            30 seconds"
 echo -e "  Timeout:             5 seconds"
 echo -e "  Retries:             3"

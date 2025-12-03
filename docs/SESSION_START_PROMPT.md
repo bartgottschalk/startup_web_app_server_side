@@ -27,44 +27,51 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ## Current State
 
-**Project Status:** 🚧 Phase 5.15 In Progress - ALB Health Check Fix (Phase 4 of 6)
+**Project Status:** 🚧 Phase 5.15 In Progress - Trailing Slash Fix Ready to Deploy
 
 ### Current Work: Phase 5.15 (December 3, 2025)
 
 **Progress on ALB Health Check Fix:**
-- ✅ **Phase 1 COMPLETE**: Code & script changes made
-- ✅ **Phase 2 COMPLETE**: PR #40 created and pushed
-- ✅ **Phase 3 COMPLETE**: Infrastructure destroyed (ALB, ECS service, task definition)
-- 🔄 **Phase 4 IN PROGRESS**: Waiting for CI checks to pass, then merge PR
-- ⏳ **Phase 5 PENDING**: Recreate infrastructure
-- ⏳ **Phase 6 PENDING**: Update Namecheap DNS
+- ✅ **Phases 1-6 COMPLETE**: PR #40 merged, infrastructure recreated, DNS updated
+- ✅ **Root Cause 4 Fixed**: SSL redirect exemption (`21f53ca`)
+- 🔄 **Root Cause 5 READY**: Trailing slash fix ready to commit and deploy
 
-**PR #40:** https://github.com/bartgottschalk/startup_web_app_server_side/pull/40
-- Contains 2 commits:
-  1. Fix ALB health check failures (3 root causes)
-  2. Add PR validation workflow for linting and tests
-- CI "Lint and Test" job running (takes ~10 min)
+**Root Cause 5 Discovered** (December 3, 2025):
+- After SSL redirect fix, health checks returned 404 (not 301)
+- **Investigation**: Django URL pattern is `path('products', ...)` - NO trailing slash
+- Health check was requesting `/order/products/` WITH trailing slash → 404
+- **Original assumption was wrong**: We added trailing slash thinking Django's `APPEND_SLASH` would redirect, but `APPEND_SLASH` only works if the URL WITH slash exists
+- The 301s we saw earlier were from `SECURE_SSL_REDIRECT`, not `APPEND_SLASH`
 
-**New: PR Validation Workflow Added**
+**Fix Ready to Deploy:**
+- Changed health check path to `/order/products` (no trailing slash)
+- Updated `SECURE_REDIRECT_EXEMPT` regex to `r'^order/products$'`
+- Updated all infra scripts for consistency
+- **Next**: Commit, push, destroy/recreate ALB infrastructure
+
+**Infrastructure Status:**
+- ALB: ✓ Exists (needs destroy/recreate for health check path change)
+- ECS Service: ✓ Running (will get new image after deploy)
+- ACM Certificate: ✓ Exists (`*.mosaicmeshai.com`)
+- ECR Repository: ✓ Exists
+- ECS Cluster: ✓ Exists
+- RDS Database: ✓ Exists
+
+**All 5 Root Causes Identified:**
+1. **`SECURE_PROXY_SSL_HEADER`** - Trust ALB's X-Forwarded-Proto header
+2. **`ALLOWED_HOSTS` container IPs** - ECS metadata IP fetching
+3. **Trailing slash in infra scripts** - Was `/order/products/`, should be `/order/products`
+4. **`SECURE_REDIRECT_EXEMPT`** - Exempt health check from SSL redirect
+5. **Trailing slash mismatch** - Health check path must match Django URL pattern (no slash)
+
+**Future Task:** Standardize all Django URL patterns to use trailing slashes (codebase-wide refactor)
+
+**PR Validation Workflow Added**
 - Created `.github/workflows/pr-validation.yml`
 - Runs on all PRs to master: flake8 linting + unit tests + functional tests
-- Catches issues before merge (prevents broken code reaching master which auto-deploys)
+- Catches issues before merge (prevents broken code reaching master)
 
-**Infrastructure Status (after Phase 3 destroy):**
-- ALB: ✗ Destroyed
-- ECS Service: ✗ Destroyed
-- ECS Service Task Definition: ✗ Destroyed
-- ACM Certificate: ✓ Still exists (kept)
-- ECR Repository: ✓ Still exists
-- ECS Cluster: ✓ Still exists
-- RDS Database: ✓ Still exists
-
-**Root Causes Fixed in PR #40:**
-1. **`SECURE_PROXY_SSL_HEADER`** - Added to settings_production.py (fixes 301 redirect loop)
-2. **`ALLOWED_HOSTS` VPC IPs** - Replaced AllowedHostsWithVPC with ECS metadata IP fetching
-3. **Trailing slash** - Changed `/order/products` to `/order/products/` in all infra scripts
-
-**Health Check Endpoint Rationale (now documented in create-alb.sh):**
+**Health Check Endpoint Rationale:**
 - `/order/products/` validates Django is running
 - Validates database connectivity (queries Product table)
 - Does NOT require authentication
@@ -100,6 +107,7 @@ Hi Claude. I want to continue working on these two repositories together:
 - PR #36: Phase 9 - Bastion host & separate passwords - November 22, 2025
 - PR #37: Bugfix - RDS secret preservation - November 22, 2025
 - **Phase 5.14 Complete**: ECS/CI/CD deployment infrastructure - November 26, 2025
+- **PR #40**: ALB health check fixes + PR validation workflow - December 3, 2025
 
 ### Current Branch
 
@@ -353,57 +361,50 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
 ## Next Steps
 
-**🚨 IMMEDIATE: Complete ALB Health Check Fix (Phases 4-6 remaining)**
+**🚧 IMMEDIATE: Deploy Trailing Slash Fix**
 
-### Progress Summary
+### Progress Summary (December 3, 2025)
 
-- ✅ **Phase 1 COMPLETE**: Code & script changes made
-- ✅ **Phase 2 COMPLETE**: PR #40 created (https://github.com/bartgottschalk/startup_web_app_server_side/pull/40)
-- ✅ **Phase 3 COMPLETE**: Infrastructure destroyed
+- ✅ **Phases 1-6 COMPLETE**: PR #40 merged, infrastructure recreated, DNS updated
+- ✅ **Root Causes 1-4 Fixed**: Various Django and infra fixes
+- 🔄 **Root Cause 5 READY**: Trailing slash fix ready to deploy
 
-### Remaining Steps
+### Deploy Steps
 
-**Phase 4: Merge to Master** ← START HERE
-1. Ensure GitHub CLI is using correct account:
-   ```bash
-   gh auth status  # Should show bartgottschalk as active
-   gh auth switch --user bartgottschalk  # If needed
-   ```
-2. Check PR #40 CI status: `gh pr checks 40`
-3. Once "Lint and Test" passes, merge the PR:
-   ```bash
-   gh pr merge 40 --merge
-   ```
-4. Auto-deploy will:
-   - Build new Docker image with Django fixes
-   - Push to ECR as `:latest`
-   - Migration job will run
-   - ECS deploy step will fail/skip (no service exists) - **that's expected**
-
-**Phase 5: Recreate Infrastructure (Manual, in separate terminal)**
+**Step 1: Commit and push the fix**
 ```bash
+git add -A && git commit -m "Fix health check: remove trailing slash to match Django URL pattern"
+git push origin master
+```
+
+**Step 2: Wait for deploy workflow** (builds new Docker image)
+
+**Step 3: Destroy and recreate ALB** (to update health check path)
+```bash
+./scripts/infra/destroy-ecs-service.sh
+./scripts/infra/destroy-alb.sh
 ./scripts/infra/create-alb.sh
 ./scripts/infra/create-alb-https-listener.sh
 ./scripts/infra/create-ecs-service-task-definition.sh
 ./scripts/infra/create-ecs-service.sh
 ```
-- **IMPORTANT**: Note the new ALB DNS name from create-alb.sh output (needed for Phase 6)
-- Task definition pulls `:latest` image (which now has Django fixes)
-- Health check paths have trailing slash
 
-**Phase 6: Update Namecheap DNS**
-- Go to Namecheap DNS settings for `mosaicmeshai.com`
-- Update CNAME for `startupwebapp-api` → new ALB DNS name from Phase 5
-- DNS propagation may take a few minutes
+**Step 4: Update Namecheap DNS** (if ALB DNS name changed)
 
-**Verify health checks pass:**
+**Step 5: Verify health checks**
 ```bash
-# Get the new target group ARN from aws-resources.env after create-alb.sh
 source scripts/infra/aws-resources.env
 aws elbv2 describe-target-health --target-group-arn $TARGET_GROUP_ARN
 ```
 
-Expected result: 2/2 targets healthy
+Expected result: All targets show `State: healthy`
+
+**Test the endpoint manually:**
+```bash
+curl -I https://startupwebapp-api.mosaicmeshai.com/order/products
+```
+
+Expected: HTTP 200 response (note: no trailing slash)
 
 ---
 
@@ -413,9 +414,9 @@ Expected result: 2/2 targets healthy
 - Add **Contents: Read and write** permission
 
 **Remaining Phase 5.15 Steps (after health checks work):**
-- Step 7: Configure Auto-Scaling
+- Step 7: Configure Auto-Scaling (1-4 tasks based on CPU/memory)
 - Step 8: Setup S3 + CloudFront (frontend)
-- Step 12: Verification and documentation
+- Step 12: Final verification and documentation
 
 **After Phase 5.15:**
 - **Phase 5.16**: Production Hardening (WAF, enhanced monitoring, load testing)

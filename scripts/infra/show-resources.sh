@@ -389,7 +389,7 @@ if [ -n "${ECS_SERVICE_NAME:-}" ]; then
     echo ""
     echo -e "  ${GREEN}Access URLs:${NC}"
     echo -e "    HTTPS:              https://startupwebapp-api.mosaicmeshai.com"
-    echo -e "    Health Check:       https://startupwebapp-api.mosaicmeshai.com/order/products/"
+    echo -e "    Health Check:       https://startupwebapp-api.mosaicmeshai.com/order/products"
 else
     echo -e "  ${YELLOW}⚠${NC} ECS Service not created (run: ./scripts/infra/create-ecs-service.sh)"
 fi

@@ -5,12 +5,12 @@
 #
 # This script creates:
 # - ALB Security Group (allow HTTP/HTTPS from internet)
-# - Target Group for ECS service (port 8000, health check /order/products/)
+# - Target Group for ECS service (port 8000, health check /order/products)
 # - Application Load Balancer in public subnets
 # - HTTP listener (port 80 -> redirect to HTTPS)
 # - Updates Backend Security Group to allow traffic from ALB
 #
-# Health Check Endpoint: /order/products/
+# Health Check Endpoint: /order/products
 # Why this endpoint?
 # - Validates Django is running (returns HTML/JSON response)
 # - Validates database connectivity (queries Product table)
@@ -101,7 +101,7 @@ echo -e "${YELLOW}This will create an Application Load Balancer for production t
 echo ""
 echo -e "${YELLOW}Components to be created:${NC}"
 echo -e "  - ALB Security Group (allow 80/443 from internet)"
-echo -e "  - Target Group (port 8000, health check /order/products/)"
+echo -e "  - Target Group (port 8000, health check /order/products)"
 echo -e "  - Application Load Balancer (in public subnets)"
 echo -e "  - HTTP Listener (port 80 -> redirect to HTTPS)"
 echo ""
@@ -211,7 +211,7 @@ else
         --target-type ip \
         --health-check-enabled \
         --health-check-protocol HTTP \
-        --health-check-path "/order/products/" \
+        --health-check-path "/order/products" \
         --health-check-interval-seconds 30 \
         --health-check-timeout-seconds 5 \
         --healthy-threshold-count 2 \
@@ -229,7 +229,7 @@ echo -e "${GREEN}  Target Group Configuration:${NC}"
 echo -e "    Protocol: HTTP"
 echo -e "    Port: 8000"
 echo -e "    Target Type: IP (for Fargate)"
-echo -e "    Health Check: /order/products/ (HTTP 200)"
+echo -e "    Health Check: /order/products (HTTP 200)"
 echo -e "    Interval: 30s, Timeout: 5s"
 echo -e "    Thresholds: 2 healthy, 3 unhealthy"
 
@@ -317,7 +317,7 @@ echo -e "${GREEN}Traffic Flow:${NC}"
 echo -e "  Internet -> ALB (80/443) -> Target Group -> ECS Tasks (8000)"
 echo ""
 echo -e "${GREEN}Health Check Configuration:${NC}"
-echo -e "  Endpoint:    /order/products/"
+echo -e "  Endpoint:    /order/products"
 echo -e "  Protocol:    HTTP"
 echo -e "  Port:        8000"
 echo -e "  Interval:    30 seconds"
