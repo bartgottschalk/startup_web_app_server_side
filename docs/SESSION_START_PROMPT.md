@@ -27,42 +27,34 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ## Current State
 
-**Project Status:** 🚧 Phase 5.15 In Progress - Trailing Slash Fix Ready to Deploy
+**Project Status:** 🚧 Phase 5.15 In Progress - Health Check Fix Complete, Remaining Steps Pending
 
 ### Current Work: Phase 5.15 (December 3, 2025)
 
-**Progress on ALB Health Check Fix:**
-- ✅ **Phases 1-6 COMPLETE**: PR #40 merged, infrastructure recreated, DNS updated
-- ✅ **Root Cause 4 Fixed**: SSL redirect exemption (`21f53ca`)
-- 🔄 **Root Cause 5 READY**: Trailing slash fix ready to commit and deploy
+**ALB Health Check Fix - COMPLETE:**
+- ✅ All 5 root causes identified and fixed
+- ✅ Infrastructure recreated with correct health check path
+- ✅ Health checks passing
 
-**Root Cause 5 Discovered** (December 3, 2025):
-- After SSL redirect fix, health checks returned 404 (not 301)
-- **Investigation**: Django URL pattern is `path('products', ...)` - NO trailing slash
-- Health check was requesting `/order/products/` WITH trailing slash → 404
-- **Original assumption was wrong**: We added trailing slash thinking Django's `APPEND_SLASH` would redirect, but `APPEND_SLASH` only works if the URL WITH slash exists
-- The 301s we saw earlier were from `SECURE_SSL_REDIRECT`, not `APPEND_SLASH`
+**All 5 Root Causes Fixed:**
+1. **`SECURE_PROXY_SSL_HEADER`** - Trust ALB's X-Forwarded-Proto header
+2. **`ALLOWED_HOSTS` container IPs** - ECS metadata IP fetching
+3. **`SECURE_REDIRECT_EXEMPT`** - Exempt health check from SSL redirect
+4. **Health check path** - `/order/products` (no trailing slash to match Django URL pattern)
+5. **Trailing slash mismatch** - Django URL has no slash, health check must match
 
-**Fix Ready to Deploy:**
-- Changed health check path to `/order/products` (no trailing slash)
-- Updated `SECURE_REDIRECT_EXEMPT` regex to `r'^order/products$'`
-- Updated all infra scripts for consistency
-- **Next**: Commit, push, destroy/recreate ALB infrastructure
+**Key Commits:**
+- `e35ed31` - PR #40: Initial fixes (root causes 1-3)
+- `21f53ca` - SECURE_REDIRECT_EXEMPT (root cause 4)
+- `2f36dcd` - Trailing slash fix (root cause 5)
 
 **Infrastructure Status:**
-- ALB: ✓ Exists (needs destroy/recreate for health check path change)
-- ECS Service: ✓ Running (will get new image after deploy)
+- ALB: ✓ Running (health check path: `/order/products`)
+- ECS Service: ✓ Running (2 tasks across 2 AZs)
 - ACM Certificate: ✓ Exists (`*.mosaicmeshai.com`)
 - ECR Repository: ✓ Exists
 - ECS Cluster: ✓ Exists
 - RDS Database: ✓ Exists
-
-**All 5 Root Causes Identified:**
-1. **`SECURE_PROXY_SSL_HEADER`** - Trust ALB's X-Forwarded-Proto header
-2. **`ALLOWED_HOSTS` container IPs** - ECS metadata IP fetching
-3. **Trailing slash in infra scripts** - Was `/order/products/`, should be `/order/products`
-4. **`SECURE_REDIRECT_EXEMPT`** - Exempt health check from SSL redirect
-5. **Trailing slash mismatch** - Health check path must match Django URL pattern (no slash)
 
 **Future Task:** Standardize all Django URL patterns to use trailing slashes (codebase-wide refactor)
 
@@ -361,50 +353,29 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
 ## Next Steps
 
-**🚧 IMMEDIATE: Deploy Trailing Slash Fix**
+**🚧 Phase 5.15 Remaining Steps**
 
-### Progress Summary (December 3, 2025)
+### Completed (December 3, 2025)
+- ✅ ALB Health Check Fix (all 5 root causes)
+- ✅ PR Validation Workflow
+- ✅ Production Deployment Workflow
 
-- ✅ **Phases 1-6 COMPLETE**: PR #40 merged, infrastructure recreated, DNS updated
-- ✅ **Root Causes 1-4 Fixed**: Various Django and infra fixes
-- 🔄 **Root Cause 5 READY**: Trailing slash fix ready to deploy
+### Remaining Phase 5.15 Steps
+- Step 7: Configure Auto-Scaling (1-4 tasks based on CPU/memory)
+- Step 8: Setup S3 + CloudFront (frontend static hosting)
+- Step 12: Final verification and documentation
 
-### Deploy Steps
-
-**Step 1: Commit and push the fix**
+### Verify Production is Working
 ```bash
-git add -A && git commit -m "Fix health check: remove trailing slash to match Django URL pattern"
-git push origin master
-```
-
-**Step 2: Wait for deploy workflow** (builds new Docker image)
-
-**Step 3: Destroy and recreate ALB** (to update health check path)
-```bash
-./scripts/infra/destroy-ecs-service.sh
-./scripts/infra/destroy-alb.sh
-./scripts/infra/create-alb.sh
-./scripts/infra/create-alb-https-listener.sh
-./scripts/infra/create-ecs-service-task-definition.sh
-./scripts/infra/create-ecs-service.sh
-```
-
-**Step 4: Update Namecheap DNS** (if ALB DNS name changed)
-
-**Step 5: Verify health checks**
-```bash
+# Check health checks
 source scripts/infra/aws-resources.env
 aws elbv2 describe-target-health --target-group-arn $TARGET_GROUP_ARN
-```
 
-Expected result: All targets show `State: healthy`
-
-**Test the endpoint manually:**
-```bash
+# Test endpoint
 curl -I https://startupwebapp-api.mosaicmeshai.com/order/products
 ```
 
-Expected: HTTP 200 response (note: no trailing slash)
+Expected: All targets healthy, HTTP 200 response
 
 ---
 

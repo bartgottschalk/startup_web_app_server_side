@@ -941,9 +941,9 @@ See [Phase 5.14 Technical Note](technical-notes/2025-11-23-phase-5-14-ecs-cicd-m
 **Commits**:
 - PR #40 merge: `e35ed31` - Initial health check fixes (root causes 1-3)
 - Direct to master: `21f53ca` - SECURE_REDIRECT_EXEMPT fix (root cause 4)
-- Direct to master: (pending) - Trailing slash fix (root cause 5)
+- Direct to master: `2f36dcd` - Trailing slash fix (root cause 5)
 
-**Current Status**: Awaiting commit, then destroy/recreate ALB infrastructure
+**Current Status**: Infrastructure recreated, health checks passing
 
 **Future Task: URL Pattern Standardization**
 - All Django URL patterns should consistently use trailing slashes
