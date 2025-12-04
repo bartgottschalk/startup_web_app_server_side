@@ -192,6 +192,9 @@ SECURE_HSTS_PRELOAD = True
 SESSION_COOKIE_DOMAIN = ".mosaicmeshai.com"
 CSRF_COOKIE_DOMAIN = ".mosaicmeshai.com"  # Share CSRF cookies across subdomains
 
+# Custom cookie domain for application cookies (anonymousclientevent, an_ct)
+COOKIE_DOMAIN = ".mosaicmeshai.com"
+
 # CSRF Configuration for production
 CSRF_TRUSTED_ORIGINS = [
     'https://www.mosaicmeshai.com',

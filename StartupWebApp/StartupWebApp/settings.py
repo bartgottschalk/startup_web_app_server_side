@@ -129,6 +129,11 @@ CORS_ALLOW_CREDENTIALS = True
 if not DEBUG:
     CSRF_COOKIE_DOMAIN = ".startupwebapp.com"
 
+# Custom cookie domain for application cookies (anonymousclientevent, an_ct)
+# Used in user/views.py and order/utilities/order_utils.py
+# Override in settings_production.py for production domain (.mosaicmeshai.com)
+COOKIE_DOMAIN = ".startupwebapp.com"
+
 SESSION_COOKIE_AGE = 1209600  # 2 weeks, in seconds
 # SESSION_COOKIE_AGE = 300  # 5 minutes, in seconds
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False

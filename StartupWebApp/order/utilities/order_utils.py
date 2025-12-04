@@ -108,7 +108,7 @@ def set_anonymous_cart_cookie(request, response, cart):
         cart.anonymous_cart_id = cookie_value
         cart.save()
         # Only set domain in production (DEBUG=False) to allow cookies to work with localhost
-        domain = '.startupwebapp.com' if not settings.DEBUG else None
+        domain = settings.COOKIE_DOMAIN if not settings.DEBUG else None
         response.set_signed_cookie(
             key='an_ct',
             value=cookie_value,
