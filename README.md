@@ -102,14 +102,18 @@ echo "127.0.0.1    localapi.startupwebapp.com" | sudo tee -a /etc/hosts
 4. **Initialize the PostgreSQL database**
 ```bash
 docker-compose exec backend python manage.py migrate
-docker-compose exec backend python manage.py load_sample_data
 ```
 
 **What happens during initialization:**
 - PostgreSQL automatically creates 3 databases: `startupwebapp_dev`, `healthtech_dev`, `fintech_dev`
 - Django migrations create 57 tables in the `startupwebapp_dev` database
-- Migrations automatically create required reference data (Skuinventory records)
-- `load_sample_data` command populates sample products, SKUs, and configuration data
+- **Data migrations automatically seed** all required reference data including:
+  - ClientEvent configuration
+  - Auth groups, Terms of Use, Email templates
+  - Order statuses, shipping methods, discount types
+  - Sample products (Paper Clips, Binder Clips, Rubber Bands)
+
+See [Seed Data & Data Migrations](#seed-data--data-migrations) section for details.
 
 **Multi-tenant architecture**: The setup supports multiple "forks" (experimental variants) by changing the `DATABASE_NAME` environment variable in `docker-compose.yml`. Each fork uses its own isolated database on the shared PostgreSQL instance.
 
@@ -193,14 +197,83 @@ PostgreSQL data is stored in a Docker volume (`postgres_data`). To completely re
 ```bash
 docker-compose down -v  # Remove volumes
 docker-compose up -d    # Recreate with fresh data
-docker-compose exec backend python manage.py migrate
-docker-compose exec backend python manage.py load_sample_data
+docker-compose exec backend python manage.py migrate  # Creates tables + seeds data
 ```
 
 ### Stop the containers
 ```bash
 docker-compose down
 ```
+
+---
+
+## Seed Data & Data Migrations
+
+This application uses **Django data migrations** to automatically create required seed data when migrations run. This ensures that new deployments (including forks) have all the reference data needed for the application to function.
+
+### How It Works
+
+When you run `python manage.py migrate`, the following data migrations execute automatically:
+
+| Migration | App | Data Created |
+|-----------|-----|--------------|
+| `0002_seed_configuration.py` | clientevent | Configuration record (enables/disables client event logging) |
+| `0002_seed_user_data.py` | user | Auth Group (Members), Terms of Use, Email Types/Statuses, Ad Types/Statuses, Email Templates |
+| `0002_add_default_inventory_statuses.py` | order | SKU Inventory statuses (In Stock, Back Ordered, Out of Stock) |
+| `0004_seed_order_data.py` | order | Order Statuses, SKU Types, Order Configuration, Discount Types, Shipping Methods, Sample Products |
+
+### Why Data Migrations?
+
+Previously, seed data was loaded via:
+- `db_inserts.sql` - Manual SQL file (MySQL syntax)
+- `load_sample_data` - Django management command
+
+These required manual execution after migrations, which caused issues:
+- Production deployments forgot to run them → 500 errors
+- Different environments had inconsistent data
+- Forks had no clear guidance on required data
+
+Data migrations solve this by:
+- Running automatically with `migrate`
+- Using `get_or_create` for idempotency (safe to run multiple times)
+- Skipping during test runs (tests create their own data)
+- Being part of version control
+
+### For Projects That Fork This Repository
+
+If you fork StartupWebApp for your own project, you'll want to customize the seed data:
+
+1. **Modify the data migrations** in:
+   - `StartupWebApp/clientevent/migrations/0002_seed_configuration.py`
+   - `StartupWebApp/user/migrations/0002_seed_user_data.py`
+   - `StartupWebApp/order/migrations/0004_seed_order_data.py`
+
+2. **Key items to customize**:
+   - Email templates (subject, body, from_address)
+   - Terms of Use content
+   - Sample products (replace Paper Clips, Binder Clips, etc.)
+   - Shipping methods and costs
+   - Discount codes
+
+3. **Items typically kept as-is**:
+   - Auth Group (Members)
+   - Email Types/Statuses (Member, Prospect / Draft, Ready, Sent)
+   - Order Statuses (Accepted, Manufacturing, Packing, Shipped)
+   - SKU Inventory statuses
+
+### Legacy: load_sample_data Command
+
+The `python manage.py load_sample_data` command still exists for convenience during development. It creates the same data as the migrations but can be run manually with a `--flush` flag to reset data.
+
+```bash
+# Load sample data (idempotent - safe to run multiple times)
+docker-compose exec backend python manage.py load_sample_data
+
+# Reset and reload sample data
+docker-compose exec backend python manage.py load_sample_data --flush
+```
+
+**Note**: For new deployments, you don't need to run this command - migrations handle it automatically.
 
 ---
 
@@ -229,8 +302,8 @@ The backend and frontend can be run together using Docker Compose for a complete
 2. **Initialize the database** (first time only)
    ```bash
    docker-compose exec backend python manage.py migrate
-   docker-compose exec backend python manage.py load_sample_data
    ```
+   Note: Migrations automatically create all required seed data. See [Seed Data & Data Migrations](#seed-data--data-migrations).
 
 3. **Start the backend API server**
    ```bash
