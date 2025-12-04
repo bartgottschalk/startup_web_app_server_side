@@ -980,8 +980,32 @@ See [Phase 5.14 Technical Note](technical-notes/2025-11-23-phase-5-14-ecs-cicd-m
 - Step 9: CI/CD workflows created (pr-validation.yml, deploy-production.yml, rollback-production.yml)
 - Step 10: Django production settings configured (settings_production.py)
 
+**Step 7: S3 + CloudFront Frontend Hosting** 🚧 (December 3-4, 2025)
+- ✅ Created `scripts/infra/create-frontend-hosting.sh` and `destroy-frontend-hosting.sh`
+- ✅ S3 bucket created: `startupwebapp-frontend-production`
+- ✅ CloudFront distribution created: `E1HZ3V09L2NDK1`
+- ✅ CloudFront domain: `d34ongxkfo84gr.cloudfront.net`
+- ✅ Origin Access Control (OAC) configured for secure S3 access
+- ✅ DNS CNAME configured in Namecheap: `startupwebapp` → CloudFront
+- ✅ Frontend deploy workflow created: `.github/workflows/deploy-production.yml` (client-side repo)
+- ✅ Frontend deployment tested via manual workflow trigger
+- ✅ Frontend loads at `https://startupwebapp.mosaicmeshai.com`
+- 🚧 **BLOCKED**: CORS error - backend needs `startupwebapp.mosaicmeshai.com` in CORS whitelist
+
+**Pending CORS Fix** (ready to commit):
+- File: `StartupWebApp/StartupWebApp/settings_production.py`
+- Change: Add `https://startupwebapp.mosaicmeshai.com` to `CORS_ORIGIN_WHITELIST` and `CSRF_TRUSTED_ORIGINS`
+- Status: Edit made locally, not yet committed/pushed
+- After push to master, backend will auto-deploy with fix
+
+**Frontend Repo Changes Made**:
+- Added `.github/workflows/deploy-production.yml` - S3 deployment workflow
+- Updated `js/index-0.0.2.js` - Added production API URL case
+- Committed `package.json`, `package-lock.json`, `eslint.config.js` to git
+- Updated `.gitignore` to track npm config files
+
 **Remaining Steps**:
-- Step 7: Setup S3 + CloudFront (frontend static hosting)
+- Commit CORS fix to backend and deploy
 - Step 11: Final verification and documentation
 
 **Infrastructure Cost Update**:

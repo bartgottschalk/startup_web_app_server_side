@@ -247,11 +247,11 @@ Every commit MUST include documentation updates:
 
 ## 🚧 Phase 5.15 IN PROGRESS - Production Deployment
 
-**Branch**: `master` (auto-deploy enabled)
-**Status**: Backend live and verified, frontend deployment next
+**Branch**: `feature/phase-5-15-auto-scaling` (has uncommitted CORS fix)
+**Status**: Frontend deployed but blocked by CORS - needs backend fix
 **Goal**: Deploy full-stack application to production with continuous deployment
 
-### Current Implementation Status (December 3, 2025)
+### Current Implementation Status (December 4, 2025)
 
 **✅ Steps 1-6b Complete - Backend Live with Auto-Scaling:**
 1. ✅ **Create ALB** - `startupwebapp-alb-1304349275.us-east-1.elb.amazonaws.com`
@@ -262,16 +262,28 @@ Every commit MUST include documentation updates:
 6. ✅ **Create ECS Service** - 1 healthy task (auto-scaled down from 2)
 6b. ✅ **Configure Auto-Scaling** - Min 1, max 4 tasks, CPU 70%, Memory 80% targets
 
+**🚧 Step 7: Frontend Hosting (Almost Complete):**
+- ✅ S3 bucket: `startupwebapp-frontend-production`
+- ✅ CloudFront: `E1HZ3V09L2NDK1` / `d34ongxkfo84gr.cloudfront.net`
+- ✅ DNS: `startupwebapp.mosaicmeshai.com` CNAME → CloudFront
+- ✅ Frontend workflow: `.github/workflows/deploy-production.yml` (client-side repo)
+- ✅ Frontend deployed and loads at `https://startupwebapp.mosaicmeshai.com`
+- 🚧 **BLOCKED**: CORS error - backend needs frontend domain in whitelist
+
+**🔧 Pending CORS Fix (ready to commit in backend repo):**
+- File: `StartupWebApp/StartupWebApp/settings_production.py`
+- Added `https://startupwebapp.mosaicmeshai.com` to `CORS_ORIGIN_WHITELIST` and `CSRF_TRUSTED_ORIGINS`
+- Status: **Edit made locally, NOT committed/pushed**
+- Action: Commit, push, merge PR, auto-deploy will fix CORS
+
 **✅ Steps 8-10 Complete:**
 - Step 8: Health check endpoint: `/order/products` (validates Django + database)
 - Step 9: CI/CD workflows: `pr-validation.yml`, `deploy-production.yml`, `rollback-production.yml`
 - Step 10: Django production settings configured (`settings_production.py`)
 
 **Remaining Steps:**
-- **Step 7**: Setup S3 + CloudFront (frontend static hosting)
+- Commit CORS fix and deploy backend
 - **Step 11**: Final verification and documentation
-
-**Separate Issue:** FRONTEND_REPO_TOKEN needs Contents: Read and write permission
 
 ### Infrastructure Scripts Created (Phase 5.15)
 
@@ -299,6 +311,10 @@ Every commit MUST include documentation updates:
 # Step 6b: Auto-Scaling
 ./scripts/infra/create-ecs-autoscaling.sh
 ./scripts/infra/destroy-ecs-autoscaling.sh
+
+# Step 7: Frontend Hosting (S3 + CloudFront)
+./scripts/infra/create-frontend-hosting.sh
+./scripts/infra/destroy-frontend-hosting.sh
 ```
 
 ### Production Architecture Decisions
