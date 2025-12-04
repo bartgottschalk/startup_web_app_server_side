@@ -196,15 +196,18 @@ CSRF_COOKIE_DOMAIN = ".mosaicmeshai.com"  # Share CSRF cookies across subdomains
 CSRF_TRUSTED_ORIGINS = [
     'https://www.mosaicmeshai.com',
     'https://mosaicmeshai.com',
+    'https://startupwebapp.mosaicmeshai.com',
     'https://startupwebapp-api.mosaicmeshai.com',
 ]
 
 # CORS Configuration for production
+# Frontend origin must be whitelisted for cross-origin API requests
 CORS_ORIGIN_WHITELIST = (
     'https://www.mosaicmeshai.com',
     'https://mosaicmeshai.com',
-    'https://startupwebapp-api.mosaicmeshai.com',
+    'https://startupwebapp.mosaicmeshai.com',
 )
+CORS_ALLOW_CREDENTIALS = True
 
 # Logging configuration for production (CloudWatch compatible)
 LOGGING = {

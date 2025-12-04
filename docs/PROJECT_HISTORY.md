@@ -949,15 +949,69 @@ See [Phase 5.14 Technical Note](technical-notes/2025-11-23-phase-5-14-ecs-cicd-m
 - ALB DNS: `startupwebapp-alb-1304349275.us-east-1.elb.amazonaws.com`
 - Namecheap CNAME configured for `startupwebapp-api.mosaicmeshai.com`
 
+**Step 6b: ECS Auto-Scaling** ✅ (December 3, 2025)
+- ✅ Created `scripts/infra/create-ecs-autoscaling.sh` and `destroy-ecs-autoscaling.sh`
+- ✅ Registered ECS service as scalable target with Application Auto Scaling
+- ✅ Configuration:
+  - Minimum tasks: 1 (cost optimization for low traffic)
+  - Maximum tasks: 4 (handle traffic spikes)
+  - CPU target: 70% utilization (scale out when exceeded)
+  - Memory target: 80% utilization (scale out when exceeded)
+  - Scale-out cooldown: 60 seconds (respond quickly to load)
+  - Scale-in cooldown: 300 seconds (prevent flapping)
+- ✅ CloudWatch alarms auto-created for target tracking:
+  - AlarmHigh: Triggers scale-out when metric exceeds target
+  - AlarmLow: Triggers scale-in when metric below target for sustained period
+- ✅ Full destroy/recreate cycle tested successfully
+- ✅ Auto-scaling already active: scaled from 2 → 1 task due to low traffic
+- ✅ Cost impact: $20-78/month depending on traffic (vs fixed $78/month for 4 tasks)
+
+**Files Created**:
+- `scripts/infra/create-ecs-autoscaling.sh` - Register scalable target, create CPU/memory policies
+- `scripts/infra/destroy-ecs-autoscaling.sh` - Delete policies, deregister scalable target
+
+**Files Modified**:
+- `scripts/infra/aws-resources.env.template` - Added auto-scaling fields
+- `scripts/infra/status.sh` - Added auto-scaling status section
+- `scripts/infra/show-resources.sh` - Added auto-scaling display with recent activity
+
 **Steps 8-10 Complete**:
 - Step 8: Health endpoint using `/order/products` (validates Django + database)
 - Step 9: CI/CD workflows created (pr-validation.yml, deploy-production.yml, rollback-production.yml)
 - Step 10: Django production settings configured (settings_production.py)
 
+**Step 7: S3 + CloudFront Frontend Hosting** 🚧 (December 3-4, 2025)
+- ✅ Created `scripts/infra/create-frontend-hosting.sh` and `destroy-frontend-hosting.sh`
+- ✅ S3 bucket created: `startupwebapp-frontend-production`
+- ✅ CloudFront distribution created: `E1HZ3V09L2NDK1`
+- ✅ CloudFront domain: `d34ongxkfo84gr.cloudfront.net`
+- ✅ Origin Access Control (OAC) configured for secure S3 access
+- ✅ DNS CNAME configured in Namecheap: `startupwebapp` → CloudFront
+- ✅ Frontend deploy workflow created: `.github/workflows/deploy-production.yml` (client-side repo)
+- ✅ Frontend deployment tested via manual workflow trigger
+- ✅ Frontend loads at `https://startupwebapp.mosaicmeshai.com`
+- 🚧 **BLOCKED**: CORS error - backend needs `startupwebapp.mosaicmeshai.com` in CORS whitelist
+
+**Pending CORS Fix** (ready to commit):
+- File: `StartupWebApp/StartupWebApp/settings_production.py`
+- Change: Add `https://startupwebapp.mosaicmeshai.com` to `CORS_ORIGIN_WHITELIST` and `CSRF_TRUSTED_ORIGINS`
+- Status: Edit made locally, not yet committed/pushed
+- After push to master, backend will auto-deploy with fix
+
+**Frontend Repo Changes Made**:
+- Added `.github/workflows/deploy-production.yml` - S3 deployment workflow
+- Updated `js/index-0.0.2.js` - Added production API URL case
+- Committed `package.json`, `package-lock.json`, `eslint.config.js` to git
+- Updated `.gitignore` to track npm config files
+
 **Remaining Steps**:
-- Step 6b: Configure Auto-Scaling (1-4 tasks based on CPU/memory)
-- Step 7: Setup S3 + CloudFront (frontend static hosting)
+- Commit CORS fix to backend and deploy
 - Step 11: Final verification and documentation
+
+**Infrastructure Cost Update**:
+- Previous (fixed 2 tasks): ~$118/month
+- With auto-scaling (1 task at low traffic): ~$98/month
+- Savings: ~$20/month (17% reduction) during low traffic periods
 
 **Future Task: URL Pattern Standardization**
 - All Django URL patterns should consistently use trailing slashes

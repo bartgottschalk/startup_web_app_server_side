@@ -591,6 +591,74 @@ else
 fi
 echo ""
 
+# ECS Auto-Scaling
+echo -e "${CYAN}ECS Auto-Scaling${NC}"
+if [ -n "${AUTOSCALING_MIN_CAPACITY:-}" ]; then
+    # Check if auto-scaling is actually configured
+    RESOURCE_ID="service/${ECS_CLUSTER_NAME:-startupwebapp-cluster}/${ECS_SERVICE_NAME:-startupwebapp-service}"
+    SCALING_TARGET=$(aws application-autoscaling describe-scalable-targets \
+        --service-namespace ecs \
+        --resource-ids "${RESOURCE_ID}" \
+        --region "${AWS_REGION}" \
+        --query 'ScalableTargets[0].ResourceId' \
+        --output text 2>/dev/null || echo "None")
+
+    if [ "$SCALING_TARGET" != "None" ] && [ -n "$SCALING_TARGET" ]; then
+        echo -e "  ${GREEN}✓ COMPLETED${NC} - Auto-scaling configured"
+        echo ""
+        echo -e "  Min Capacity:        ${AUTOSCALING_MIN_CAPACITY}"
+        echo -e "  Max Capacity:        ${AUTOSCALING_MAX_CAPACITY}"
+        echo -e "  CPU Policy:          ${AUTOSCALING_CPU_POLICY:-startupwebapp-cpu-scaling}"
+        echo -e "  Memory Policy:       ${AUTOSCALING_MEMORY_POLICY:-startupwebapp-memory-scaling}"
+    else
+        echo -e "  ${YELLOW}⚠ Auto-scaling in env file but not found in AWS${NC}"
+        echo -e "  ${YELLOW}→ Recreate: ./scripts/infra/create-ecs-autoscaling.sh${NC}"
+    fi
+elif [ -n "${ECS_SERVICE_ARN:-}" ]; then
+    echo -e "  ${RED}✗ NOT STARTED${NC}"
+    echo ""
+    echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-ecs-autoscaling.sh${NC}"
+    echo -e "  ${YELLOW}   Time: ~2 minutes${NC}"
+    echo -e "  ${YELLOW}   Cost: \$0 (auto-scaling is free, pay for tasks)${NC}"
+else
+    echo -e "  ${RED}✗ BLOCKED${NC} - Requires ECS Service"
+fi
+echo ""
+
+# Frontend Hosting (S3 + CloudFront)
+echo -e "${CYAN}Frontend Hosting (S3 + CloudFront)${NC}"
+if [ -n "${CLOUDFRONT_DISTRIBUTION_ID:-}" ]; then
+    CF_STATUS=$(aws cloudfront get-distribution \
+        --id "${CLOUDFRONT_DISTRIBUTION_ID}" \
+        --query 'Distribution.Status' \
+        --output text 2>/dev/null || echo "NOT_FOUND")
+
+    if [ "$CF_STATUS" = "Deployed" ]; then
+        echo -e "  ${GREEN}✓ COMPLETED${NC} - Frontend hosting configured"
+        echo ""
+        echo -e "  S3 Bucket:           ${S3_FRONTEND_BUCKET:-}"
+        echo -e "  CloudFront ID:       ${CLOUDFRONT_DISTRIBUTION_ID}"
+        echo -e "  CloudFront Domain:   ${CLOUDFRONT_DOMAIN_NAME:-}"
+        echo -e "  Custom Domain:       ${FRONTEND_CUSTOM_DOMAIN:-}"
+        echo -e "  Status:              ${CF_STATUS}"
+    elif [ "$CF_STATUS" = "InProgress" ]; then
+        echo -e "  ${YELLOW}⚠ DEPLOYING${NC} - CloudFront distribution deploying"
+        echo -e "  ${YELLOW}   This can take 5-15 minutes${NC}"
+    else
+        echo -e "  ${YELLOW}⚠ CloudFront in env but status: ${CF_STATUS}${NC}"
+        echo -e "  ${YELLOW}→ Check: aws cloudfront get-distribution --id ${CLOUDFRONT_DISTRIBUTION_ID}${NC}"
+    fi
+elif [ -n "${AUTOSCALING_MIN_CAPACITY:-}" ]; then
+    echo -e "  ${YELLOW}⚠ NOT STARTED${NC}"
+    echo ""
+    echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-frontend-hosting.sh${NC}"
+    echo -e "  ${YELLOW}   Time: ~10-15 minutes (CloudFront deployment)${NC}"
+    echo -e "  ${YELLOW}   Cost: ~\$1-5/month (S3 + CloudFront)${NC}"
+else
+    echo -e "  ${RED}✗ BLOCKED${NC} - Complete auto-scaling first"
+fi
+echo ""
+
 # Phase 5.15 Progress Summary
 echo -e "${YELLOW}Phase 5.15 Progress Summary:${NC}"
 if [ -n "${ALB_ARN:-}" ]; then
@@ -651,12 +719,42 @@ else
     echo -e "  → Step 6: Create ECS Service (./scripts/infra/create-ecs-service.sh)"
 fi
 
-echo -e "  → Step 7: Configure Auto-Scaling"
-echo -e "  → Step 8: Setup S3 + CloudFront (frontend)"
-echo -e "  → Step 9: Health endpoint configured (/order/products)"
-echo -e "  → Step 10: Create production deployment workflow"
-echo -e "  → Step 11: Update Django production settings"
-echo -e "  → Step 12: Verification & Documentation"
+# Step 6b: Auto-Scaling
+if [ -n "${AUTOSCALING_MIN_CAPACITY:-}" ]; then
+    RESOURCE_ID="service/${ECS_CLUSTER_NAME:-startupwebapp-cluster}/${ECS_SERVICE_NAME:-startupwebapp-service}"
+    SCALING_TARGET=$(aws application-autoscaling describe-scalable-targets \
+        --service-namespace ecs \
+        --resource-ids "${RESOURCE_ID}" \
+        --region "${AWS_REGION}" \
+        --query 'ScalableTargets[0].ResourceId' \
+        --output text 2>/dev/null || echo "None")
+    if [ "$SCALING_TARGET" != "None" ] && [ -n "$SCALING_TARGET" ]; then
+        echo -e "  ✓ Step 6b: Configure Auto-Scaling"
+    else
+        echo -e "  → Step 6b: Configure Auto-Scaling (./scripts/infra/create-ecs-autoscaling.sh)"
+    fi
+else
+    echo -e "  → Step 6b: Configure Auto-Scaling (./scripts/infra/create-ecs-autoscaling.sh)"
+fi
+
+# Step 7: Frontend Hosting
+if [ -n "${CLOUDFRONT_DISTRIBUTION_ID:-}" ]; then
+    CF_STATUS=$(aws cloudfront get-distribution \
+        --id "${CLOUDFRONT_DISTRIBUTION_ID}" \
+        --query 'Distribution.Status' \
+        --output text 2>/dev/null || echo "NOT_FOUND")
+    if [ "$CF_STATUS" = "Deployed" ]; then
+        echo -e "  ✓ Step 7: Setup S3 + CloudFront (frontend)"
+    else
+        echo -e "  → Step 7: Setup S3 + CloudFront (deploying: ${CF_STATUS})"
+    fi
+else
+    echo -e "  → Step 7: Setup S3 + CloudFront (./scripts/infra/create-frontend-hosting.sh)"
+fi
+echo -e "  ✓ Step 8: Health endpoint configured (/order/products)"
+echo -e "  ✓ Step 9: Production deployment workflows created"
+echo -e "  ✓ Step 10: Django production settings configured"
+echo -e "  → Step 11: Final verification & documentation"
 echo ""
 
 # Progress summary
