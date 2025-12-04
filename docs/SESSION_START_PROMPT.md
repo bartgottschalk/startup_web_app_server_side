@@ -27,7 +27,7 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ## Current State
 
-**Project Status:** 🚧 Phase 5.15 In Progress - Auto-Scaling Done, Frontend Next
+**Project Status:** 🚧 Phase 5.15 In Progress - Steps 1-10 Complete, Final Verification Next
 
 ### Current Work: Phase 5.15 (December 3-4, 2025)
 
@@ -100,6 +100,7 @@ Hi Claude. I want to continue working on these two repositories together:
 - PR #37: Bugfix - RDS secret preservation - November 22, 2025
 - **Phase 5.14 Complete**: ECS/CI/CD deployment infrastructure - November 26, 2025
 - **PR #40**: ALB health check fixes + PR validation workflow - December 3, 2025
+- **PR #41**: Auto-scaling + Frontend CORS fix - December 4, 2025
 
 ### Current Branch
 
@@ -247,8 +248,8 @@ Every commit MUST include documentation updates:
 
 ## 🚧 Phase 5.15 IN PROGRESS - Production Deployment
 
-**Branch**: `feature/phase-5-15-auto-scaling` (has uncommitted CORS fix)
-**Status**: Frontend deployed but blocked by CORS - needs backend fix
+**Branch**: `master` (auto-deploy enabled, CORS fix deployed)
+**Status**: Full-stack deployed, pending final verification
 **Goal**: Deploy full-stack application to production with continuous deployment
 
 ### Current Implementation Status (December 4, 2025)
@@ -262,19 +263,13 @@ Every commit MUST include documentation updates:
 6. ✅ **Create ECS Service** - 1 healthy task (auto-scaled down from 2)
 6b. ✅ **Configure Auto-Scaling** - Min 1, max 4 tasks, CPU 70%, Memory 80% targets
 
-**🚧 Step 7: Frontend Hosting (Almost Complete):**
+**✅ Step 7: Frontend Hosting (Complete):**
 - ✅ S3 bucket: `startupwebapp-frontend-production`
 - ✅ CloudFront: `E1HZ3V09L2NDK1` / `d34ongxkfo84gr.cloudfront.net`
 - ✅ DNS: `startupwebapp.mosaicmeshai.com` CNAME → CloudFront
 - ✅ Frontend workflow: `.github/workflows/deploy-production.yml` (client-side repo)
 - ✅ Frontend deployed and loads at `https://startupwebapp.mosaicmeshai.com`
-- 🚧 **BLOCKED**: CORS error - backend needs frontend domain in whitelist
-
-**🔧 Pending CORS Fix (ready to commit in backend repo):**
-- File: `StartupWebApp/StartupWebApp/settings_production.py`
-- Added `https://startupwebapp.mosaicmeshai.com` to `CORS_ORIGIN_WHITELIST` and `CSRF_TRUSTED_ORIGINS`
-- Status: **Edit made locally, NOT committed/pushed**
-- Action: Commit, push, merge PR, auto-deploy will fix CORS
+- ✅ **CORS fix deployed** - PR #41 merged December 4, 2025
 
 **✅ Steps 8-10 Complete:**
 - Step 8: Health check endpoint: `/order/products` (validates Django + database)
@@ -282,7 +277,6 @@ Every commit MUST include documentation updates:
 - Step 10: Django production settings configured (`settings_production.py`)
 
 **Remaining Steps:**
-- Commit CORS fix and deploy backend
 - **Step 11**: Final verification and documentation
 
 ### Infrastructure Scripts Created (Phase 5.15)
@@ -372,23 +366,19 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
 **🚧 Phase 5.15 Remaining Steps**
 
-### Completed (December 3, 2025)
+### Completed (December 3-4, 2025)
 - ✅ Backend API live: `https://startupwebapp-api.mosaicmeshai.com/order/products` (HTTP 200)
 - ✅ ALB Health Check Fix (all 5 root causes)
 - ✅ Infrastructure recreated and DNS updated
-- ✅ 4 healthy ECS tasks across 2 AZs
+- ✅ Auto-scaling configured (1-4 tasks, CPU 70%, Memory 80%)
 - ✅ CI/CD Workflows (pr-validation, deploy-production, rollback-production)
+- ✅ Frontend S3 + CloudFront: `https://startupwebapp.mosaicmeshai.com`
+- ✅ CORS fix deployed (PR #41)
 
 ### Remaining Phase 5.15 Steps
 
-**Step 7: Setup S3 + CloudFront** (~60 min)
-- Create `scripts/infra/create-frontend-hosting.sh`
-- S3 bucket for static files
-- CloudFront distribution with ACM certificate
-- Configure Namecheap DNS: `startupwebapp.mosaicmeshai.com` → CloudFront
-- Update frontend `index.js` with production API URL
-
 **Step 11: Final Verification & Documentation** (~60 min)
+- Verify frontend can call backend API (CORS working)
 - Smoke tests (login, orders, Stripe integration)
 - Update all documentation
 - Phase 5.15 completion summary

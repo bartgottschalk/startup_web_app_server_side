@@ -980,7 +980,7 @@ See [Phase 5.14 Technical Note](technical-notes/2025-11-23-phase-5-14-ecs-cicd-m
 - Step 9: CI/CD workflows created (pr-validation.yml, deploy-production.yml, rollback-production.yml)
 - Step 10: Django production settings configured (settings_production.py)
 
-**Step 7: S3 + CloudFront Frontend Hosting** 🚧 (December 3-4, 2025)
+**Step 7: S3 + CloudFront Frontend Hosting** ✅ (December 3-4, 2025)
 - ✅ Created `scripts/infra/create-frontend-hosting.sh` and `destroy-frontend-hosting.sh`
 - ✅ S3 bucket created: `startupwebapp-frontend-production`
 - ✅ CloudFront distribution created: `E1HZ3V09L2NDK1`
@@ -990,13 +990,13 @@ See [Phase 5.14 Technical Note](technical-notes/2025-11-23-phase-5-14-ecs-cicd-m
 - ✅ Frontend deploy workflow created: `.github/workflows/deploy-production.yml` (client-side repo)
 - ✅ Frontend deployment tested via manual workflow trigger
 - ✅ Frontend loads at `https://startupwebapp.mosaicmeshai.com`
-- 🚧 **BLOCKED**: CORS error - backend needs `startupwebapp.mosaicmeshai.com` in CORS whitelist
+- ✅ **CORS fix deployed** - PR #41 merged December 4, 2025
 
-**Pending CORS Fix** (ready to commit):
+**CORS Fix Applied** (PR #41):
 - File: `StartupWebApp/StartupWebApp/settings_production.py`
-- Change: Add `https://startupwebapp.mosaicmeshai.com` to `CORS_ORIGIN_WHITELIST` and `CSRF_TRUSTED_ORIGINS`
-- Status: Edit made locally, not yet committed/pushed
-- After push to master, backend will auto-deploy with fix
+- Added `https://startupwebapp.mosaicmeshai.com` to `CORS_ORIGIN_WHITELIST`
+- Added frontend domain to `CSRF_TRUSTED_ORIGINS`
+- Added `CORS_ALLOW_CREDENTIALS = True`
 
 **Frontend Repo Changes Made**:
 - Added `.github/workflows/deploy-production.yml` - S3 deployment workflow
@@ -1005,7 +1005,6 @@ See [Phase 5.14 Technical Note](technical-notes/2025-11-23-phase-5-14-ecs-cicd-m
 - Updated `.gitignore` to track npm config files
 
 **Remaining Steps**:
-- Commit CORS fix to backend and deploy
 - Step 11: Final verification and documentation
 
 **Infrastructure Cost Update**:
