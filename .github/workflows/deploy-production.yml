@@ -626,7 +626,9 @@ jobs:
           # Wait a moment for DNS propagation if needed
           sleep 10
 
-          HEALTH_URL="https://startupwebapp-api.mosaicmeshai.com/health"
+          # Use /order/products as health check (validates Django + database)
+          # Note: No trailing slash to match Django URL pattern
+          HEALTH_URL="https://startupwebapp-api.mosaicmeshai.com/order/products"
 
           # Retry up to 5 times with 10 second intervals
           for i in {1..5}; do
@@ -707,7 +709,7 @@ jobs:
             echo ""
             echo "Application URLs:"
             echo "  Backend:  https://startupwebapp-api.mosaicmeshai.com"
-            echo "  Health:   https://startupwebapp-api.mosaicmeshai.com/health"
+            echo "  Health:   https://startupwebapp-api.mosaicmeshai.com/order/products"
             echo "  Frontend: https://startupwebapp.mosaicmeshai.com"
           else
             echo ""
