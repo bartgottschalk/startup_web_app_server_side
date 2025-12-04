@@ -4,13 +4,15 @@ Infrastructure as Code (IaC) scripts for deploying StartupWebApp to AWS.
 
 ## ✅ Deployment Status
 
-**Current Status: Phase 5.15 In Progress - Step 6/12 (ECS Service)**
+**Current Status: Phase 5.15 In Progress - Backend Live, Step 6b/11 (Auto-Scaling)**
 
 - **Phase 5.13 Completed**: November 22, 2025 - RDS Infrastructure Deployed
 - **Phase 5.14 Completed**: November 26, 2025 - ECS/CI/CD Infrastructure Complete
-- **Phase 5.15 In Progress**: November 28, 2025 - Production Deployment
-- **Phase 5.15 Steps 1-5**: ✅ Complete (ALB, ACM Certificate, HTTPS Listener, DNS, Service Task Definition)
-- **Phase 5.15 Step 6**: 🚧 **Create ECS Service** (next step)
+- **Phase 5.15 In Progress**: November 28 - December 3, 2025 - Production Deployment
+- **Phase 5.15 Steps 1-6**: ✅ Complete (ALB, ACM, HTTPS, DNS, Task Def, ECS Service)
+- **Phase 5.15 Steps 8-10**: ✅ Complete (Health endpoint, CI/CD workflows, Django settings)
+- **Phase 5.15 Step 6b**: 🚧 **Configure Auto-Scaling** (next step)
+- **Backend API**: ✅ Live at https://startupwebapp-api.mosaicmeshai.com
 - **RDS Status**: Available (57 tables × 3 databases)
 - **Monitoring**: Active (4 alarms, email confirmed)
 - **Monthly Cost (Current)**: ~$84 (RDS: $26, NAT Gateway: $32, ALB: $16, Monitoring: $2, CloudWatch/ECR: $1, Bastion stopped: $1)
@@ -39,16 +41,19 @@ Infrastructure as Code (IaC) scripts for deploying StartupWebApp to AWS.
 7. ✅ Create NAT Gateway (`create-nat-gateway.sh`)
 8. ✅ Run automated migrations on all 3 RDS databases via pipeline
 
-**Phase 5.15 Progress:** In Progress (Steps 1-5 Complete)
+**Phase 5.15 Progress:** In Progress (Backend Live, Steps 6b, 7, 11 Remaining)
 1. ✅ Create Application Load Balancer (`create-alb.sh`)
 2. ✅ Create ACM Certificate (`create-acm-certificate.sh`)
 3. ✅ Create HTTPS Listener (`create-alb-https-listener.sh`)
 4. ✅ Configure Namecheap DNS CNAME (manual)
 5. ✅ Create ECS Service Task Definition (`create-ecs-service-task-definition.sh`)
-6. 🚧 **NEXT: Create ECS Service** (`create-ecs-service.sh`)
-7. Configure Auto-Scaling
-8. Setup S3 + CloudFront (frontend)
-9-12. Health endpoint, deployment workflow, Django settings, verification
+6. ✅ Create ECS Service (`create-ecs-service.sh`)
+6b. 🚧 **NEXT: Configure Auto-Scaling** (`create-ecs-autoscaling.sh`)
+7. Setup S3 + CloudFront (frontend)
+8. ✅ Health endpoint configured (`/order/products`)
+9. ✅ Production deployment workflows created
+10. ✅ Django production settings configured
+11. Final verification & documentation
 
 **After Phase 5.15:**
 - Phase 5.16: Production hardening (WAF, monitoring, load testing)
@@ -158,7 +163,10 @@ scripts/infra/
 ├── destroy-ecs-service-task-definition.sh  # Deregister ECS service task definition
 │
 ├── create-ecs-service.sh                   # Create ECS Fargate service (Phase 5.15 - Step 6)
-└── destroy-ecs-service.sh                  # Delete ECS service
+├── destroy-ecs-service.sh                  # Delete ECS service
+│
+├── create-ecs-autoscaling.sh               # Configure auto-scaling (Phase 5.15 - Step 6b)
+└── destroy-ecs-autoscaling.sh              # Remove auto-scaling configuration
 ```
 
 **Security Pattern:**

@@ -27,15 +27,16 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ## Current State
 
-**Project Status:** 🚧 Phase 5.15 In Progress - Backend Live, Frontend Deployment Next
+**Project Status:** 🚧 Phase 5.15 In Progress - Auto-Scaling Done, Frontend Next
 
 ### Current Work: Phase 5.15 (December 3-4, 2025)
 
 **Backend Production Deployment - VERIFIED WORKING** (December 3, 2025):
 - ✅ `https://startupwebapp-api.mosaicmeshai.com/order/products` returns HTTP 200
-- ✅ 4 healthy ECS tasks across 2 AZs (us-east-1a, us-east-1b)
+- ✅ 2 healthy ECS tasks across 2 AZs (auto-scaling enabled, will scale 1-4)
 - ✅ ALB health checks passing
 - ✅ DNS configured (Namecheap CNAME → ALB)
+- ✅ Auto-scaling configured (min 1, max 4 tasks, CPU 70%, Memory 80%)
 
 **All 5 Health Check Root Causes Fixed:**
 1. **`SECURE_PROXY_SSL_HEADER`** - Trust ALB's X-Forwarded-Proto header
@@ -259,13 +260,13 @@ Every commit MUST include documentation updates:
 5. ✅ **Create ECS Service Task Definition** - `startupwebapp-service-task:8` (0.5 vCPU, 1GB, gunicorn)
 6. ✅ **Create ECS Service** - 4 healthy tasks across 2 AZs
 
-**✅ Steps 8-10 Complete:**
+**✅ Steps 6b, 8-10 Complete:**
+- Step 6b: Auto-scaling configured (min 1, max 4 tasks, CPU 70%, Memory 80%)
 - Step 8: Health check endpoint: `/order/products` (validates Django + database)
 - Step 9: CI/CD workflows: `pr-validation.yml`, `deploy-production.yml`, `rollback-production.yml`
 - Step 10: Django production settings configured (`settings_production.py`)
 
 **Remaining Steps:**
-- **Step 6b**: Configure Auto-Scaling (1-4 tasks based on CPU/memory)
 - **Step 7**: Setup S3 + CloudFront (frontend static hosting)
 - **Step 11**: Final verification and documentation
 
@@ -358,12 +359,6 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 - ✅ CI/CD Workflows (pr-validation, deploy-production, rollback-production)
 
 ### Remaining Phase 5.15 Steps
-
-**Step 6b: Configure Auto-Scaling** (~45 min)
-- Create `scripts/infra/create-ecs-autoscaling.sh`
-- Min: 1 task, Max: 4 tasks
-- Scale on CPU (70%) and memory (80%) thresholds
-- Test scale-out and scale-in behavior
 
 **Step 7: Setup S3 + CloudFront** (~60 min)
 - Create `scripts/infra/create-frontend-hosting.sh`

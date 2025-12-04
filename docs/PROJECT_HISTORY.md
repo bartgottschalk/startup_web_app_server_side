@@ -949,13 +949,13 @@ See [Phase 5.14 Technical Note](technical-notes/2025-11-23-phase-5-14-ecs-cicd-m
 - ALB DNS: `startupwebapp-alb-1304349275.us-east-1.elb.amazonaws.com`
 - Namecheap CNAME configured for `startupwebapp-api.mosaicmeshai.com`
 
-**Steps 8-10 Complete**:
+**Steps 6b, 8-10 Complete**:
+- Step 6b: Auto-scaling configured (min 1, max 4 tasks, CPU 70%, Memory 80%) - December 3, 2025
 - Step 8: Health endpoint using `/order/products` (validates Django + database)
 - Step 9: CI/CD workflows created (pr-validation.yml, deploy-production.yml, rollback-production.yml)
 - Step 10: Django production settings configured (settings_production.py)
 
 **Remaining Steps**:
-- Step 6b: Configure Auto-Scaling (1-4 tasks based on CPU/memory)
 - Step 7: Setup S3 + CloudFront (frontend static hosting)
 - Step 11: Final verification and documentation
 

@@ -395,6 +395,50 @@ else
 fi
 echo ""
 
+# ECS Auto-Scaling (Phase 5.15)
+echo -e "${GREEN}ECS Auto-Scaling (Phase 5.15):${NC}"
+if [ -n "${AUTOSCALING_MIN_CAPACITY:-}" ]; then
+    # Check if auto-scaling is actually configured
+    RESOURCE_ID="service/${ECS_CLUSTER_NAME:-startupwebapp-cluster}/${ECS_SERVICE_NAME:-startupwebapp-service}"
+    SCALING_TARGET=$(aws application-autoscaling describe-scalable-targets \
+        --service-namespace ecs \
+        --resource-ids "${RESOURCE_ID}" \
+        --region "${AWS_REGION}" \
+        --query 'ScalableTargets[0]' \
+        --output json 2>/dev/null || echo '{}')
+
+    SCALING_MIN=$(echo "$SCALING_TARGET" | jq -r '.MinCapacity // "unknown"')
+    SCALING_MAX=$(echo "$SCALING_TARGET" | jq -r '.MaxCapacity // "unknown"')
+
+    if [ "$SCALING_MIN" != "unknown" ] && [ "$SCALING_MIN" != "null" ]; then
+        echo -e "  ${GREEN}✓${NC} Min Capacity:         ${SCALING_MIN} task(s)"
+        echo -e "  ${GREEN}✓${NC} Max Capacity:         ${SCALING_MAX} task(s)"
+        echo -e "  ${GREEN}✓${NC} CPU Policy:           ${AUTOSCALING_CPU_POLICY:-startupwebapp-cpu-scaling}"
+        echo -e "  ${GREEN}✓${NC} Memory Policy:        ${AUTOSCALING_MEMORY_POLICY:-startupwebapp-memory-scaling}"
+
+        # Get scaling activity
+        SCALING_ACTIVITIES=$(aws application-autoscaling describe-scaling-activities \
+            --service-namespace ecs \
+            --resource-id "${RESOURCE_ID}" \
+            --region "${AWS_REGION}" \
+            --max-results 1 \
+            --query 'ScalingActivities[0].StatusMessage' \
+            --output text 2>/dev/null || echo "No recent activity")
+
+        if [ -n "$SCALING_ACTIVITIES" ] && [ "$SCALING_ACTIVITIES" != "None" ] && [ "$SCALING_ACTIVITIES" != "null" ]; then
+            echo -e "  ${GREEN}✓${NC} Recent Activity:      ${SCALING_ACTIVITIES:0:60}..."
+        fi
+    else
+        echo -e "  ${YELLOW}⚠${NC} Auto-scaling in env but not found in AWS"
+        echo -e "  ${YELLOW}⚠${NC} Recreate: ./scripts/infra/create-ecs-autoscaling.sh"
+    fi
+elif [ -n "${ECS_SERVICE_NAME:-}" ]; then
+    echo -e "  ${YELLOW}⚠${NC} Auto-scaling not configured (run: ./scripts/infra/create-ecs-autoscaling.sh)"
+else
+    echo -e "  ${YELLOW}⚠${NC} Auto-scaling requires ECS Service first"
+fi
+echo ""
+
 # Cost Estimate
 echo -e "${GREEN}Estimated Monthly Cost:${NC}"
 TOTAL_COST=0
