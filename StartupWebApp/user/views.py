@@ -114,7 +114,7 @@ def logged_in(request):
                 max_age=31536000,
                 expires=None,
                 path='/',
-                domain='.startupwebapp.com',
+                domain=settings.COOKIE_DOMAIN,
                 secure=None,
                 httponly=False,
             )
@@ -185,7 +185,7 @@ def client_login(request):
                 anonymous_cart.delete()
 
         response = JsonResponse({'login': 'true', 'user-api-version': user_api_version}, safe=False)
-        response.delete_cookie(key='an_ct', path='/', domain='.startupwebapp.com')
+        response.delete_cookie(key='an_ct', path='/', domain=settings.COOKIE_DOMAIN)
         return response
     else:
         # Return an 'invalid login' error message.
@@ -201,7 +201,7 @@ def client_logout(request):
 
     logout(request)
     response = JsonResponse({'logout': 'true', 'user-api-version': user_api_version}, safe=False)
-    response.delete_cookie(key='an_ct', path='/', domain='.startupwebapp.com')
+    response.delete_cookie(key='an_ct', path='/', domain=settings.COOKIE_DOMAIN)
     response.set_signed_cookie(
         key='anonymousclientevent',
         value=random.getRandomString(20, 20),
@@ -209,7 +209,7 @@ def client_logout(request):
         max_age=31536000,
         expires=None,
         path='/',
-        domain='.startupwebapp.com',
+        domain=settings.COOKIE_DOMAIN,
         secure=None,
         httponly=False,
     )
