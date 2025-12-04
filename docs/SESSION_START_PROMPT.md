@@ -27,16 +27,17 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ## Current State
 
-**Project Status:** 🚧 Phase 5.15 In Progress - Health Check Fix Complete, Remaining Steps Pending
+**Project Status:** 🚧 Phase 5.15 In Progress - Backend Live, Frontend Deployment Next
 
-### Current Work: Phase 5.15 (December 3, 2025)
+### Current Work: Phase 5.15 (December 3-4, 2025)
 
-**ALB Health Check Fix - COMPLETE:**
-- ✅ All 5 root causes identified and fixed
-- ✅ Infrastructure recreated with correct health check path
-- ✅ Health checks passing
+**Backend Production Deployment - VERIFIED WORKING** (December 3, 2025):
+- ✅ `https://startupwebapp-api.mosaicmeshai.com/order/products` returns HTTP 200
+- ✅ 4 healthy ECS tasks across 2 AZs (us-east-1a, us-east-1b)
+- ✅ ALB health checks passing
+- ✅ DNS configured (Namecheap CNAME → ALB)
 
-**All 5 Root Causes Fixed:**
+**All 5 Health Check Root Causes Fixed:**
 1. **`SECURE_PROXY_SSL_HEADER`** - Trust ALB's X-Forwarded-Proto header
 2. **`ALLOWED_HOSTS` container IPs** - ECS metadata IP fetching
 3. **`SECURE_REDIRECT_EXEMPT`** - Exempt health check from SSL redirect
@@ -49,25 +50,23 @@ Hi Claude. I want to continue working on these two repositories together:
 - `2f36dcd` - Trailing slash fix (root cause 5)
 
 **Infrastructure Status:**
-- ALB: ✓ Running (health check path: `/order/products`)
-- ECS Service: ✓ Running (2 tasks across 2 AZs)
-- ACM Certificate: ✓ Exists (`*.mosaicmeshai.com`)
-- ECR Repository: ✓ Exists
-- ECS Cluster: ✓ Exists
-- RDS Database: ✓ Exists
+- ALB: ✅ Running (`startupwebapp-alb-1304349275.us-east-1.elb.amazonaws.com`)
+- ECS Service: ✅ 4 healthy tasks across 2 AZs
+- ACM Certificate: ✅ Issued (`*.mosaicmeshai.com`)
+- ECR Repository: ✅ Exists
+- ECS Cluster: ✅ Exists
+- RDS Database: ✅ Exists
+
+**CI/CD Workflows Created:**
+- `.github/workflows/pr-validation.yml` - Runs on all PRs to master
+- `.github/workflows/deploy-production.yml` - Auto-deploy on push to master
+- `.github/workflows/rollback-production.yml` - Manual rollback workflow
+
+**Health Check Endpoint:**
+- `/order/products` (no trailing slash) validates Django + database connectivity
+- Lightweight query suitable for frequent health checks (every 30s)
 
 **Future Task:** Standardize all Django URL patterns to use trailing slashes (codebase-wide refactor)
-
-**PR Validation Workflow Added**
-- Created `.github/workflows/pr-validation.yml`
-- Runs on all PRs to master: flake8 linting + unit tests + functional tests
-- Catches issues before merge (prevents broken code reaching master)
-
-**Health Check Endpoint Rationale:**
-- `/order/products/` validates Django is running
-- Validates database connectivity (queries Product table)
-- Does NOT require authentication
-- Lightweight query suitable for frequent health checks (every 30s)
 
 **FRONTEND_REPO_TOKEN** - Still needs fix (separate issue):
 - Fine-grained PAT needs **Contents: Read and write** permission
@@ -247,34 +246,30 @@ Every commit MUST include documentation updates:
 ## 🚧 Phase 5.15 IN PROGRESS - Production Deployment
 
 **Branch**: `master` (auto-deploy enabled)
-**Status**: Backend deployed, debugging health checks
+**Status**: Backend live and verified, frontend deployment next
 **Goal**: Deploy full-stack application to production with continuous deployment
 
-### Current Implementation Status (December 2, 2025)
+### Current Implementation Status (December 3, 2025)
 
-**✅ Steps 1-6 Complete:**
-1. ✅ **Application Load Balancer** - `startupwebapp-alb` created with HTTP→HTTPS redirect
-2. ✅ **ACM Certificate** - `*.mosaicmeshai.com` wildcard certificate issued
-3. ✅ **HTTPS Listener** - TLS 1.2/1.3 termination on ALB port 443
-4. ✅ **DNS Configuration** - `startupwebapp-api.mosaicmeshai.com` CNAME → ALB
-5. ✅ **Service Task Definition** - `startupwebapp-service-task` (0.5 vCPU, 1GB, gunicorn)
-6. ✅ **ECS Service** - 2 tasks running across 2 AZs
+**✅ Steps 1-6 Complete - Backend Live:**
+1. ✅ **Create ALB** - `startupwebapp-alb-1304349275.us-east-1.elb.amazonaws.com`
+2. ✅ **Request ACM Certificate** - `*.mosaicmeshai.com` wildcard certificate issued
+3. ✅ **Create HTTPS Listener** - TLS 1.2/1.3 termination on ALB port 443
+4. ✅ **Configure Namecheap DNS** - `startupwebapp-api.mosaicmeshai.com` CNAME → ALB
+5. ✅ **Create ECS Service Task Definition** - `startupwebapp-service-task:8` (0.5 vCPU, 1GB, gunicorn)
+6. ✅ **Create ECS Service** - 4 healthy tasks across 2 AZs
 
-**✅ Step 10 Complete (moved up):**
-- `deploy-production.yml` - Auto-deploy on push to master (tests → migrate → deploy backend → trigger frontend)
-- `rollback-production.yml` - Manual rollback workflow
+**✅ Steps 8-10 Complete:**
+- Step 8: Health check endpoint: `/order/products` (validates Django + database)
+- Step 9: CI/CD workflows: `pr-validation.yml`, `deploy-production.yml`, `rollback-production.yml`
+- Step 10: Django production settings configured (`settings_production.py`)
 
-**🚧 Current Issues to Fix (see "Next Steps" section for details):**
-1. **Missing `SECURE_PROXY_SSL_HEADER`** - Causes 301 redirect loop
-2. **`ALLOWED_HOSTS` doesn't accept VPC IPs** - Causes 400 error on health checks
-3. **Health check path needs trailing slash** - `/order/products` → `/order/products/`
-4. **FRONTEND_REPO_TOKEN permissions** - Need to add Contents: Read and write to fine-grained PAT
+**Remaining Steps:**
+- **Step 6b**: Configure Auto-Scaling (1-4 tasks based on CPU/memory)
+- **Step 7**: Setup S3 + CloudFront (frontend static hosting)
+- **Step 11**: Final verification and documentation
 
-**Remaining Steps (after health checks fixed):**
-7. Configure Auto-Scaling (1-4 tasks based on CPU/memory)
-8. Setup S3 + CloudFront (frontend static hosting)
-11. Django production settings - mostly done, may need tweaks
-12. Verification and documentation
+**Separate Issue:** FRONTEND_REPO_TOKEN needs Contents: Read and write permission
 
 ### Infrastructure Scripts Created (Phase 5.15)
 
@@ -356,14 +351,31 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 **🚧 Phase 5.15 Remaining Steps**
 
 ### Completed (December 3, 2025)
+- ✅ Backend API live: `https://startupwebapp-api.mosaicmeshai.com/order/products` (HTTP 200)
 - ✅ ALB Health Check Fix (all 5 root causes)
-- ✅ PR Validation Workflow
-- ✅ Production Deployment Workflow
+- ✅ Infrastructure recreated and DNS updated
+- ✅ 4 healthy ECS tasks across 2 AZs
+- ✅ CI/CD Workflows (pr-validation, deploy-production, rollback-production)
 
 ### Remaining Phase 5.15 Steps
-- Step 7: Configure Auto-Scaling (1-4 tasks based on CPU/memory)
-- Step 8: Setup S3 + CloudFront (frontend static hosting)
-- Step 12: Final verification and documentation
+
+**Step 6b: Configure Auto-Scaling** (~45 min)
+- Create `scripts/infra/create-ecs-autoscaling.sh`
+- Min: 1 task, Max: 4 tasks
+- Scale on CPU (70%) and memory (80%) thresholds
+- Test scale-out and scale-in behavior
+
+**Step 7: Setup S3 + CloudFront** (~60 min)
+- Create `scripts/infra/create-frontend-hosting.sh`
+- S3 bucket for static files
+- CloudFront distribution with ACM certificate
+- Configure Namecheap DNS: `startupwebapp.mosaicmeshai.com` → CloudFront
+- Update frontend `index.js` with production API URL
+
+**Step 11: Final Verification & Documentation** (~60 min)
+- Smoke tests (login, orders, Stripe integration)
+- Update all documentation
+- Phase 5.15 completion summary
 
 ### Verify Production is Working
 ```bash
@@ -383,11 +395,6 @@ Expected: All targets healthy, HTTP 200 response
 - Go to: https://github.com/settings/tokens?type=beta
 - Edit token for `startup_web_app_client_side`
 - Add **Contents: Read and write** permission
-
-**Remaining Phase 5.15 Steps (after health checks work):**
-- Step 7: Configure Auto-Scaling (1-4 tasks based on CPU/memory)
-- Step 8: Setup S3 + CloudFront (frontend)
-- Step 12: Final verification and documentation
 
 **After Phase 5.15:**
 - **Phase 5.16**: Production Hardening (WAF, enhanced monitoring, load testing)

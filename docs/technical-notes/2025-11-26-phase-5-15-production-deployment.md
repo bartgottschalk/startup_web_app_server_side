@@ -279,7 +279,7 @@ Phase 5.15 deploys the full StartupWebApp application to production using AWS EC
 
 ---
 
-### Step 6: Configure Auto-Scaling ⏱️ 45 minutes
+### Step 6b: Configure Auto-Scaling ⏱️ 45 minutes
 
 **Goal**: Scale ECS tasks based on CPU/memory utilization
 
