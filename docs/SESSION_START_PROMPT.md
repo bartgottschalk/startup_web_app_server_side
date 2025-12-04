@@ -98,6 +98,8 @@ curl https://startupwebapp-api.mosaicmeshai.com/user/logged-in
 - **PR #42**: Deploy workflow health check fix - December 4, 2025
 - **PR #43**: Seed data migrations (fixes 500 error) - December 4, 2025
 - **Phase 5.15 Complete**: Full production deployment live - December 4, 2025
+- **PR #44**: Cookie domain fix + Phase 5.15 docs - December 4, 2025
+- **Client PR #11**: S3 Content-Type fix for extensionless HTML - December 4, 2025
 
 ### Current Branch
 
@@ -359,6 +361,32 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
 **Phase 5.15 is complete.** The full-stack application is deployed to production with continuous deployment.
 
+### Immediate Task: Create Production Superuser
+
+**Status**: Planning complete, ready for TDD implementation
+
+**Problem**: No superuser exists in production database - cannot access Django Admin.
+
+**Plan documented in**: `docs/technical-notes/2025-12-04-production-admin-commands.md`
+
+**Next steps (TDD approach)**:
+1. Write unit test for superuser creation via environment variables
+2. Test `createsuperuser --noinput` manually in Docker
+3. Add superuser credentials to AWS Secrets Manager
+4. Create `run-admin-command.yml` GitHub Actions workflow
+5. Test workflow on `healthtech_experiment` database first
+6. Run workflow on `startupwebapp_prod` database
+7. Update documentation
+
+**To verify no superuser exists** (via bastion):
+```bash
+aws ssm start-session --target i-0d8d746dd8059de2c
+# Then:
+psql -h startupwebapp-multi-tenant-prod.cqbgoe8omhyh.us-east-1.rds.amazonaws.com \
+  -U django_app -d startupwebapp_prod \
+  -c "SELECT username, is_superuser FROM auth_user WHERE is_superuser = true;"
+```
+
 ### Verify Production
 ```bash
 # Health check (should return 200)
@@ -387,6 +415,7 @@ open https://startupwebapp.mosaicmeshai.com
 
 - **Project History**: `docs/PROJECT_HISTORY.md`
 - **Phase 5.15 (Complete)**: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
+- **Production Admin Commands**: `docs/technical-notes/2025-12-04-production-admin-commands.md`
 - **Seed Data Migrations**: `docs/technical-notes/2025-12-04-seed-data-migrations.md`
 - **Phase 5.14 (Complete)**: `docs/technical-notes/2025-11-23-phase-5-14-ecs-cicd-migrations.md`
 - **AWS RDS Deployment**: `docs/technical-notes/2025-11-19-aws-rds-deployment-plan.md`
