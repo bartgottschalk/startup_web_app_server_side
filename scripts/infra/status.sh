@@ -625,6 +625,40 @@ else
 fi
 echo ""
 
+# Frontend Hosting (S3 + CloudFront)
+echo -e "${CYAN}Frontend Hosting (S3 + CloudFront)${NC}"
+if [ -n "${CLOUDFRONT_DISTRIBUTION_ID:-}" ]; then
+    CF_STATUS=$(aws cloudfront get-distribution \
+        --id "${CLOUDFRONT_DISTRIBUTION_ID}" \
+        --query 'Distribution.Status' \
+        --output text 2>/dev/null || echo "NOT_FOUND")
+
+    if [ "$CF_STATUS" = "Deployed" ]; then
+        echo -e "  ${GREEN}✓ COMPLETED${NC} - Frontend hosting configured"
+        echo ""
+        echo -e "  S3 Bucket:           ${S3_FRONTEND_BUCKET:-}"
+        echo -e "  CloudFront ID:       ${CLOUDFRONT_DISTRIBUTION_ID}"
+        echo -e "  CloudFront Domain:   ${CLOUDFRONT_DOMAIN_NAME:-}"
+        echo -e "  Custom Domain:       ${FRONTEND_CUSTOM_DOMAIN:-}"
+        echo -e "  Status:              ${CF_STATUS}"
+    elif [ "$CF_STATUS" = "InProgress" ]; then
+        echo -e "  ${YELLOW}⚠ DEPLOYING${NC} - CloudFront distribution deploying"
+        echo -e "  ${YELLOW}   This can take 5-15 minutes${NC}"
+    else
+        echo -e "  ${YELLOW}⚠ CloudFront in env but status: ${CF_STATUS}${NC}"
+        echo -e "  ${YELLOW}→ Check: aws cloudfront get-distribution --id ${CLOUDFRONT_DISTRIBUTION_ID}${NC}"
+    fi
+elif [ -n "${AUTOSCALING_MIN_CAPACITY:-}" ]; then
+    echo -e "  ${YELLOW}⚠ NOT STARTED${NC}"
+    echo ""
+    echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-frontend-hosting.sh${NC}"
+    echo -e "  ${YELLOW}   Time: ~10-15 minutes (CloudFront deployment)${NC}"
+    echo -e "  ${YELLOW}   Cost: ~\$1-5/month (S3 + CloudFront)${NC}"
+else
+    echo -e "  ${RED}✗ BLOCKED${NC} - Complete auto-scaling first"
+fi
+echo ""
+
 # Phase 5.15 Progress Summary
 echo -e "${YELLOW}Phase 5.15 Progress Summary:${NC}"
 if [ -n "${ALB_ARN:-}" ]; then
@@ -703,7 +737,20 @@ else
     echo -e "  → Step 6b: Configure Auto-Scaling (./scripts/infra/create-ecs-autoscaling.sh)"
 fi
 
-echo -e "  → Step 7: Setup S3 + CloudFront (frontend)"
+# Step 7: Frontend Hosting
+if [ -n "${CLOUDFRONT_DISTRIBUTION_ID:-}" ]; then
+    CF_STATUS=$(aws cloudfront get-distribution \
+        --id "${CLOUDFRONT_DISTRIBUTION_ID}" \
+        --query 'Distribution.Status' \
+        --output text 2>/dev/null || echo "NOT_FOUND")
+    if [ "$CF_STATUS" = "Deployed" ]; then
+        echo -e "  ✓ Step 7: Setup S3 + CloudFront (frontend)"
+    else
+        echo -e "  → Step 7: Setup S3 + CloudFront (deploying: ${CF_STATUS})"
+    fi
+else
+    echo -e "  → Step 7: Setup S3 + CloudFront (./scripts/infra/create-frontend-hosting.sh)"
+fi
 echo -e "  ✓ Step 8: Health endpoint configured (/order/products)"
 echo -e "  ✓ Step 9: Production deployment workflows created"
 echo -e "  ✓ Step 10: Django production settings configured"

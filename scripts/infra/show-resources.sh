@@ -439,6 +439,37 @@ else
 fi
 echo ""
 
+# Frontend Hosting (Phase 5.15 Step 7)
+echo -e "${GREEN}Frontend Hosting (Phase 5.15 Step 7):${NC}"
+if [ -n "${CLOUDFRONT_DISTRIBUTION_ID:-}" ]; then
+    CF_STATUS=$(aws cloudfront get-distribution \
+        --id "${CLOUDFRONT_DISTRIBUTION_ID}" \
+        --query 'Distribution.Status' \
+        --output text 2>/dev/null || echo "NOT_FOUND")
+
+    if [ "$CF_STATUS" != "NOT_FOUND" ]; then
+        echo -e "  ${GREEN}✓${NC} S3 Bucket:            ${S3_FRONTEND_BUCKET:-}"
+        echo -e "  ${GREEN}✓${NC} CloudFront ID:        ${CLOUDFRONT_DISTRIBUTION_ID}"
+        echo -e "  ${GREEN}✓${NC} CloudFront Domain:    ${CLOUDFRONT_DOMAIN_NAME:-}"
+        echo -e "  ${GREEN}✓${NC} Custom Domain:        ${FRONTEND_CUSTOM_DOMAIN:-}"
+        echo -e "  ${GREEN}✓${NC} Status:               ${CF_STATUS}"
+        echo ""
+        echo -e "  Access URLs:"
+        if [ -n "${FRONTEND_CUSTOM_DOMAIN:-}" ]; then
+            echo -e "    Production:         https://${FRONTEND_CUSTOM_DOMAIN}"
+        fi
+        echo -e "    CloudFront:         https://${CLOUDFRONT_DOMAIN_NAME:-}"
+    else
+        echo -e "  ${YELLOW}⚠${NC} CloudFront in env but not found in AWS"
+        echo -e "  ${YELLOW}⚠${NC} Recreate: ./scripts/infra/create-frontend-hosting.sh"
+    fi
+elif [ -n "${AUTOSCALING_MIN_CAPACITY:-}" ]; then
+    echo -e "  ${YELLOW}⚠${NC} Not configured (run: ./scripts/infra/create-frontend-hosting.sh)"
+else
+    echo -e "  ${YELLOW}⚠${NC} Frontend hosting requires auto-scaling first"
+fi
+echo ""
+
 # Cost Estimate
 echo -e "${GREEN}Estimated Monthly Cost:${NC}"
 TOTAL_COST=0
@@ -493,6 +524,10 @@ if [ -n "${ECS_SERVICE_NAME:-}" ]; then
     else
         echo -e "  ECS Service Tasks:    \$0 (no running tasks)"
     fi
+fi
+if [ -n "${CLOUDFRONT_DISTRIBUTION_ID:-}" ]; then
+    echo -e "  S3 + CloudFront:      ~\$1-5/month (storage + requests)"
+    TOTAL_COST=$((TOTAL_COST + 3))  # Estimate ~$3/month
 fi
 if [ $TOTAL_COST -gt 0 ]; then
     echo -e "  ${GREEN}─────────────────────────────${NC}"
@@ -557,6 +592,15 @@ if [ -n "${RDS_ENDPOINT:-}" ] || [ -n "${ECR_REPOSITORY_URI:-}" ]; then
     if [ -n "${ECS_SERVICE_NAME:-}" ]; then
         echo -e "  ECS Service:"
         echo -e "    https://console.aws.amazon.com/ecs/home?region=${AWS_REGION}#/clusters/${ECS_CLUSTER_NAME:-startupwebapp-cluster}/services/${ECS_SERVICE_NAME}"
+        echo ""
+    fi
+
+    if [ -n "${CLOUDFRONT_DISTRIBUTION_ID:-}" ]; then
+        echo -e "  CloudFront Distribution:"
+        echo -e "    https://console.aws.amazon.com/cloudfront/home#/distributions/${CLOUDFRONT_DISTRIBUTION_ID}"
+        echo ""
+        echo -e "  S3 Frontend Bucket:"
+        echo -e "    https://console.aws.amazon.com/s3/buckets/${S3_FRONTEND_BUCKET:-}?region=${AWS_REGION}"
         echo ""
     fi
 fi

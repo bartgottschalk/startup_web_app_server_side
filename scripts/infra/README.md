@@ -4,18 +4,18 @@ Infrastructure as Code (IaC) scripts for deploying StartupWebApp to AWS.
 
 ## ✅ Deployment Status
 
-**Current Status: Phase 5.15 In Progress - Backend Live, Step 6b/11 (Auto-Scaling)**
+**Current Status: Phase 5.15 In Progress - Backend Live, Step 7/11 (Frontend Hosting)**
 
 - **Phase 5.13 Completed**: November 22, 2025 - RDS Infrastructure Deployed
 - **Phase 5.14 Completed**: November 26, 2025 - ECS/CI/CD Infrastructure Complete
 - **Phase 5.15 In Progress**: November 28 - December 3, 2025 - Production Deployment
-- **Phase 5.15 Steps 1-6**: ✅ Complete (ALB, ACM, HTTPS, DNS, Task Def, ECS Service)
+- **Phase 5.15 Steps 1-6b**: ✅ Complete (ALB, ACM, HTTPS, DNS, Task Def, ECS Service, Auto-Scaling)
 - **Phase 5.15 Steps 8-10**: ✅ Complete (Health endpoint, CI/CD workflows, Django settings)
-- **Phase 5.15 Step 6b**: 🚧 **Configure Auto-Scaling** (next step)
+- **Phase 5.15 Step 7**: 🚧 **Setup S3 + CloudFront** (frontend hosting - next step)
 - **Backend API**: ✅ Live at https://startupwebapp-api.mosaicmeshai.com
 - **RDS Status**: Available (57 tables × 3 databases)
-- **Monitoring**: Active (4 alarms, email confirmed)
-- **Monthly Cost (Current)**: ~$84 (RDS: $26, NAT Gateway: $32, ALB: $16, Monitoring: $2, CloudWatch/ECR: $1, Bastion stopped: $1)
+- **Auto-Scaling**: Active (min 1, max 4 tasks, CPU 70%, Memory 80%)
+- **Monthly Cost (Current)**: ~$98 (RDS: $26, NAT Gateway: $32, ALB: $16, ECS: $20, Monitoring: $2, CloudWatch/ECR: $1, Bastion stopped: $1)
 
 **Deployed Resources:**
 - VPC: vpc-0df90226462f00350 (startupwebapp-vpc, 10.0.0.0/16)
@@ -41,15 +41,15 @@ Infrastructure as Code (IaC) scripts for deploying StartupWebApp to AWS.
 7. ✅ Create NAT Gateway (`create-nat-gateway.sh`)
 8. ✅ Run automated migrations on all 3 RDS databases via pipeline
 
-**Phase 5.15 Progress:** In Progress (Backend Live, Steps 6b, 7, 11 Remaining)
+**Phase 5.15 Progress:** In Progress (Backend Live, Steps 7, 11 Remaining)
 1. ✅ Create Application Load Balancer (`create-alb.sh`)
 2. ✅ Create ACM Certificate (`create-acm-certificate.sh`)
 3. ✅ Create HTTPS Listener (`create-alb-https-listener.sh`)
 4. ✅ Configure Namecheap DNS CNAME (manual)
 5. ✅ Create ECS Service Task Definition (`create-ecs-service-task-definition.sh`)
 6. ✅ Create ECS Service (`create-ecs-service.sh`)
-6b. 🚧 **NEXT: Configure Auto-Scaling** (`create-ecs-autoscaling.sh`)
-7. Setup S3 + CloudFront (frontend)
+6b. ✅ Configure Auto-Scaling (`create-ecs-autoscaling.sh`)
+7. 🚧 **NEXT: Setup S3 + CloudFront** (`create-frontend-hosting.sh`)
 8. ✅ Health endpoint configured (`/order/products`)
 9. ✅ Production deployment workflows created
 10. ✅ Django production settings configured
@@ -166,7 +166,10 @@ scripts/infra/
 ├── destroy-ecs-service.sh                  # Delete ECS service
 │
 ├── create-ecs-autoscaling.sh               # Configure auto-scaling (Phase 5.15 - Step 6b)
-└── destroy-ecs-autoscaling.sh              # Remove auto-scaling configuration
+├── destroy-ecs-autoscaling.sh              # Remove auto-scaling configuration
+│
+├── create-frontend-hosting.sh              # Create S3 + CloudFront (Phase 5.15 - Step 7)
+└── destroy-frontend-hosting.sh             # Delete frontend hosting
 ```
 
 **Security Pattern:**
@@ -294,14 +297,15 @@ Execute scripts in this order:
 # 5. ✅ Create ECS Service Task Definition (2 minutes)
 ./scripts/infra/create-ecs-service-task-definition.sh
 
-# 6. 🚧 Create ECS Service (5 minutes) - NEXT STEP
+# 6. ✅ Create ECS Service (5 minutes)
 #    Long-running service with 2 tasks across 2 AZs
 ./scripts/infra/create-ecs-service.sh
 
-# 7. Configure Auto-Scaling (2 minutes)
+# 6b. ✅ Configure Auto-Scaling (2 minutes)
 ./scripts/infra/create-ecs-autoscaling.sh
 
-# 8. Setup S3 + CloudFront for Frontend (10 minutes)
+# 7. 🚧 Setup S3 + CloudFront for Frontend (10-15 minutes) - NEXT STEP
+#    S3 bucket + CloudFront distribution with ACM certificate
 ./scripts/infra/create-frontend-hosting.sh
 
 # Check status
@@ -311,6 +315,31 @@ Execute scripts in this order:
 ### Teardown Order
 
 Execute scripts in reverse order:
+
+**Phase 5.15: Frontend Hosting**
+
+```bash
+# 1. Destroy frontend hosting (S3 + CloudFront)
+./scripts/infra/destroy-frontend-hosting.sh
+
+# 2. Destroy auto-scaling
+./scripts/infra/destroy-ecs-autoscaling.sh
+
+# 3. Destroy ECS service
+./scripts/infra/destroy-ecs-service.sh
+
+# 4. Deregister service task definition
+./scripts/infra/destroy-ecs-service-task-definition.sh
+
+# 5. Destroy HTTPS listener
+./scripts/infra/destroy-alb-https-listener.sh
+
+# 6. Destroy ACM certificate
+./scripts/infra/destroy-acm-certificate.sh
+
+# 7. Destroy ALB
+./scripts/infra/destroy-alb.sh
+```
 
 **Phase 5.14: ECS/CI/CD Infrastructure**
 
