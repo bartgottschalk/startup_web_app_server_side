@@ -949,8 +949,33 @@ See [Phase 5.14 Technical Note](technical-notes/2025-11-23-phase-5-14-ecs-cicd-m
 - ALB DNS: `startupwebapp-alb-1304349275.us-east-1.elb.amazonaws.com`
 - Namecheap CNAME configured for `startupwebapp-api.mosaicmeshai.com`
 
-**Steps 6b, 8-10 Complete**:
-- Step 6b: Auto-scaling configured (min 1, max 4 tasks, CPU 70%, Memory 80%) - December 3, 2025
+**Step 6b: ECS Auto-Scaling** ✅ (December 3, 2025)
+- ✅ Created `scripts/infra/create-ecs-autoscaling.sh` and `destroy-ecs-autoscaling.sh`
+- ✅ Registered ECS service as scalable target with Application Auto Scaling
+- ✅ Configuration:
+  - Minimum tasks: 1 (cost optimization for low traffic)
+  - Maximum tasks: 4 (handle traffic spikes)
+  - CPU target: 70% utilization (scale out when exceeded)
+  - Memory target: 80% utilization (scale out when exceeded)
+  - Scale-out cooldown: 60 seconds (respond quickly to load)
+  - Scale-in cooldown: 300 seconds (prevent flapping)
+- ✅ CloudWatch alarms auto-created for target tracking:
+  - AlarmHigh: Triggers scale-out when metric exceeds target
+  - AlarmLow: Triggers scale-in when metric below target for sustained period
+- ✅ Full destroy/recreate cycle tested successfully
+- ✅ Auto-scaling already active: scaled from 2 → 1 task due to low traffic
+- ✅ Cost impact: $20-78/month depending on traffic (vs fixed $78/month for 4 tasks)
+
+**Files Created**:
+- `scripts/infra/create-ecs-autoscaling.sh` - Register scalable target, create CPU/memory policies
+- `scripts/infra/destroy-ecs-autoscaling.sh` - Delete policies, deregister scalable target
+
+**Files Modified**:
+- `scripts/infra/aws-resources.env.template` - Added auto-scaling fields
+- `scripts/infra/status.sh` - Added auto-scaling status section
+- `scripts/infra/show-resources.sh` - Added auto-scaling display with recent activity
+
+**Steps 8-10 Complete**:
 - Step 8: Health endpoint using `/order/products` (validates Django + database)
 - Step 9: CI/CD workflows created (pr-validation.yml, deploy-production.yml, rollback-production.yml)
 - Step 10: Django production settings configured (settings_production.py)
@@ -958,6 +983,11 @@ See [Phase 5.14 Technical Note](technical-notes/2025-11-23-phase-5-14-ecs-cicd-m
 **Remaining Steps**:
 - Step 7: Setup S3 + CloudFront (frontend static hosting)
 - Step 11: Final verification and documentation
+
+**Infrastructure Cost Update**:
+- Previous (fixed 2 tasks): ~$118/month
+- With auto-scaling (1 task at low traffic): ~$98/month
+- Savings: ~$20/month (17% reduction) during low traffic periods
 
 **Future Task: URL Pattern Standardization**
 - All Django URL patterns should consistently use trailing slashes

@@ -200,13 +200,14 @@ docker-compose exec -d backend python manage.py runserver 0.0.0.0:8000
 - Bastion: i-0d8d746dd8059de2c (connect: `aws ssm start-session --target i-0d8d746dd8059de2c`)
 - ECS Cluster: startupwebapp-cluster (Fargate)
 - ECR Repository: startupwebapp-backend (URI: 853463362083.dkr.ecr.us-east-1.amazonaws.com/startupwebapp-backend)
-- ALB: startupwebapp-alb (DNS: startupwebapp-alb-152031950.us-east-1.elb.amazonaws.com)
+- ALB: startupwebapp-alb (DNS: startupwebapp-alb-1304349275.us-east-1.elb.amazonaws.com)
 - ACM Certificate: *.mosaicmeshai.com (issued)
 - DNS: startupwebapp-api.mosaicmeshai.com → ALB
+- Auto-Scaling: Min 1, Max 4 tasks (CPU 70%, Memory 80% targets)
 - Secrets: rds/startupwebapp/multi-tenant/master
-- Monitoring: CloudWatch dashboard + 4 alarms
+- Monitoring: CloudWatch dashboard + 4 alarms + auto-scaling alarms
 
-**Cost**: ~$84/month running (~$78/month with bastion stopped)
+**Cost**: ~$98/month running (1 task), scales to ~$156/month at max (4 tasks)
 
 ### Documentation Requirements
 
@@ -252,16 +253,16 @@ Every commit MUST include documentation updates:
 
 ### Current Implementation Status (December 3, 2025)
 
-**✅ Steps 1-6 Complete - Backend Live:**
+**✅ Steps 1-6b Complete - Backend Live with Auto-Scaling:**
 1. ✅ **Create ALB** - `startupwebapp-alb-1304349275.us-east-1.elb.amazonaws.com`
 2. ✅ **Request ACM Certificate** - `*.mosaicmeshai.com` wildcard certificate issued
 3. ✅ **Create HTTPS Listener** - TLS 1.2/1.3 termination on ALB port 443
 4. ✅ **Configure Namecheap DNS** - `startupwebapp-api.mosaicmeshai.com` CNAME → ALB
 5. ✅ **Create ECS Service Task Definition** - `startupwebapp-service-task:8` (0.5 vCPU, 1GB, gunicorn)
-6. ✅ **Create ECS Service** - 4 healthy tasks across 2 AZs
+6. ✅ **Create ECS Service** - 1 healthy task (auto-scaled down from 2)
+6b. ✅ **Configure Auto-Scaling** - Min 1, max 4 tasks, CPU 70%, Memory 80% targets
 
-**✅ Steps 6b, 8-10 Complete:**
-- Step 6b: Auto-scaling configured (min 1, max 4 tasks, CPU 70%, Memory 80%)
+**✅ Steps 8-10 Complete:**
 - Step 8: Health check endpoint: `/order/products` (validates Django + database)
 - Step 9: CI/CD workflows: `pr-validation.yml`, `deploy-production.yml`, `rollback-production.yml`
 - Step 10: Django production settings configured (`settings_production.py`)
@@ -294,6 +295,10 @@ Every commit MUST include documentation updates:
 # Step 6: ECS Service
 ./scripts/infra/create-ecs-service.sh
 ./scripts/infra/destroy-ecs-service.sh
+
+# Step 6b: Auto-Scaling
+./scripts/infra/create-ecs-autoscaling.sh
+./scripts/infra/destroy-ecs-autoscaling.sh
 ```
 
 ### Production Architecture Decisions
