@@ -7,6 +7,7 @@
 # - Database Master: username (postgres), password (auto-generated 32 chars)
 # - Database App: username (django_app), password (auto-generated 32 chars)
 # - Django: SECRET_KEY (auto-generated 50 characters)
+# - Django Superuser: username, email, password (prompts for input)
 # - Stripe: secret_key, publishable_key (placeholders - must update manually)
 # - Email: host, port, user, password (placeholders - must update manually)
 #
@@ -67,6 +68,27 @@ echo -e "${GREEN}✓ Master password generated (32 characters)${NC}"
 echo -e "${GREEN}✓ Application password generated (32 characters)${NC}"
 echo -e "${GREEN}✓ Django SECRET_KEY generated (50 characters)${NC}"
 
+# Prompt for Django superuser credentials
+echo ""
+echo -e "${YELLOW}Django Superuser Configuration${NC}"
+echo -e "${YELLOW}(Used to access Django Admin at /admin/)${NC}"
+echo ""
+read -p "Enter superuser username [prod-admin]: " SUPERUSER_USERNAME
+SUPERUSER_USERNAME=${SUPERUSER_USERNAME:-prod-admin}
+read -p "Enter superuser email: " SUPERUSER_EMAIL
+while [ -z "$SUPERUSER_EMAIL" ]; do
+    echo -e "${RED}Email is required${NC}"
+    read -p "Enter superuser email: " SUPERUSER_EMAIL
+done
+read -sp "Enter superuser password (16+ chars, use LastPass): " SUPERUSER_PASSWORD
+echo ""
+while [ ${#SUPERUSER_PASSWORD} -lt 16 ]; do
+    echo -e "${RED}Password must be at least 16 characters${NC}"
+    read -sp "Enter superuser password (16+ chars, use LastPass): " SUPERUSER_PASSWORD
+    echo ""
+done
+echo -e "${GREEN}✓ Superuser credentials configured${NC}"
+
 # Create secret with ALL production credentials
 echo -e "${YELLOW}Creating secret in AWS Secrets Manager...${NC}"
 DB_SECRET_ARN=$(aws secretsmanager create-secret \
@@ -82,6 +104,9 @@ DB_SECRET_ARN=$(aws secretsmanager create-secret \
         \"password\": \"${APP_PASSWORD}\",
         \"dbClusterIdentifier\": \"${RDS_INSTANCE_ID}\",
         \"django_secret_key\": \"${DJANGO_SECRET_KEY}\",
+        \"superuser_username\": \"${SUPERUSER_USERNAME}\",
+        \"superuser_email\": \"${SUPERUSER_EMAIL}\",
+        \"superuser_password\": \"${SUPERUSER_PASSWORD}\",
         \"stripe_secret_key\": \"sk_live_PLACEHOLDER_UPDATE_WITH_REAL_KEY\",
         \"stripe_publishable_key\": \"pk_live_PLACEHOLDER_UPDATE_WITH_REAL_KEY\",
         \"email_host\": \"smtp.example.com\",
@@ -121,6 +146,11 @@ echo -e "  Master Password:     [HIDDEN - 32 chars, stored in Secrets Manager]"
 echo -e "  App Username:        django_app"
 echo -e "  App Password:        [HIDDEN - 32 chars, stored in Secrets Manager]"
 echo -e "  Django SECRET_KEY:   [HIDDEN - 50 chars, stored in Secrets Manager]"
+echo ""
+echo -e "${GREEN}Django Superuser (Configured):${NC}"
+echo -e "  Superuser Username:  ${SUPERUSER_USERNAME}"
+echo -e "  Superuser Email:     ${SUPERUSER_EMAIL}"
+echo -e "  Superuser Password:  [HIDDEN - ${#SUPERUSER_PASSWORD} chars, stored in Secrets Manager]"
 echo ""
 echo -e "${YELLOW}Placeholders (Must Update Manually):${NC}"
 echo -e "  DB Host:             [Will be updated after RDS creation]"
