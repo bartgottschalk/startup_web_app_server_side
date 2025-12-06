@@ -42,8 +42,8 @@ class DjangoAdminLoginTest(BaseFunctionalTest):
         )
 
         # Navigate to Django Admin login page
-        # Use localapi.startupwebapp.com for proper CSRF cookie domain
-        admin_url = f'http://localapi.startupwebapp.com:{self.port}/admin/'
+        # Use localliveservertestcaseapi.startupwebapp.com (LiveServerTestCase backend API domain)
+        admin_url = f'http://localliveservertestcaseapi.startupwebapp.com:{self.port}/admin/'
         self.browser.get(admin_url)
 
         # Wait for login form to load
@@ -95,7 +95,7 @@ class DjangoAdminLoginTest(BaseFunctionalTest):
         )
 
         # Navigate to Django Admin login page
-        admin_url = f'http://localapi.startupwebapp.com:{self.port}/admin/'
+        admin_url = f'http://localliveservertestcaseapi.startupwebapp.com:{self.port}/admin/'
         self.browser.get(admin_url)
 
         # Wait for login form to load
@@ -144,7 +144,7 @@ class DjangoAdminLoginTest(BaseFunctionalTest):
         )
 
         # Navigate to Django Admin login page
-        admin_url = f'http://localapi.startupwebapp.com:{self.port}/admin/'
+        admin_url = f'http://localliveservertestcaseapi.startupwebapp.com:{self.port}/admin/'
         self.browser.get(admin_url)
 
         # Wait for login form to load
