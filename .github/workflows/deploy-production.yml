@@ -251,6 +251,12 @@ jobs:
           echo "127.0.0.1    localliveservertestcaseapi.startupwebapp.com" | sudo tee -a /etc/hosts
           sudo systemctl restart nginx
 
+      - name: Collect static files
+        run: |
+          cd StartupWebApp
+          python manage.py collectstatic --noinput --clear
+          echo "✓ Static files collected"
+
       - name: Run functional tests
         env:
           DATABASE_ENGINE: postgresql
