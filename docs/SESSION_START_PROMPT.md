@@ -410,10 +410,11 @@ open https://startupwebapp.mosaicmeshai.com
 
 ### Future Work
 
-**Phase 5.16: Production Hardening** (Optional)
+**Phase 5.17: Production Hardening** (Optional)
 - AWS WAF for security
 - Enhanced CloudWatch monitoring
 - Load testing and performance optimization
+- Automated disaster recovery testing
 
 **Other Work:**
 - Stripe library upgrade

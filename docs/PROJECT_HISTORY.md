@@ -1134,8 +1134,9 @@ See [Phase 5.14 Technical Note](technical-notes/2025-11-23-phase-5-14-ecs-cicd-m
 
 See [Technical Note](technical-notes/2025-11-26-phase-5-15-production-deployment.md) for full implementation plan.
 
-#### Phase 5.16: Production Hardening (Future)
+#### Phase 5.17: Production Hardening (Future)
 - AWS WAF for security
+- Enhanced CloudWatch monitoring
 - Load testing and performance optimization
 - Automated disaster recovery testing
 
