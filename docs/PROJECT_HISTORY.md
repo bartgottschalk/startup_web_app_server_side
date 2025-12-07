@@ -1134,11 +1134,36 @@ See [Phase 5.14 Technical Note](technical-notes/2025-11-23-phase-5-14-ecs-cicd-m
 
 See [Technical Note](technical-notes/2025-11-26-phase-5-15-production-deployment.md) for full implementation plan.
 
+#### Django 5.2 LTS Upgrade (HIGH PRIORITY - Q1 2026)
+
+**Current**: Django 4.2.16 LTS (support ends April 2026)
+**Target**: Django 5.2 LTS (released April 2, 2025, supported until April 2028)
+**Timeline**: ~4 months remaining until Django 4.2 EOL
+
+**Why Upgrade?**
+- Security patches for Django 4.2 end April 2026
+- Django 5.2 LTS provides 3 more years of support
+- Django 6.0 is NOT LTS (skip it, wait for 8.2 LTS in ~2027)
+
+**Recommended Approach**:
+- Start planning: January 2026
+- Complete upgrade: By March 2026
+- Use same TDD methodology as Django 4.2 upgrade (incremental steps)
+- Reference: Previous upgrade took 6 steps, well-documented process
+
+**Priority**: HIGH - Cannot run unsupported Django in production
+
+---
+
 #### Phase 5.17: Production Hardening (Future)
 - AWS WAF for security
 - Enhanced CloudWatch monitoring
 - Load testing and performance optimization
 - Automated disaster recovery testing
+
+#### Other Library Upgrades (Future)
+- **Stripe**: Currently 5.5.0 → Latest version
+- **Selenium**: Currently 3.141.0 → Selenium 4.x (modern API)
 
 ## Documentation Structure
 

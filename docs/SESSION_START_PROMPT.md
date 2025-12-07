@@ -439,16 +439,27 @@ open https://startupwebapp.mosaicmeshai.com
 
 ### Future Work
 
+**Django 5.2 LTS Upgrade** (HIGH PRIORITY - Q1 2026)
+- **Current**: Django 4.2.16 LTS (support ends April 2026)
+- **Target**: Django 5.2 LTS (supported until April 2028)
+- **Timeline**: ~4 months remaining until 4.2 EOL
+- **Recommendation**: Start planning January 2026, complete by March 2026
+- **Approach**: Use same TDD methodology as 4.2 upgrade (incremental steps)
+- **Skip**: Django 6.0 (not LTS, released December 2025)
+- **Priority**: High - security patches end April 2026
+
 **Phase 5.17: Production Hardening** (Optional)
 - AWS WAF for security
 - Enhanced CloudWatch monitoring
 - Load testing and performance optimization
 - Automated disaster recovery testing
 
-**Other Work:**
-- Stripe library upgrade
-- Selenium 4 upgrade
-- Feature development
+**Other Library Upgrades:**
+- Stripe library upgrade (currently 5.5.0)
+- Selenium 4 upgrade (currently 3.141.0)
+
+**Feature Development:**
+- New business functionality as needed
 
 ## Key Documentation
 
