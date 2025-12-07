@@ -77,7 +77,9 @@ COPY StartupWebApp/ /app/
 
 # Collect static files for WhiteNoise to serve
 # This includes Django admin CSS/JS files
-RUN python manage.py collectstatic --noinput --clear
+# Use a dummy SECRET_KEY for collectstatic (not used for actual file collection)
+RUN SECRET_KEY='build-time-secret-key-for-collectstatic-only' \
+    python manage.py collectstatic --noinput --clear
 
 # Set production settings by default
 ENV DJANGO_SETTINGS_MODULE=StartupWebApp.settings_production
