@@ -107,6 +107,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Serve static files efficiently in production
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -202,6 +203,14 @@ STATIC_URL = '/static/'
 # Directory where collectstatic gathers all static files
 # Used by LiveServerTestCase during functional tests to serve admin static files
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# WhiteNoise configuration for production static file serving
+# Compresses files (gzip/Brotli) and sets far-future cache headers
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Logging configuration
 # https://docs.djangoproject.com/en/4.2/topics/logging/

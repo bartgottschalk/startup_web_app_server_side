@@ -25,6 +25,7 @@ boto3==1.35.76  # AWS SDK for Python (Secrets Manager, S3, etc.)
 
 # Production Server
 gunicorn==21.2.0  # WSGI HTTP Server for production deployments
+whitenoise==6.7.0  # Static file serving for Python web apps (Django Admin CSS)
 
 # Testing (dev dependencies)
 coverage==6.2

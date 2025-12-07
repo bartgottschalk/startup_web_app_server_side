@@ -75,6 +75,10 @@ LABEL description="StartupWebApp Django Backend - Production"
 # Copy only necessary files (no tests, no development tools)
 COPY StartupWebApp/ /app/
 
+# Collect static files for WhiteNoise to serve
+# This includes Django admin CSS/JS files
+RUN python manage.py collectstatic --noinput --clear
+
 # Set production settings by default
 ENV DJANGO_SETTINGS_MODULE=StartupWebApp.settings_production
 
