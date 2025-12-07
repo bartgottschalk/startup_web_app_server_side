@@ -75,14 +75,15 @@ LABEL description="StartupWebApp Django Backend - Production"
 # Copy only necessary files (no tests, no development tools)
 COPY StartupWebApp/ /app/
 
-# Collect static files for WhiteNoise to serve
-# This includes Django admin CSS/JS files
-# Use a dummy SECRET_KEY for collectstatic (not used for actual file collection)
-RUN SECRET_KEY='build-time-secret-key-for-collectstatic-only' \
-    python manage.py collectstatic --noinput --clear
-
-# Set production settings by default
+# Set production settings BEFORE running collectstatic
+# This ensures collectstatic uses settings_production.py which has proper fallbacks
 ENV DJANGO_SETTINGS_MODULE=StartupWebApp.settings_production
+
+# Collect static files for WhiteNoise to serve
+# Provide DJANGO_SECRET_KEY for build time (settings_production.py fallback mechanism)
+# At runtime, the real key comes from AWS Secrets Manager
+RUN DJANGO_SECRET_KEY='build-time-secret-key-for-collectstatic-only' \
+    python manage.py collectstatic --noinput --clear
 
 # Health check for ECS
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
