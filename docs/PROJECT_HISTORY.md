@@ -23,13 +23,13 @@ This document tracks the complete development history and modernization effort f
 - [✅ 2025-11-03: Phase 2.1 - ClientEvent Tests](milestones/2025-11-03-phase-2-1-clientevent-tests.md) - Analytics event tracking (51 tests)
 - [✅ 2025-11-03: Phase 2.2 - Order Tests](milestones/2025-11-03-phase-2-2-order-tests.md) - E-commerce functionality (239 tests)
 
-### Current Status: 740 Tests Passing ✅ (100% Pass Rate with PostgreSQL!)
-- **User App**: 296 tests
+### Current Status: 746 Tests Passing ✅ (100% Pass Rate with PostgreSQL!)
+- **User App**: 299 tests (+3 superuser creation tests)
 - **Order App**: 315 tests (+19 DecimalField precision tests)
 - **ClientEvent App**: 51 tests
 - **Validators**: 50 tests
-- **Total Unit Tests**: 712 tests
-- **Functional Tests**: 28 Selenium tests (full user journey testing) - 100% reliable
+- **Total Unit Tests**: 715 tests
+- **Functional Tests**: 31 Selenium tests (+3 Django Admin login tests) - 100% reliable
 - **Database**: PostgreSQL 16 (multi-tenant architecture, local + AWS RDS ready)
 - **AWS Infrastructure**: Deployed (VPC, RDS, Secrets Manager, CloudWatch) - $29/month
 - **Production Settings**: Django configured for AWS deployment with Secrets Manager integration
@@ -1027,6 +1027,96 @@ See [Phase 5.14 Technical Note](technical-notes/2025-11-23-phase-5-14-ecs-cicd-m
 - **Result**: `/user/logged-in` now returns HTTP 200
 
 **Phase 5.15 Complete** ✅ (December 4, 2025)
+
+---
+
+#### Phase 5.16: Production Superuser & Django Admin (Complete - December 7, 2025)
+
+**Status**: ✅ COMPLETE - Django Admin fully operational with CSS
+**Branch**: `master` (auto-deploy enabled)
+**PRs**: #45 (superuser), #46 (WhiteNoise), #47 (hotfix)
+
+**Problem Solved**:
+- No superuser existed in production database
+- Could not access Django Admin interface at `/admin/`
+- Django Admin lacked CSS styling when initially accessed
+
+**Solution Implemented (TDD Approach)**:
+
+**PR #45: Production Superuser Creation** (December 7, 2025)
+- ✅ **Unit Tests** (`user/tests/test_superuser_creation.py`): 3 tests
+  - Test `createsuperuser --noinput` with environment variables
+  - Test idempotency (duplicate username fails gracefully)
+  - Test unusable password when DJANGO_SUPERUSER_PASSWORD missing
+- ✅ **Functional Tests** (`functional_tests/test_django_admin_login.py`): 3 tests
+  - Test superuser can login to Django Admin
+  - Test wrong password rejection
+  - Test non-staff users cannot access admin
+  - **Regression prevention**: Catches CSRF cookie domain issues
+- ✅ **Static Files Configuration**:
+  - Added `STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')`
+  - Updated `.gitignore` to exclude `**/staticfiles/`
+  - Fixes TypeError exceptions in functional tests
+- ✅ **Infrastructure as Code**:
+  - Updated `scripts/infra/create-secrets.sh` to include superuser fields
+  - Prompts for username, email, password during secret creation
+  - Added superuser credentials to existing AWS secret via one-time CLI script
+- ✅ **GitHub Actions Workflow**: `.github/workflows/run-admin-command.yml`
+  - Manual workflow for running Django admin commands
+  - Supports: `createsuperuser`, `collectstatic`
+  - Database selection: startupwebapp_prod, healthtech_experiment, fintech_experiment
+  - Fetches credentials from AWS Secrets Manager
+  - Runs as ECS Fargate task (same pattern as migrations)
+  - CloudWatch logging
+- ✅ **IAM Permissions**: Updated `github-actions-startupwebapp` user
+  - Added `secretsmanager:GetSecretValue` permission
+  - Added `secretsmanager:DescribeSecret` permission
+- ✅ **Superuser Created**: `prod-admin` (bart@mosaicmeshai.com)
+  - 16-character password (LastPass generated)
+  - Login verified successfully
+
+**PR #46: WhiteNoise for Django Admin Static Files** (December 7, 2025)
+- ✅ **Added WhiteNoise**: Industry-standard Python static file serving
+  - `requirements.txt`: whitenoise==6.7.0
+  - `settings.py`: WhiteNoiseMiddleware (after SecurityMiddleware)
+  - `settings.py`: CompressedManifestStaticFilesStorage (compression + caching)
+  - Works with any WSGI app (not Django-specific)
+  - Compression: gzip/Brotli, far-future cache headers, CDN-friendly
+- ✅ **Dockerfile Updates**:
+  - Set `DJANGO_SETTINGS_MODULE=StartupWebApp.settings_production` before collectstatic
+  - Run collectstatic during Docker build with DJANGO_SECRET_KEY fallback
+  - Collects 129 admin static files into image
+- ✅ **Workflow Updates**:
+  - `pr-validation.yml`: Added collectstatic step before functional tests
+  - `deploy-production.yml`: Added collectstatic step before functional tests
+  - Prevents "Missing staticfiles manifest entry" errors
+
+**Hotfixes** (December 7, 2025):
+- ✅ Fixed deploy-production workflow to explicitly set `migrate` command
+  - Prevents command pollution from run-admin-command workflow
+  - ECS task definitions persist commands between revisions
+- ✅ Fixed Dockerfile collectstatic SECRET_KEY issue
+  - Settings_production.py fallback mechanism uses DJANGO_SECRET_KEY env var
+  - Build-time dummy key for collectstatic only
+
+**Production Verification**:
+- ✅ Django Admin URL: https://startupwebapp-api.mosaicmeshai.com/admin/
+- ✅ Login: `prod-admin` with LastPass password
+- ✅ Full CSS styling present (WhiteNoise serving static files)
+- ✅ All admin functionality operational
+- ✅ All 746 tests passing (715 unit + 31 functional)
+
+**Key Learnings**:
+- Shell escaping: Special chars in passwords escaped via `docker-compose exec -e`
+- ECS task definitions: Command persists between revisions, must set explicitly
+- WhiteNoise: CompressedManifestStaticFilesStorage requires collectstatic for manifest
+- CloudWatch logs: Actual stream name is `migration/migration/{TASK_ID}` (double prefix)
+
+**Documentation**:
+- Technical note: `docs/technical-notes/2025-12-04-production-admin-commands.md`
+- Test coverage for Django Admin prevents future regressions
+
+---
 - All 11 steps complete
 - Full-stack production deployment live and operational
 - Backend: `https://startupwebapp-api.mosaicmeshai.com`
