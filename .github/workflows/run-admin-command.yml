@@ -1,0 +1,342 @@
+# ============================================================================
+# GitHub Actions Workflow: Run Django Admin Commands on AWS RDS
+# ============================================================================
+#
+# PURPOSE:
+# This workflow runs Django management commands (like createsuperuser) on the
+# production RDS database via ECS Fargate. It's designed for administrative
+# operations that need to be run once or occasionally.
+#
+# WORKFLOW OVERVIEW:
+# 1. Manual trigger with command and database selection
+# 2. Use existing 'latest' Docker image from ECR (no rebuild needed)
+# 3. Fetch superuser credentials from AWS Secrets Manager
+# 4. Run ECS Fargate task with the admin command
+# 5. Stream CloudWatch logs to see command results
+#
+# WHEN TO USE:
+# - Creating superusers for Django Admin access
+# - Running collectstatic (if needed)
+# - Other one-time administrative Django commands
+#
+# REQUIRED GITHUB SECRETS:
+# - AWS_ACCESS_KEY_ID: IAM user access key with ECR/ECS/Secrets permissions
+# - AWS_SECRET_ACCESS_KEY: IAM user secret access key
+# - AWS_REGION: us-east-1 (or your AWS region)
+#
+# ============================================================================
+
+name: Run Admin Command
+
+# ============================================================================
+# TRIGGER CONFIGURATION
+# ============================================================================
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: 'Admin Command'
+        required: true
+        type: choice
+        options:
+          - createsuperuser
+          - collectstatic
+        default: 'createsuperuser'
+
+      database:
+        description: 'Target Database'
+        required: true
+        type: choice
+        options:
+          - startupwebapp_prod
+          - healthtech_experiment
+          - fintech_experiment
+        default: 'startupwebapp_prod'
+
+# ============================================================================
+# ENVIRONMENT VARIABLES
+# ============================================================================
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: startupwebapp-backend
+  ECS_CLUSTER: startupwebapp-cluster
+  ECS_TASK_DEFINITION: startupwebapp-migration-task
+  DB_SECRET_NAME: rds/startupwebapp/multi-tenant/master
+  DATABASE_NAME: ${{ github.event.inputs.database }}
+  ADMIN_COMMAND: ${{ github.event.inputs.command }}
+
+# ============================================================================
+# JOBS
+# ============================================================================
+
+jobs:
+  # ==========================================================================
+  # JOB: Run Admin Command
+  # ==========================================================================
+  run-admin-command:
+    name: Run ${{ github.event.inputs.command }} on ${{ github.event.inputs.database }}
+    runs-on: ubuntu-latest
+
+    steps:
+      # ----------------------------------------------------------------------
+      # STEP 1: Checkout code
+      # ----------------------------------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ----------------------------------------------------------------------
+      # STEP 2: Configure AWS credentials
+      # ----------------------------------------------------------------------
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # ----------------------------------------------------------------------
+      # STEP 3: Get superuser credentials from Secrets Manager
+      # ----------------------------------------------------------------------
+      - name: Fetch superuser credentials
+        id: fetch-credentials
+        run: |
+          echo "Fetching superuser credentials from Secrets Manager..."
+
+          # Get secret value
+          SECRET_JSON=$(aws secretsmanager get-secret-value \
+            --secret-id ${{ env.DB_SECRET_NAME }} \
+            --query 'SecretString' \
+            --output text)
+
+          # Extract superuser fields
+          SUPERUSER_USERNAME=$(echo "$SECRET_JSON" | jq -r '.superuser_username')
+          SUPERUSER_EMAIL=$(echo "$SECRET_JSON" | jq -r '.superuser_email')
+          SUPERUSER_PASSWORD=$(echo "$SECRET_JSON" | jq -r '.superuser_password')
+
+          # Verify fields exist
+          if [ "$SUPERUSER_USERNAME" = "null" ] || [ -z "$SUPERUSER_USERNAME" ]; then
+            echo "❌ ERROR: superuser_username not found in secret"
+            exit 1
+          fi
+
+          if [ "$SUPERUSER_EMAIL" = "null" ] || [ -z "$SUPERUSER_EMAIL" ]; then
+            echo "❌ ERROR: superuser_email not found in secret"
+            exit 1
+          fi
+
+          if [ "$SUPERUSER_PASSWORD" = "null" ] || [ -z "$SUPERUSER_PASSWORD" ]; then
+            echo "❌ ERROR: superuser_password not found in secret"
+            exit 1
+          fi
+
+          echo "✓ Superuser credentials retrieved successfully"
+          echo "  Username: $SUPERUSER_USERNAME"
+          echo "  Email: $SUPERUSER_EMAIL"
+          echo "  Password: [HIDDEN]"
+
+          # Set as outputs (GitHub Actions will mask these automatically)
+          echo "superuser_username=$SUPERUSER_USERNAME" >> $GITHUB_OUTPUT
+          echo "superuser_email=$SUPERUSER_EMAIL" >> $GITHUB_OUTPUT
+          echo "superuser_password=$SUPERUSER_PASSWORD" >> $GITHUB_OUTPUT
+
+      # ----------------------------------------------------------------------
+      # STEP 4: Get ECR image URI
+      # ----------------------------------------------------------------------
+      - name: Get ECR image URI
+        id: get-image
+        run: |
+          # Get ECR registry URL
+          ECR_REGISTRY=$(aws ecr describe-repositories \
+            --repository-names ${{ env.ECR_REPOSITORY }} \
+            --query 'repositories[0].repositoryUri' \
+            --output text | sed 's|/[^/]*$||')
+
+          # Use 'latest' tag (no need to rebuild)
+          IMAGE_URI="${ECR_REGISTRY}/${{ env.ECR_REPOSITORY }}:latest"
+
+          echo "image=$IMAGE_URI" >> $GITHUB_OUTPUT
+          echo "Using image: $IMAGE_URI"
+
+      # ----------------------------------------------------------------------
+      # STEP 5: Get ECS task definition
+      # ----------------------------------------------------------------------
+      - name: Get ECS task definition
+        id: get-task-def
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.ECS_TASK_DEFINITION }} \
+            --query 'taskDefinition' \
+            --output json > task-definition.json
+
+          echo "✓ Task definition retrieved"
+
+      # ----------------------------------------------------------------------
+      # STEP 6: Update task definition for admin command
+      # ----------------------------------------------------------------------
+      - name: Update task definition for admin command
+        id: update-task-def
+        run: |
+          TASK_DEF=$(cat task-definition.json)
+
+          # Build the Django command based on input
+          if [ "${{ env.ADMIN_COMMAND }}" = "createsuperuser" ]; then
+            DJANGO_CMD="python manage.py createsuperuser --noinput"
+          elif [ "${{ env.ADMIN_COMMAND }}" = "collectstatic" ]; then
+            DJANGO_CMD="python manage.py collectstatic --noinput"
+          else
+            echo "❌ Unknown command: ${{ env.ADMIN_COMMAND }}"
+            exit 1
+          fi
+
+          echo "Django command: $DJANGO_CMD"
+
+          # Update task definition with new image, command, and environment variables
+          UPDATED_TASK_DEF=$(echo $TASK_DEF | jq \
+            --arg IMAGE "${{ steps.get-image.outputs.image }}" \
+            --arg DB_NAME "${{ env.DATABASE_NAME }}" \
+            --arg CMD "$DJANGO_CMD" \
+            --arg SUPERUSER_USERNAME "${{ steps.fetch-credentials.outputs.superuser_username }}" \
+            --arg SUPERUSER_EMAIL "${{ steps.fetch-credentials.outputs.superuser_email }}" \
+            --arg SUPERUSER_PASSWORD "${{ steps.fetch-credentials.outputs.superuser_password }}" \
+            '
+            .containerDefinitions[0].image = $IMAGE |
+            .containerDefinitions[0].command = ["/bin/sh", "-c", $CMD] |
+            .containerDefinitions[0].environment |= (
+              # Update DATABASE_NAME
+              if any(.[]; .name == "DATABASE_NAME") then
+                map(if .name == "DATABASE_NAME" then .value = $DB_NAME else . end)
+              else
+                . + [{"name": "DATABASE_NAME", "value": $DB_NAME}]
+              end |
+              # Add DJANGO_SUPERUSER_USERNAME
+              if any(.[]; .name == "DJANGO_SUPERUSER_USERNAME") then
+                map(if .name == "DJANGO_SUPERUSER_USERNAME" then .value = $SUPERUSER_USERNAME else . end)
+              else
+                . + [{"name": "DJANGO_SUPERUSER_USERNAME", "value": $SUPERUSER_USERNAME}]
+              end |
+              # Add DJANGO_SUPERUSER_EMAIL
+              if any(.[]; .name == "DJANGO_SUPERUSER_EMAIL") then
+                map(if .name == "DJANGO_SUPERUSER_EMAIL" then .value = $SUPERUSER_EMAIL else . end)
+              else
+                . + [{"name": "DJANGO_SUPERUSER_EMAIL", "value": $SUPERUSER_EMAIL}]
+              end |
+              # Add DJANGO_SUPERUSER_PASSWORD
+              if any(.[]; .name == "DJANGO_SUPERUSER_PASSWORD") then
+                map(if .name == "DJANGO_SUPERUSER_PASSWORD" then .value = $SUPERUSER_PASSWORD else . end)
+              else
+                . + [{"name": "DJANGO_SUPERUSER_PASSWORD", "value": $SUPERUSER_PASSWORD}]
+              end
+            )
+            ')
+
+          # Remove fields not needed for registration
+          CLEAN_TASK_DEF=$(echo $UPDATED_TASK_DEF | jq '
+            del(
+              .taskDefinitionArn,
+              .revision,
+              .status,
+              .requiresAttributes,
+              .compatibilities,
+              .registeredAt,
+              .registeredBy
+            )
+          ')
+
+          echo "$CLEAN_TASK_DEF" > updated-task-definition.json
+
+          # Register new task definition revision
+          TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://updated-task-definition.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+          echo "task-def-arn=$TASK_DEF_ARN" >> $GITHUB_OUTPUT
+          echo "✓ Registered new task definition: $TASK_DEF_ARN"
+
+      # ----------------------------------------------------------------------
+      # STEP 7: Run ECS task
+      # ----------------------------------------------------------------------
+      - name: Run ECS admin command task
+        id: run-task
+        run: |
+          # Get VPC configuration
+          SUBNETS=$(aws ec2 describe-subnets \
+            --filters "Name=tag:Name,Values=startupwebapp-private-subnet-*" \
+            --query 'Subnets[*].SubnetId' \
+            --output text | tr '\t' ',')
+
+          SECURITY_GROUP=$(aws ec2 describe-security-groups \
+            --filters "Name=tag:Name,Values=startupwebapp-backend-sg" \
+            --query 'SecurityGroups[0].GroupId' \
+            --output text)
+
+          # Launch the task
+          TASK_ARN=$(aws ecs run-task \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --task-definition ${{ steps.update-task-def.outputs.task-def-arn }} \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SECURITY_GROUP],assignPublicIp=DISABLED}" \
+            --query 'tasks[0].taskArn' \
+            --output text)
+
+          echo "task-arn=$TASK_ARN" >> $GITHUB_OUTPUT
+          echo "✓ Admin command task launched: $TASK_ARN"
+
+      # ----------------------------------------------------------------------
+      # STEP 8: Wait for task completion
+      # ----------------------------------------------------------------------
+      - name: Wait for task to complete
+        id: wait-task
+        run: |
+          echo "Waiting for admin command task to complete..."
+
+          # Wait for task to finish (max 10 minutes)
+          aws ecs wait tasks-stopped \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --tasks ${{ steps.run-task.outputs.task-arn }}
+
+          # Get task exit code
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --tasks ${{ steps.run-task.outputs.task-arn }} \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text)
+
+          echo "exit-code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          echo "✓ Task completed with exit code: $EXIT_CODE"
+
+      # ----------------------------------------------------------------------
+      # STEP 9: Fetch CloudWatch logs
+      # ----------------------------------------------------------------------
+      - name: Fetch command logs
+        if: always()
+        run: |
+          echo "Fetching CloudWatch logs..."
+
+          # Extract task ID from ARN
+          TASK_ID=$(echo "${{ steps.run-task.outputs.task-arn }}" | awk -F'/' '{print $NF}')
+
+          # Get logs from CloudWatch
+          aws logs get-log-events \
+            --log-group-name /ecs/startupwebapp-migrations \
+            --log-stream-name migration/$TASK_ID \
+            --query 'events[*].message' \
+            --output text || echo "No logs available yet"
+
+      # ----------------------------------------------------------------------
+      # STEP 10: Check success
+      # ----------------------------------------------------------------------
+      - name: Check command success
+        if: always()
+        run: |
+          EXIT_CODE="${{ steps.wait-task.outputs.exit-code }}"
+
+          if [ -z "$EXIT_CODE" ]; then
+            echo "❌ Failed to retrieve task exit code"
+            exit 1
+          elif [ "$EXIT_CODE" != "0" ]; then
+            echo "❌ Admin command failed with exit code $EXIT_CODE"
+            exit 1
+          else
+            echo "✅ Admin command '${{ env.ADMIN_COMMAND }}' completed successfully on ${{ env.DATABASE_NAME }}!"
+          fi
