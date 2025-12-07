@@ -346,6 +346,7 @@ jobs:
             --arg DB_NAME "${{ env.DATABASE_NAME }}" \
             '
             .containerDefinitions[0].image = $IMAGE |
+            .containerDefinitions[0].command = ["python", "manage.py", "migrate"] |
             .containerDefinitions[0].environment |= (
               if any(.[]; .name == "DATABASE_NAME") then
                 map(if .name == "DATABASE_NAME" then .value = $DB_NAME else . end)
