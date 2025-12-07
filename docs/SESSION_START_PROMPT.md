@@ -396,6 +396,35 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
 ## Next Steps
 
+### Immediate Task: Fix Production Frontend Issues
+
+**Status**: Discovered during Phase 5.16 verification, investigation pending
+
+**Problems**: Two user-facing pages returning errors in production:
+
+1. **`/account` page - 403 AccessDenied (S3/CloudFront)**
+   - URL: https://startupwebapp.mosaicmeshai.com/account
+   - Error: S3 returning AccessDenied XML
+   - Likely: Missing file in S3 or permissions issue
+
+2. **`/create-account` page - 500 Internal Server Error (Backend API)**
+   - Frontend: https://startupwebapp.mosaicmeshai.com/create-account
+   - API: https://startupwebapp-api.mosaicmeshai.com/user/create-account
+   - Error: Backend returning 500
+   - Likely: Missing configuration, database issue, or code exception
+
+**Plan documented in**: `docs/technical-notes/2025-12-07-production-frontend-issues.md`
+
+**Next steps**:
+1. Check CloudWatch logs for `/user/create-account` 500 error traceback
+2. Reproduce both issues locally in Docker
+3. Check S3 bucket for missing `account` file
+4. Fix root causes and add regression tests
+5. Verify fixes in production
+6. Update documentation
+
+**Note**: These issues are unrelated to Phase 5.16 (superuser/Django Admin) work and likely pre-existed.
+
 ### Verify Production
 ```bash
 # Health check (should return 200)
