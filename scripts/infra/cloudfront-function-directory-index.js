@@ -6,9 +6,10 @@ function handler(event) {
     if (uri.endsWith('/')) {
         request.uri = uri + 'index.html';
     }
-    // If URI has no extension and doesn't end with '/', try directory with index.html
-    else if (!uri.includes('.')) {
-        request.uri = uri + '/index.html';
+    // Special case: /account is a directory with index.html
+    // All other extensionless files exist at root level and should not be rewritten
+    else if (uri === '/account') {
+        request.uri = '/account/index.html';
     }
 
     return request;

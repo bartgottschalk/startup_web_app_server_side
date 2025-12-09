@@ -104,6 +104,8 @@ curl https://startupwebapp-api.mosaicmeshai.com/user/logged-in
 - **PR #45**: Production superuser creation via GitHub Actions - December 7, 2025
 - **PR #46**: WhiteNoise for Django Admin static files - December 7, 2025
 - **PR #47**: Hotfix - collectstatic in deploy workflow - December 7, 2025
+- **PR #48**: Production frontend fixes (ENVIRONMENT_DOMAIN + CloudFront Function) - December 9, 2025
+- **Client PR #12**: Updated CloudFront distribution ID - December 9, 2025
 
 ### Current Branch
 
@@ -266,7 +268,8 @@ Every commit MUST include documentation updates:
 
 **Frontend (S3 + CloudFront):**
 - ✅ S3: `startupwebapp-frontend-production`
-- ✅ CloudFront: `E1HZ3V09L2NDK1` / `d34ongxkfo84gr.cloudfront.net`
+- ✅ CloudFront: `E2IQ9KG6S4Y7R3` / `d39qs5j90scefu.cloudfront.net`
+- ✅ CloudFront Function: `startupwebapp-directory-index` (rewrites `/account` → `/account/index.html`)
 - ✅ DNS: `startupwebapp.mosaicmeshai.com` → CloudFront
 
 **CI/CD:**
@@ -396,34 +399,38 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
 ## Next Steps
 
-### Immediate Task: Fix Production Frontend Issues
+### Production Frontend Issues - RESOLVED ✅
 
-**Status**: Discovered during Phase 5.16 verification, investigation pending
+**Completed**: December 9, 2025 (PR #48, Client PR #12)
 
-**Problems**: Two user-facing pages returning errors in production:
+**Issues Fixed**:
+1. ✅ `/user/create-account` - 500 error (missing `ENVIRONMENT_DOMAIN` setting)
+2. ✅ `/account` - 403 error (CloudFront Function for directory index)
+3. ✅ Email configuration (Gmail SMTP for local + production)
 
-1. **`/account` page - 403 AccessDenied (S3/CloudFront)**
-   - URL: https://startupwebapp.mosaicmeshai.com/account
-   - Error: S3 returning AccessDenied XML
-   - Likely: Missing file in S3 or permissions issue
+**Details**: See `docs/technical-notes/2025-12-07-production-frontend-issues.md`
 
-2. **`/create-account` page - 500 Internal Server Error (Backend API)**
-   - Frontend: https://startupwebapp.mosaicmeshai.com/create-account
-   - API: https://startupwebapp-api.mosaicmeshai.com/user/create-account
-   - Error: Backend returning 500
-   - Likely: Missing configuration, database issue, or code exception
+---
 
-**Plan documented in**: `docs/technical-notes/2025-12-07-production-frontend-issues.md`
+### High Priority Tasks
 
-**Next steps**:
-1. Check CloudWatch logs for `/user/create-account` 500 error traceback
-2. Reproduce both issues locally in Docker
-3. Check S3 bucket for missing `account` file
-4. Fix root causes and add regression tests
-5. Verify fixes in production
-6. Update documentation
+1. **Fix Email BCC and Reply-To Addresses**
+   - Current: BCC goes to `contact@startupwebapp.com`
+   - Current: Reply-to is `contact@startupwebapp.com`
+   - Need to: Review and update email templates to use `bart+startupwebapp@mosaicmeshai.com`
 
-**Note**: These issues are unrelated to Phase 5.16 (superuser/Django Admin) work and likely pre-existed.
+2. **Configure Production Stripe Keys**
+   - Current: Using test/placeholder Stripe keys
+   - Error: "Stripe Checkout can't communicate with our payment processor because the API key is invalid"
+   - Impact: Blocks payment functionality (account creation works)
+   - Fix: Update AWS Secrets Manager with production Stripe API keys
+   - Requires: Stripe account setup and verification
+
+3. **Superuser Access to Customer Site (Security/Design)**
+   - Issue: Superuser (`prod-admin`) gets 500 error on `/user/logged-in`
+   - Cause: Superuser has no `member` attribute
+   - Decision needed: Should admin users access customer-facing site?
+   - Options: Block admin users, create proper separation, or handle gracefully
 
 ### Verify Production
 ```bash

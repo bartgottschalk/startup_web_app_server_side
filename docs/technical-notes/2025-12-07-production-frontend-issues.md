@@ -1,8 +1,9 @@
-# Production Frontend Issues - Investigation Needed
+# Production Frontend Issues - RESOLVED
 
-**Date**: December 7, 2025
-**Status**: 🔍 Discovered - Investigation Pending
+**Date**: December 7, 2025 (Discovered) → December 9, 2025 (Resolved)
+**Status**: ✅ RESOLVED
 **Priority**: High (user-facing pages not working)
+**PR**: #48 (Backend), Client PR #12 (Frontend)
 
 ## Overview
 
@@ -268,13 +269,108 @@ curl -X POST https://startupwebapp-api.mosaicmeshai.com/user/create-account \
 
 ---
 
-## Status
+## Resolution Summary
 
-- [ ] Backend logs reviewed
-- [ ] Root cause identified for `/create-account` 500 error
-- [ ] Root cause identified for `/account` 403 error
-- [ ] Issues reproduced locally
-- [ ] Fixes implemented
-- [ ] Tests added to prevent regression
-- [ ] Verified in production
-- [ ] Documentation updated
+**Completed**: December 9, 2025
+
+### Issue 1: `/user/create-account` - 500 Error ✅ FIXED
+
+**Root Cause**: Missing `ENVIRONMENT_DOMAIN` setting in production environment
+
+**Fix**:
+- Added `ENVIRONMENT_DOMAIN` to `settings_production.py` (reads from env var, defaults to `https://startupwebapp.mosaicmeshai.com`)
+- Added to ECS task definition in `create-ecs-service-task-definition.sh`
+- Added to GitHub Actions deploy workflow to inject during deployment
+
+**Files Modified**:
+- `StartupWebApp/StartupWebApp/settings_production.py`
+- `.github/workflows/deploy-production.yml`
+- `scripts/infra/create-ecs-service-task-definition.sh`
+
+### Issue 2: `/account` - 403 Error ✅ FIXED
+
+**Root Cause**: CloudFront doesn't serve `account/index.html` when accessing `/account`
+
+**Fix**:
+- Created CloudFront Function to rewrite `/account` → `/account/index.html`
+- Function only rewrites `/account` path (not all extensionless URIs)
+- Replicates nginx `try_files` behavior from local Docker environment
+
+**Files Modified**:
+- `scripts/infra/cloudfront-function-directory-index.js` (new file)
+- `scripts/infra/create-frontend-hosting.sh` (Step 3: Create CloudFront Function)
+- `scripts/infra/destroy-frontend-hosting.sh` (Step 4: Delete CloudFront Function)
+
+**Frontend Workflow Update**:
+- Updated `CLOUDFRONT_DISTRIBUTION_ID` from `E1HZ3V09L2NDK1` to `E2IQ9KG6S4Y7R3`
+
+### Email Configuration ✅ CONFIGURED
+
+**Gmail SMTP Setup**:
+- AWS Secrets Manager updated with Gmail app-specific password
+- Host: `smtp.gmail.com`
+- User: `bart+startupwebapp@mosaicmeshai.com`
+- Password: 16-character app-specific password
+- Both local and production now use Gmail SMTP
+
+**Files Modified**:
+- `settings_secret.py` (local, gitignored)
+- AWS Secrets Manager: `rds/startupwebapp/multi-tenant/master`
+
+### Verification ✅ COMPLETE
+
+- [x] Backend logs reviewed (CloudWatch)
+- [x] Root cause identified for `/create-account` 500 error
+- [x] Root cause identified for `/account` 403 error
+- [x] Issues reproduced locally
+- [x] Fixes implemented
+- [x] Email tested (signup + verification link)
+- [x] Verified in production
+- [x] All pages loading correctly
+- [x] Documentation updated
+
+### Infrastructure Changes
+
+**New CloudFront Distribution**:
+- Distribution ID: `E2IQ9KG6S4Y7R3` (was `E1HZ3V09L2NDK1`)
+- Domain: `d39qs5j90scefu.cloudfront.net` (was `d34ongxkfo84gr.cloudfront.net`)
+- CloudFront Function: `startupwebapp-directory-index` (new)
+
+**DNS Update**:
+- Namecheap CNAME: `startupwebapp` → `d39qs5j90scefu.cloudfront.net`
+
+### Next Steps - Follow-Up Issues Discovered
+
+**High Priority**:
+
+1. **Fix Email BCC and Reply-To Addresses**
+   - Current behavior: Email verification sends BCC to `contact@startupwebapp.com`
+   - Current behavior: Reply-to is `contact@startupwebapp.com`
+   - Impact: Low (emails work, just wrong addresses)
+   - Priority: Medium - should fix before real users
+   - Files to review: `user/views.py` email sending code
+
+2. **Superuser Access to Customer Site (Security/Design)**
+   - Issue: Superuser (`prod-admin`) accessing customer-facing site causes 500 error
+   - Cause: Code assumes all authenticated users have `request.user.member`
+   - Location: `order/utilities/order_utils.py:128` in `look_up_cart()`
+   - Impact: Low (only affects admin users, not customers)
+   - Decision needed: Should admin users be blocked from customer site?
+   - Options:
+     - Add `hasattr(request.user, 'member')` check
+     - Block superuser from accessing customer URLs (middleware)
+     - Keep admin and customer domains completely separate
+   - Priority: Low - security/design decision, not blocking customers
+
+3. **Stripe Checkout Error (Invalid API Key)**
+   - Discovered: December 9, 2025
+   - Error: "Stripe Checkout can't communicate with our payment processor because the API key is invalid"
+   - Location: Account page when attempting payment
+   - Cause: Production using test/placeholder Stripe keys
+   - Fix: Update AWS Secrets Manager with production Stripe keys
+   - Priority: Medium - blocks payment functionality but not user registration
+   - Note: Requires Stripe account setup and production API keys
+
+**Future Enhancements**:
+- Consider migrating to AWS SES before real user launch
+- Add monitoring/alerting for 403/500 errors
