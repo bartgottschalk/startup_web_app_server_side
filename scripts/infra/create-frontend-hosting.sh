@@ -258,7 +258,7 @@ FUNCTION_EOF
     # Create the function
     FUNCTION_RESULT=$(aws cloudfront create-function \
         --name "${FUNCTION_NAME}" \
-        --function-config Comment="Append index.html to directory requests",Runtime="cloudfront-js-1.0" \
+        --function-config '{"Comment":"Append index.html to directory requests","Runtime":"cloudfront-js-1.0"}' \
         --function-code "$(echo "$FUNCTION_CODE" | base64)" \
         --region us-east-1)
 
