@@ -219,59 +219,33 @@ fi
 echo ""
 echo -e "${YELLOW}Step 3: Creating CloudFront Function for directory index...${NC}"
 
-# Check if function already exists
 FUNCTION_NAME="startupwebapp-directory-index"
-EXISTING_FUNCTION=$(aws cloudfront list-functions \
-    --region us-east-1 \
-    --query "FunctionList.Items[?Name=='${FUNCTION_NAME}'].Name" \
-    --output text 2>/dev/null || echo "")
+EXISTING_FUNCTION=$(aws cloudfront describe-function \
+    --name "${FUNCTION_NAME}" \
+    --region us-east-1 2>/dev/null || echo "")
 
 if [ -n "$EXISTING_FUNCTION" ]; then
     echo -e "${GREEN}✓ CloudFront Function already exists: ${FUNCTION_NAME}${NC}"
-    FUNCTION_ARN=$(aws cloudfront describe-function \
-        --name "${FUNCTION_NAME}" \
-        --region us-east-1 \
-        --query 'FunctionSummary.FunctionMetadata.FunctionARN' \
-        --output text)
+    FUNCTION_ARN=$(echo "$EXISTING_FUNCTION" | jq -r '.FunctionSummary.FunctionMetadata.FunctionARN')
 else
-    # Create function code (JavaScript)
-    # This replicates nginx try_files behavior: $uri $uri.html $uri/ =404
-    FUNCTION_CODE=$(cat <<'FUNCTION_EOF'
-function handler(event) {
-    var request = event.request;
-    var uri = request.uri;
+    FUNCTION_CONFIG_JSON='{"Comment":"Append index.html to directory requests","Runtime":"cloudfront-js-1.0"}'
+    FUNCTION_CODE_B64=$(base64 < "${SCRIPT_DIR}/cloudfront-function-directory-index.js")
 
-    // If URI ends with '/', append 'index.html'
-    if (uri.endsWith('/')) {
-        request.uri = uri + 'index.html';
-    }
-    // If URI has no extension and doesn't end with '/', try directory with index.html
-    else if (!uri.includes('.')) {
-        request.uri = uri + '/index.html';
-    }
-
-    return request;
-}
-FUNCTION_EOF
-)
-
-    # Create the function
     FUNCTION_RESULT=$(aws cloudfront create-function \
         --name "${FUNCTION_NAME}" \
-        --function-config '{"Comment":"Append index.html to directory requests","Runtime":"cloudfront-js-1.0"}' \
-        --function-code "$(echo "$FUNCTION_CODE" | base64)" \
+        --function-config "${FUNCTION_CONFIG_JSON}" \
+        --function-code "${FUNCTION_CODE_B64}" \
         --region us-east-1)
 
     FUNCTION_ARN=$(echo "$FUNCTION_RESULT" | jq -r '.FunctionSummary.FunctionMetadata.FunctionARN')
+    FUNCTION_ETAG=$(echo "$FUNCTION_RESULT" | jq -r '.ETag')
+
     echo -e "${GREEN}✓ CloudFront Function created: ${FUNCTION_ARN}${NC}"
 
-    # Publish the function
-    ETAG=$(echo "$FUNCTION_RESULT" | jq -r '.ETag')
     aws cloudfront publish-function \
         --name "${FUNCTION_NAME}" \
-        --if-match "${ETAG}" \
-        --region us-east-1 \
-        > /dev/null
+        --if-match "${FUNCTION_ETAG}" \
+        --region us-east-1 > /dev/null
 
     echo -e "${GREEN}✓ Function published and ready to use${NC}"
 fi
