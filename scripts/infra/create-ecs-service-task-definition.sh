@@ -221,6 +221,10 @@ TASK_DEF_JSON=$(cat <<EOF
         {
           "name": "DATABASE_NAME",
           "value": "startupwebapp_prod"
+        },
+        {
+          "name": "ENVIRONMENT_DOMAIN",
+          "value": "https://startupwebapp.mosaicmeshai.com"
         }
       ],
       "secrets": [

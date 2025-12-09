@@ -213,11 +213,75 @@ EOF
 fi
 
 ##############################################################################
-# Step 3: Create CloudFront Distribution
+# Step 3: Create CloudFront Function for Directory Index Handling
 ##############################################################################
 
 echo ""
-echo -e "${YELLOW}Step 3: Creating CloudFront distribution...${NC}"
+echo -e "${YELLOW}Step 3: Creating CloudFront Function for directory index...${NC}"
+
+# Check if function already exists
+FUNCTION_NAME="startupwebapp-directory-index"
+EXISTING_FUNCTION=$(aws cloudfront list-functions \
+    --region us-east-1 \
+    --query "FunctionList.Items[?Name=='${FUNCTION_NAME}'].Name" \
+    --output text 2>/dev/null || echo "")
+
+if [ -n "$EXISTING_FUNCTION" ]; then
+    echo -e "${GREEN}✓ CloudFront Function already exists: ${FUNCTION_NAME}${NC}"
+    FUNCTION_ARN=$(aws cloudfront describe-function \
+        --name "${FUNCTION_NAME}" \
+        --region us-east-1 \
+        --query 'FunctionSummary.FunctionMetadata.FunctionARN' \
+        --output text)
+else
+    # Create function code (JavaScript)
+    # This replicates nginx try_files behavior: $uri $uri.html $uri/ =404
+    FUNCTION_CODE=$(cat <<'FUNCTION_EOF'
+function handler(event) {
+    var request = event.request;
+    var uri = request.uri;
+
+    // If URI ends with '/', append 'index.html'
+    if (uri.endsWith('/')) {
+        request.uri = uri + 'index.html';
+    }
+    // If URI has no extension and doesn't end with '/', try directory with index.html
+    else if (!uri.includes('.')) {
+        request.uri = uri + '/index.html';
+    }
+
+    return request;
+}
+FUNCTION_EOF
+)
+
+    # Create the function
+    FUNCTION_RESULT=$(aws cloudfront create-function \
+        --name "${FUNCTION_NAME}" \
+        --function-config Comment="Append index.html to directory requests",Runtime="cloudfront-js-1.0" \
+        --function-code "$(echo "$FUNCTION_CODE" | base64)" \
+        --region us-east-1)
+
+    FUNCTION_ARN=$(echo "$FUNCTION_RESULT" | jq -r '.FunctionSummary.FunctionMetadata.FunctionARN')
+    echo -e "${GREEN}✓ CloudFront Function created: ${FUNCTION_ARN}${NC}"
+
+    # Publish the function
+    ETAG=$(echo "$FUNCTION_RESULT" | jq -r '.ETag')
+    aws cloudfront publish-function \
+        --name "${FUNCTION_NAME}" \
+        --if-match "${ETAG}" \
+        --region us-east-1 \
+        > /dev/null
+
+    echo -e "${GREEN}✓ Function published and ready to use${NC}"
+fi
+
+##############################################################################
+# Step 4: Create CloudFront Distribution
+##############################################################################
+
+echo ""
+echo -e "${YELLOW}Step 4: Creating CloudFront distribution...${NC}"
 echo -e "${YELLOW}(This may take 5-10 minutes to deploy globally)${NC}"
 
 # Get AWS account ID for S3 bucket ARN
@@ -255,7 +319,16 @@ DISTRIBUTION_CONFIG=$(cat <<EOF
             }
         },
         "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
-        "Compress": true
+        "Compress": true,
+        "FunctionAssociations": {
+            "Quantity": 1,
+            "Items": [
+                {
+                    "FunctionARN": "${FUNCTION_ARN}",
+                    "EventType": "viewer-request"
+                }
+            ]
+        }
     },
     "CacheBehaviors": {
         "Quantity": 2,

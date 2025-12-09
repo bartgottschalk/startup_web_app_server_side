@@ -212,11 +212,34 @@ else
 fi
 
 ##############################################################################
-# Step 4: Empty and Delete S3 Bucket
+# Step 4: Delete CloudFront Function
 ##############################################################################
 
 echo ""
-echo -e "${YELLOW}Step 4: Emptying and deleting S3 bucket...${NC}"
+echo -e "${YELLOW}Step 4: Deleting CloudFront Function...${NC}"
+
+FUNCTION_NAME="startupwebapp-directory-index"
+FUNCTION_EXISTS=$(aws cloudfront describe-function \
+    --name "${FUNCTION_NAME}" \
+    --region us-east-1 2>/dev/null || echo "NOT_FOUND")
+
+if [[ "$FUNCTION_EXISTS" != *"NOT_FOUND"* ]]; then
+    FUNCTION_ETAG=$(echo "$FUNCTION_EXISTS" | jq -r '.ETag')
+    aws cloudfront delete-function \
+        --name "${FUNCTION_NAME}" \
+        --if-match "${FUNCTION_ETAG}" \
+        --region us-east-1
+    echo -e "${GREEN}CloudFront Function deleted: ${FUNCTION_NAME}${NC}"
+else
+    echo -e "${YELLOW}CloudFront Function not found, skipping...${NC}"
+fi
+
+##############################################################################
+# Step 5: Empty and Delete S3 Bucket
+##############################################################################
+
+echo ""
+echo -e "${YELLOW}Step 5: Emptying and deleting S3 bucket...${NC}"
 
 if [ -n "${S3_FRONTEND_BUCKET:-}" ]; then
     BUCKET_EXISTS=$(aws s3api head-bucket --bucket "${S3_FRONTEND_BUCKET}" 2>&1 || echo "NOT_FOUND")
@@ -272,11 +295,11 @@ else
 fi
 
 ##############################################################################
-# Step 5: Update aws-resources.env
+# Step 6: Update aws-resources.env
 ##############################################################################
 
 echo ""
-echo -e "${YELLOW}Step 5: Updating aws-resources.env...${NC}"
+echo -e "${YELLOW}Step 6: Updating aws-resources.env...${NC}"
 
 # Clear frontend hosting fields
 update_env_var() {
@@ -310,6 +333,7 @@ echo -e "${BLUE}========================================${NC}"
 echo ""
 echo -e "${GREEN}Deleted:${NC}"
 echo -e "  - CloudFront distribution"
+echo -e "  - CloudFront Function (directory index)"
 echo -e "  - Origin Access Control (OAC)"
 echo -e "  - S3 bucket and all contents"
 echo ""
