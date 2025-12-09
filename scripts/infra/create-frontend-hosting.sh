@@ -213,11 +213,49 @@ EOF
 fi
 
 ##############################################################################
-# Step 3: Create CloudFront Distribution
+# Step 3: Create CloudFront Function for Directory Index Handling
 ##############################################################################
 
 echo ""
-echo -e "${YELLOW}Step 3: Creating CloudFront distribution...${NC}"
+echo -e "${YELLOW}Step 3: Creating CloudFront Function for directory index...${NC}"
+
+FUNCTION_NAME="startupwebapp-directory-index"
+EXISTING_FUNCTION=$(aws cloudfront describe-function \
+    --name "${FUNCTION_NAME}" \
+    --region us-east-1 2>/dev/null || echo "")
+
+if [ -n "$EXISTING_FUNCTION" ]; then
+    echo -e "${GREEN}✓ CloudFront Function already exists: ${FUNCTION_NAME}${NC}"
+    FUNCTION_ARN=$(echo "$EXISTING_FUNCTION" | jq -r '.FunctionSummary.FunctionMetadata.FunctionARN')
+else
+    FUNCTION_CONFIG_JSON='{"Comment":"Append index.html to directory requests","Runtime":"cloudfront-js-1.0"}'
+    FUNCTION_CODE_B64=$(base64 < "${SCRIPT_DIR}/cloudfront-function-directory-index.js")
+
+    FUNCTION_RESULT=$(aws cloudfront create-function \
+        --name "${FUNCTION_NAME}" \
+        --function-config "${FUNCTION_CONFIG_JSON}" \
+        --function-code "${FUNCTION_CODE_B64}" \
+        --region us-east-1)
+
+    FUNCTION_ARN=$(echo "$FUNCTION_RESULT" | jq -r '.FunctionSummary.FunctionMetadata.FunctionARN')
+    FUNCTION_ETAG=$(echo "$FUNCTION_RESULT" | jq -r '.ETag')
+
+    echo -e "${GREEN}✓ CloudFront Function created: ${FUNCTION_ARN}${NC}"
+
+    aws cloudfront publish-function \
+        --name "${FUNCTION_NAME}" \
+        --if-match "${FUNCTION_ETAG}" \
+        --region us-east-1 > /dev/null
+
+    echo -e "${GREEN}✓ Function published and ready to use${NC}"
+fi
+
+##############################################################################
+# Step 4: Create CloudFront Distribution
+##############################################################################
+
+echo ""
+echo -e "${YELLOW}Step 4: Creating CloudFront distribution...${NC}"
 echo -e "${YELLOW}(This may take 5-10 minutes to deploy globally)${NC}"
 
 # Get AWS account ID for S3 bucket ARN
@@ -255,7 +293,16 @@ DISTRIBUTION_CONFIG=$(cat <<EOF
             }
         },
         "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
-        "Compress": true
+        "Compress": true,
+        "FunctionAssociations": {
+            "Quantity": 1,
+            "Items": [
+                {
+                    "FunctionARN": "${FUNCTION_ARN}",
+                    "EventType": "viewer-request"
+                }
+            ]
+        }
     },
     "CacheBehaviors": {
         "Quantity": 2,

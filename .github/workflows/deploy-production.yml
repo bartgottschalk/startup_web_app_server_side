@@ -497,7 +497,17 @@ jobs:
 
           UPDATED_TASK_DEF=$(echo $TASK_DEF | jq \
             --arg IMAGE "$IMAGE" \
-            '.containerDefinitions[0].image = $IMAGE')
+            --arg ENV_DOMAIN "https://startupwebapp.mosaicmeshai.com" \
+            '
+            .containerDefinitions[0].image = $IMAGE |
+            .containerDefinitions[0].environment |= (
+              if any(.[]; .name == "ENVIRONMENT_DOMAIN") then
+                map(if .name == "ENVIRONMENT_DOMAIN" then .value = $ENV_DOMAIN else . end)
+              else
+                . + [{"name": "ENVIRONMENT_DOMAIN", "value": $ENV_DOMAIN}]
+              end
+            )
+            ')
 
           CLEAN_TASK_DEF=$(echo $UPDATED_TASK_DEF | jq '
             del(

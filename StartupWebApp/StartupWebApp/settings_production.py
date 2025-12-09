@@ -92,6 +92,9 @@ DEBUG = False
 # Django SECRET_KEY from Secrets Manager
 SECRET_KEY = secrets.get('django_secret_key', 'INSECURE-CHANGE-ME')  # noqa: F405
 
+# Environment domain for email links and user-facing messages
+ENVIRONMENT_DOMAIN = os.environ.get('ENVIRONMENT_DOMAIN', 'https://startupwebapp.mosaicmeshai.com')
+
 # Allowed hosts from environment
 ALLOWED_HOSTS_ENV = os.environ.get('ALLOWED_HOSTS', '')
 if ALLOWED_HOSTS_ENV:
