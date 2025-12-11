@@ -1155,6 +1155,45 @@ See [Technical Note](technical-notes/2025-11-26-phase-5-15-production-deployment
 
 ---
 
+#### Phase 5.16 Stripe Upgrade - Session 2: Library Upgrade (Complete - December 11, 2025)
+
+**Status**: ✅ COMPLETE - Stripe library upgraded successfully
+**Branch**: `feature/stripe-upgrade-library`
+**Session**: 2 of 10 (Stripe upgrade multi-session project)
+
+**Changes Made**:
+- ✅ **Stripe Library Upgrade**: `stripe==5.5.0` → `stripe==14.0.1` (latest stable)
+  - Jumped from 2023 version to November 2025 release
+  - Reviewed breaking changes (v6-v14): No code changes needed
+  - Our code already uses keyword arguments (compatible with v8+ requirements)
+- ✅ **Docker Configuration Fix**: Added `target: development` to docker-compose.yml
+  - Issue: Multi-stage Dockerfile defaulted to production stage (no geckodriver)
+  - Root cause: Configuration gap from Phase 5.14 (missed during production deployment work)
+  - Fix enables functional tests to run in local development
+  - Production deployment unaffected (explicitly uses `--target production`)
+
+**Test Results**:
+- ✅ **Linting**: Zero errors (excluding gitignored settings_secret.py)
+- ✅ **Unit Tests**: 715/715 passed
+- ✅ **Functional Tests**: 30/31 passed (1 failure unrelated to Stripe - email address from other branch)
+- ✅ All Stripe-related tests passing with new library version
+
+**Key Findings**:
+- Stripe test coverage: 27 mocked Stripe API calls across 5 test files
+- APIs tested: `Customer.create()`, `Customer.retrieve()`, `Customer.modify()`
+- Tests use mocks, so real Stripe API validation happens in later sessions
+- No deprecated API calls found in codebase (already using modern patterns)
+
+**Files Modified**:
+- `requirements.txt` (line 18)
+- `docker-compose.yml` (line 13)
+
+**Next Session**: Session 3 - Create Checkout Session endpoint
+
+**See**: `docs/technical-notes/2025-12-11-stripe-upgrade-plan.md` for full 10-session plan
+
+---
+
 #### Phase 5.17: Production Hardening (Future)
 - AWS WAF for security
 - Enhanced CloudWatch monitoring
@@ -1162,7 +1201,7 @@ See [Technical Note](technical-notes/2025-11-26-phase-5-15-production-deployment
 - Automated disaster recovery testing
 
 #### Other Library Upgrades (Future)
-- **Stripe**: Currently 5.5.0 → Latest version
+- **Stripe**: ✅ Library upgraded to 14.0.1 (Phase 5.16) - Checkout Sessions implementation in progress
 - **Selenium**: Currently 3.141.0 → Selenium 4.x (modern API)
 
 ## Documentation Structure
