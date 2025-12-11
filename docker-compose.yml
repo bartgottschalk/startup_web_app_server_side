@@ -10,6 +10,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: development
     container_name: startupwebapp-backend-dev
     ports:
       - "8000:8000"

@@ -15,7 +15,7 @@ titlecase==2.3.0
 setuptools>=65.0.0  # Required for Python 3.12 (provides distutils)
 
 # Payment Processing
-stripe==5.5.0  # Upgraded from 2.63.0 for Python 3.12 compatibility
+stripe==14.0.1  # Upgraded from 5.5.0 for Stripe Checkout Sessions (December 2025)
 
 # Database
 psycopg2-binary==2.9.9  # PostgreSQL adapter for Python (binary version for easier installation)
