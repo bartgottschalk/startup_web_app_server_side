@@ -414,23 +414,65 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
 ### High Priority Tasks
 
-1. **Fix Email BCC and Reply-To Addresses**
-   - Current: BCC goes to `contact@startupwebapp.com`
-   - Current: Reply-to is `contact@startupwebapp.com`
-   - Need to: Review and update email templates to use `bart+startupwebapp@mosaicmeshai.com`
+#### 1. **Stripe Integration Upgrade** (CRITICAL - In Progress)
 
-2. **Configure Production Stripe Keys**
-   - Current: Using test/placeholder Stripe keys
-   - Error: "Stripe Checkout can't communicate with our payment processor because the API key is invalid"
-   - Impact: Blocks payment functionality (account creation works)
-   - Fix: Update AWS Secrets Manager with production Stripe API keys
-   - Requires: Stripe account setup and verification
+   **Status**: Phase 5.16 multi-session project - Session 2 COMPLETE ✅
 
-3. **Superuser Access to Customer Site (Security/Design)**
-   - Issue: Superuser (`prod-admin`) gets 500 error on `/user/logged-in`
-   - Cause: Superuser has no `member` attribute
-   - Decision needed: Should admin users access customer-facing site?
-   - Options: Block admin users, create proper separation, or handle gracefully
+   **Problem:**
+   - Current: Stripe Checkout v2 (deprecated, non-functional)
+   - Library: ✅ stripe==14.0.1 (upgraded December 11, 2025)
+   - Error: "Integration surface is unsupported for publishable key tokenization"
+   - Impact: **Payment processing completely broken**
+
+   **Solution:**
+   - Migrate to Stripe Checkout Sessions (modern hosted checkout)
+   - ✅ Upgraded stripe library to 14.0.1 (Session 2, PR #49, deployed)
+   - 10-session plan documented in `docs/technical-notes/2025-12-11-stripe-upgrade-plan.md`
+
+   **Session Progress:**
+   - Session 1: ✅ Planning & assessment complete (branch not merged)
+   - Session 2: ✅ Library upgrade complete (merged to master, deployed to production)
+   - Session 3: Create checkout session endpoint (NEXT)
+   - Session 4: Success handler
+   - Session 5: Webhook handler
+   - Session 6: Frontend checkout flow
+   - Session 7: Frontend account payments
+   - Session 8: Testing & bug fixes
+   - Session 9: Production deployment
+   - Session 10: Documentation
+
+   **Estimated Timeline:** 3-6 days (10 sessions × 2-3 hours each)
+
+   **See:** `docs/technical-notes/2025-12-11-stripe-upgrade-plan.md` for Session 3 starting prompt
+
+#### 2. **Email Address Updates** (Ready to Deploy - After Stripe)
+
+   **Status**: Code complete in `feature/email-updates-and-stripe-planning` branch, NOT yet deployed
+
+   **Changes Made:**
+   - Updated: `contact@startupwebapp.com` → `bart+startupwebapp@mosaicmeshai.com`
+   - Removed: BCC from all emails
+   - Updated: Phone to 1-800-123-4567, signature to "StartUpWebApp"
+   - Updated: 9 email types (7 user emails + 2 order emails + 1 chat email)
+   - Fixed: Frontend decimal parsing bugs in checkout
+
+   **Testing:**
+   - ✅ 7/9 email types tested locally (order emails blocked by Stripe)
+   - ⏸️ 2/9 order emails waiting for Stripe fix
+   - All tests passing (715 unit + 31 functional)
+
+   **Future Work:**
+   - Create `startupwebapp@mosaicmeshai.com` email account
+   - Update all code to use new dedicated email
+   - Deploy after Stripe is working
+   - Complete order email testing
+
+#### 3. **Superuser Access to Customer Site** (Security/Design - Deferred)
+
+   **Issue**: Superuser (`prod-admin`) gets 500 error on `/user/logged-in`
+   **Cause**: Superuser has no `member` attribute
+   **Decision needed**: Should admin users access customer-facing site?
+   **Priority**: Low - defer until after Stripe upgrade
 
 ### Verify Production
 ```bash
