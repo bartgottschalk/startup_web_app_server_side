@@ -15,10 +15,10 @@ class ContactPageTests(BaseFunctionalTest):
 		self.assertEqual('Contact', self.browser.title)
 
 		email_us_link = self.browser.find_element_by_id('email-us-link')
-		self.assertEqual(email_us_link.get_attribute('href'), 'mailto:contact@startupwebapp.com?Subject=Contact%20Request')
+		self.assertEqual(email_us_link.get_attribute('href'), 'mailto:bart+startupwebapp@mosaicmeshai.com?Subject=Contact%20Request')
 
 		call_us_link = self.browser.find_element_by_id('call-us-link')
-		self.assertEqual(call_us_link.get_attribute('href'), 'tel:+1-800-800-8000')
+		self.assertEqual(call_us_link.get_attribute('href'), 'tel:+1-800-123-4567')
 
 		#with self.assertRaises(WebDriverException):
 		#	call_us_link.click()

@@ -91,7 +91,7 @@ def create_user_seed_data(apps, schema_editor):
                 'BILLING ADDRESS {short_line_break}{billing_address_information} {line_break}'
                 'PAYMENT INFORMATION {short_line_break}{payment_information} {line_break}'
                 'Note: If you did NOT place an order at {ENVIRONMENT_DOMAIN}, do not click on the link. '
-                'Instead, please forward this notification to contact@startupwebapp.com and let us know '
+                'Instead, please forward this notification to bart+startupwebapp@mosaicmeshai.com and let us know '
                 'that you did not place this order and we\'ll dig in further to figure out what is going on. {line_break}'
                 'We\'ll send you further emails with updates on your order along with shipping tracking '
                 'information once it\'s available. {line_break}'
@@ -100,8 +100,8 @@ def create_user_seed_data(apps, schema_editor):
                 '{ENVIRONMENT_DOMAIN}/terms-of-sale {line_break}'
                 '© 2018 StartUp Web App LLC, All rights reserved.'
             ),
-            'from_address': 'contact@startupwebapp.com',
-            'bcc_address': 'contact@startupwebapp.com',
+            'from_address': 'bart+startupwebapp@mosaicmeshai.com',
+            'bcc_address': '',
             'email_status_id': 2,  # Ready
             'email_type_id': 1,    # Member
             'em_cd': 'gvREoqen93ffZsmBIc8zl'
@@ -127,7 +127,7 @@ def create_user_seed_data(apps, schema_editor):
                 'BILLING ADDRESS {short_line_break}{billing_address_information} {line_break}'
                 'PAYMENT INFORMATION {short_line_break}{payment_information} {line_break}'
                 'Note: If you did NOT place an order at {ENVIRONMENT_DOMAIN}, do not click on the link. '
-                'Instead, please forward this notification to contact@startupwebapp.com and let us know '
+                'Instead, please forward this notification to bart+startupwebapp@mosaicmeshai.com and let us know '
                 'that you did not place this order and we\'ll dig in further to figure out what is going on. {line_break}'
                 'We\'ll send you further emails with updates on your order along with shipping tracking '
                 'information once it\'s available. {line_break}'
@@ -137,8 +137,8 @@ def create_user_seed_data(apps, schema_editor):
                 '© 2018 StartUp Web App LLC, All rights reserved. {line_break}'
                 '{prosepct_email_unsubscribe_str}'
             ),
-            'from_address': 'contact@startupwebapp.com',
-            'bcc_address': 'contact@startupwebapp.com',
+            'from_address': 'bart+startupwebapp@mosaicmeshai.com',
+            'bcc_address': '',
             'email_status_id': 2,  # Ready
             'email_type_id': 2,    # Prospect
             'em_cd': 'FpGyZy6kld9R2XTjqvBQN'
@@ -193,8 +193,8 @@ def create_user_seed_data(apps, schema_editor):
                 'please follow this link to unsubscribe: '
                 '{ENVIRONMENT_DOMAIN}/account/email-unsubscribe?em_cd={em_cd}&pr_cd={pr_cd}&pr_token={pr_token}'
             ),
-            'from_address': 'contact@startupwebapp.com',
-            'bcc_address': 'contact@startupwebapp.com',
+            'from_address': 'bart+startupwebapp@mosaicmeshai.com',
+            'bcc_address': '',
             'email_status_id': 1,  # Draft
             'email_type_id': 2,    # Prospect
             'em_cd': 'A1jAqhMyLVpBVgxjuknq'
@@ -252,8 +252,8 @@ def create_user_seed_data(apps, schema_editor):
                 'Unsubscribe by following this link: '
                 '{ENVIRONMENT_DOMAIN}/account/email-unsubscribe?em_cd={em_cd}&mb_cd={mb_cd}&token={token}'
             ),
-            'from_address': 'contact@startupwebapp.com',
-            'bcc_address': 'contact@startupwebapp.com',
+            'from_address': 'bart+startupwebapp@mosaicmeshai.com',
+            'bcc_address': '',
             'email_status_id': 1,  # Draft
             'email_type_id': 1,    # Member
             'em_cd': 'P0Ps5FLIfUUiMpdV3HOB'

@@ -1165,6 +1165,75 @@ See [Technical Note](technical-notes/2025-11-26-phase-5-15-production-deployment
 - **Stripe**: Currently 5.5.0 → Latest version
 - **Selenium**: Currently 3.141.0 → Selenium 4.x (modern API)
 
+### Phase 5.16: Production Polish & Stripe Upgrade (In Progress - December 11, 2025)
+
+**Status**: Multi-session project in progress
+
+#### Session 1: Email Address Updates & Stripe Assessment (December 11, 2025)
+
+**Branch**: `bugfix/email-addresses` (WIP)
+
+**Email Address Changes (Completed in branch):**
+- ✅ Updated all email addresses: `contact@startupwebapp.com` → `bart+startupwebapp@mosaicmeshai.com`
+- ✅ Removed BCC from all emails (no longer needed)
+- ✅ Updated 7 email types in `user/views.py`:
+  1. Welcome email (account creation)
+  2. Email verification request
+  3. Forgot username request
+  4. Password reset request
+  5. Password changed (via reset link)
+  6. Password changed (via account settings)
+  7. Email address changed notification
+- ✅ Updated chat message notification email
+- ✅ Updated order confirmation email templates in database (migration created)
+- ✅ Updated email body text to reference new contact email
+- ✅ Updated phone number: `1-844-473-3744` → `1-800-123-4567` (all emails)
+- ✅ Updated email signature: `StartUpWebApp.com` → `StartUpWebApp` (all emails)
+- ✅ Created migration `0003_update_email_addresses.py` to update database templates
+- ✅ Updated frontend contact page email and phone
+- ✅ Updated functional test expectations
+
+**Files Modified (7):**
+- Backend: `user/views.py`, `user/admin.py`, `order/views.py`, `user/migrations/0003_update_email_addresses.py`, `user/migrations/0002_seed_user_data.py`, `db_inserts.sql`
+- Frontend: `contact`, `functional_tests/contact/test_contact.py`
+- Docs: `SESSION_START_PROMPT.md`
+
+**Testing Results:**
+- ✅ Linting: Zero errors (migration line length OK)
+- ✅ Unit tests: 715/715 passing
+- ✅ Functional tests: 31/31 passing (after frontend contact page update)
+- ✅ Local email testing: 7/9 email types verified
+  - Welcome, verification, forgot username, password reset, password changed (2 types), email changed
+  - Order emails blocked by Stripe integration issue
+
+**Stripe Integration Assessment:**
+- ❌ **Current integration BROKEN**: Stripe Checkout v2 deprecated
+- ❌ **Error**: "Integration surface is unsupported for publishable key tokenization"
+- ❌ **Library**: stripe==5.5.0 (severely outdated, latest is 10.x+)
+- 📋 **Plan Created**: `docs/technical-notes/2025-12-11-stripe-upgrade-plan.md`
+- 📋 **Approach**: Migrate to Stripe Checkout Sessions (3-6 day effort)
+- 📋 **Scope**: 7 files, ~600-800 lines, moderate to major refactor
+
+**Frontend Bugs Fixed:**
+- ✅ Fixed `shipping_cost.toFixed` error (DecimalField serialization)
+- ✅ Fixed `price.toFixed` error (DecimalField serialization)
+- ✅ Fixed `confirm_totals_data` decimal field errors (5 fields)
+
+**Files Modified (Frontend):**
+- `js/checkout/confirm-0.0.1.js` (added parseFloat for all decimal fields)
+
+**Decision Made:**
+- Email address changes ready but NOT deployed (waiting for Stripe fix)
+- Stripe upgrade takes priority (blocks order email testing)
+- Multi-session approach: Break Stripe work into 10 session-sized chunks
+- Will deploy email changes after Stripe is working
+
+**Next Session:**
+- Start Stripe upgrade Session 2: Library upgrade (stripe 5.5.0 → 10.x)
+- See: `docs/technical-notes/2025-12-11-stripe-upgrade-plan.md`
+
+---
+
 ## Documentation Structure
 
 ### `/milestones`

@@ -1218,7 +1218,6 @@ def confirm_place_order(request):
                             body=formatted_order_confirmation_email_body_text,
                             from_email=email.from_address,
                             to=[to_address],
-                            bcc=[email.bcc_address],
                             reply_to=[email.from_address],
                         )
                         # msg.attach_alternative(formatted_order_confirmation_email_body_html, "text/html")

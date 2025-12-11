@@ -193,8 +193,7 @@ class EmailAdmin(admin.ModelAdmin):
                         subject=email.subject,
                         body=formatted_body_text,
                         from_email=email.from_address,
-                        to=['contact@startupwebapp.com'],
-                        bcc=[email.bcc_address],
+                        to=['bart+startupwebapp@mosaicmeshai.com'],
                         reply_to=[email.from_address],
                     )
                     msg.attach_alternative(formatted_body_html, "text/html")
@@ -260,7 +259,6 @@ class EmailAdmin(admin.ModelAdmin):
                         body=formatted_body_text,
                         from_email=email.from_address,
                         to=[recipient.email],
-                        bcc=[email.bcc_address],
                         reply_to=[email.from_address],
                     )
                     msg.attach_alternative(formatted_body_html, "text/html")
