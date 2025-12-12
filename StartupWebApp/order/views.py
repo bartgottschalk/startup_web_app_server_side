@@ -1401,6 +1401,13 @@ def create_checkout_session(request):
             'line_items': line_items,
             'success_url': success_url,
             'cancel_url': cancel_url,
+            'billing_address_collection': 'required',
+            'shipping_address_collection': {
+                'allowed_countries': ['US', 'CA'],  # Expand as needed
+            },
+            'phone_number_collection': {
+                'enabled': True,
+            },
         }
 
         # Add customer_email if available
@@ -1442,6 +1449,352 @@ def create_checkout_session(request):
         response = JsonResponse(
             {
                 'create_checkout_session': 'error',
+                'errors': error_dict,
+                'order-api-version': order_api_version,
+            },
+            safe=False,
+        )
+
+    return response
+
+
+def checkout_session_success(request):
+    """
+    Handle successful Stripe Checkout Session completion.
+    Retrieve session data, create order, and send confirmation email.
+    """
+    # Get session_id from query parameters
+    session_id = request.GET.get('session_id')
+
+    if not session_id:
+        error_dict = {"error": 'session-id-required'}
+        response = JsonResponse(
+            {
+                'checkout_session_success': 'error',
+                'errors': error_dict,
+                'order-api-version': order_api_version,
+            },
+            safe=False,
+        )
+        return response
+
+    try:
+        # Retrieve the Stripe Checkout Session
+        session = stripe.checkout.Session.retrieve(session_id)
+
+        # Verify payment is completed
+        if session.payment_status != 'paid':
+            error_dict = {"error": 'payment-not-completed'}
+            response = JsonResponse(
+                {
+                    'checkout_session_success': 'error',
+                    'errors': error_dict,
+                    'order-api-version': order_api_version,
+                },
+                safe=False,
+            )
+            return response
+
+        # Check if order already exists for this payment_intent (prevent duplicates)
+        payment_intent_id = session.payment_intent
+        existing_order = None
+        if payment_intent_id:
+            try:
+                existing_payment = Orderpayment.objects.get(stripe_payment_intent_id=payment_intent_id)
+                existing_order = existing_payment.order_set.first()
+                if existing_order:
+                    # Order already exists, return it
+                    response = JsonResponse(
+                        {
+                            'checkout_session_success': 'success',
+                            'order_identifier': existing_order.identifier,
+                            'order-api-version': order_api_version,
+                        },
+                        safe=False,
+                    )
+                    return response
+            except Orderpayment.DoesNotExist:
+                pass  # No existing order, proceed with creation
+
+        # Look up the cart
+        cart = order_utils.look_up_cart(request)
+
+        if cart is None:
+            error_dict = {"error": 'cart-not-found'}
+            response = JsonResponse(
+                {
+                    'checkout_session_success': 'error',
+                    'errors': error_dict,
+                    'order-api-version': order_api_version,
+                },
+                safe=False,
+            )
+            return response
+
+        # Extract address information from session
+        customer_details = session.customer_details
+        shipping_details = session.shipping_details
+
+        # Get customer name and email
+        customer_name = customer_details.name if customer_details else 'Customer'
+        customer_email = session.customer_email or (customer_details.email if customer_details else '')
+
+        # Create order identifier
+        order_identifier = identifier.getNewOrderIdentifier()
+
+        # Create Payment object
+        payment = Orderpayment.objects.create(
+            email=customer_email,
+            payment_type='card',
+            card_name=customer_name,
+            stripe_payment_intent_id=payment_intent_id,
+            # Card details would come from payment_intent if needed, but Stripe Checkout doesn't expose them
+        )
+
+        # Create Shipping Address object
+        shipping_address = Ordershippingaddress.objects.create(
+            name=shipping_details.name if shipping_details else customer_name,
+            address_line1=shipping_details.address.line1 if shipping_details and shipping_details.address else '',
+            city=shipping_details.address.city if shipping_details and shipping_details.address else '',
+            state=shipping_details.address.state if shipping_details and shipping_details.address else '',
+            zip=shipping_details.address.postal_code if shipping_details and shipping_details.address else '',
+            country=shipping_details.address.country if shipping_details and shipping_details.address else '',
+            country_code=shipping_details.address.country if shipping_details and shipping_details.address else '',
+        )
+
+        # Create Billing Address object
+        billing_address = Orderbillingaddress.objects.create(
+            name=customer_name,
+            address_line1=customer_details.address.line1 if customer_details and customer_details.address else '',
+            city=customer_details.address.city if customer_details and customer_details.address else '',
+            state=customer_details.address.state if customer_details and customer_details.address else '',
+            zip=customer_details.address.postal_code if customer_details and customer_details.address else '',
+            country=customer_details.address.country if customer_details and customer_details.address else '',
+            country_code=customer_details.address.country if customer_details and customer_details.address else '',
+        )
+
+        # Calculate order totals from cart
+        cart_totals_dict = order_utils.get_cart_totals(cart)
+
+        # Create Order object
+        now = timezone.now()
+        if request.user.is_authenticated:
+            order = Order.objects.create(
+                identifier=order_identifier,
+                member=request.user.member,
+                payment=payment,
+                shipping_address=shipping_address,
+                billing_address=billing_address,
+                sales_tax_amt=0,
+                item_subtotal=cart_totals_dict['item_subtotal'],
+                item_discount_amt=cart_totals_dict['item_discount'],
+                shipping_amt=cart_totals_dict['shipping_subtotal'],
+                shipping_discount_amt=cart_totals_dict['shipping_discount'],
+                order_total=cart_totals_dict['cart_total'],
+                agreed_with_terms_of_sale=True,
+                order_date_time=now,
+            )
+        else:
+            # Anonymous user - get or create prospect
+            prospect, created = Prospect.objects.get_or_create(
+                email=customer_email,
+                defaults={'pr_cd': identifier.getNewProspectCode()}
+            )
+            order = Order.objects.create(
+                identifier=order_identifier,
+                prospect=prospect,
+                payment=payment,
+                shipping_address=shipping_address,
+                billing_address=billing_address,
+                sales_tax_amt=0,
+                item_subtotal=cart_totals_dict['item_subtotal'],
+                item_discount_amt=cart_totals_dict['item_discount'],
+                shipping_amt=cart_totals_dict['shipping_subtotal'],
+                shipping_discount_amt=cart_totals_dict['shipping_discount'],
+                order_total=cart_totals_dict['cart_total'],
+                agreed_with_terms_of_sale=True,
+                order_date_time=now,
+            )
+
+        # Create Ordersku objects
+        cart_item_dict = order_utils.get_cart_items(request, cart)
+        for product_sku_id in cart_item_dict['product_sku_data']:
+            Ordersku.objects.create(
+                order=order,
+                sku=Sku.objects.get(id=cart_item_dict['product_sku_data'][product_sku_id]['sku_id']),
+                quantity=cart_item_dict['product_sku_data'][product_sku_id]['quantity'],
+                price_each=cart_item_dict['product_sku_data'][product_sku_id]['price'],
+            )
+
+        # Create Orderdiscount records
+        discount_code_dict = order_utils.get_cart_discount_codes(cart)
+        for discount_code_id in discount_code_dict:
+            Orderdiscount.objects.create(
+                order=order,
+                discountcode=Discountcode.objects.get(
+                    id=discount_code_dict[discount_code_id]['discount_code_id']
+                ),
+                applied=discount_code_dict[discount_code_id]['discount_applied'],
+            )
+
+        # Create Orderstatus record
+        Orderstatus.objects.create(
+            order=order,
+            status=Status.objects.get(
+                identifier=Orderconfiguration.objects.get(key='initial_order_status').string_value
+            ),
+            created_date_time=now,
+        )
+
+        # Create Ordershippingmethod record
+        order_shipping_method = Ordershippingmethod.objects.create(
+            order=order,
+            shippingmethod=Cartshippingmethod.objects.get(cart=cart).shippingmethod
+        )
+
+        #################################
+        # Send Order Confirmation Email #
+        #################################
+        order_info_text = order_utils.get_confirmation_email_order_info_text_format(order_identifier)
+        product_text = order_utils.get_confirmation_email_product_information_text_format(cart_item_dict)
+        shipping_text = order_utils.get_confirmation_email_shipping_information_text_format(
+            order_shipping_method.shippingmethod
+        )
+        discount_code_text = order_utils.get_confirmation_email_discount_code_text_format(discount_code_dict)
+        order_totals_text = order_utils.get_confirmation_email_order_totals_text_format(cart_totals_dict)
+        payment_text = order_utils.get_confirmation_email_order_payment_text_format(payment)
+        shipping_address_text = order_utils.get_confirmation_email_order_address_text_format(shipping_address)
+        billing_address_text = order_utils.get_confirmation_email_order_address_text_format(billing_address)
+
+        to_address = customer_email
+
+        if request.user.is_authenticated:
+            order_confirmation_em_cd_member = Orderconfiguration.objects.get(
+                key='order_confirmation_em_cd_member'
+            ).string_value
+            email = Email.objects.get(em_cd=order_confirmation_em_cd_member)
+            order_confirmation_email_body_text = email.body_text
+
+            order_confirmation_email_namespace = {
+                'line_break': '\r\n\r\n',
+                'short_line_break': '\r\n',
+                'recipient_first_name': customer_name,
+                'order_information': order_info_text,
+                'product_information': product_text,
+                'shipping_information': shipping_text,
+                'discount_information': discount_code_text,
+                'order_total_information': order_totals_text,
+                'payment_information': payment_text,
+                'shipping_address_information': shipping_address_text,
+                'billing_address_information': billing_address_text,
+                'ENVIRONMENT_DOMAIN': settings.ENVIRONMENT_DOMAIN,
+                'identifier': order_identifier,
+                'em_cd': email.em_cd,
+                'mb_cd': request.user.member.mb_cd,
+            }
+            formatted_order_confirmation_email_body_text = order_confirmation_email_body_text.format(
+                **order_confirmation_email_namespace
+            )
+        else:
+            order_confirmation_em_cd_prospect = Orderconfiguration.objects.get(
+                key='order_confirmation_em_cd_prospect'
+            ).string_value
+            email = Email.objects.get(em_cd=order_confirmation_em_cd_prospect)
+            order_confirmation_email_body_text = email.body_text
+
+            prospect = order.prospect
+            prospect.swa_comment = f'Captured from Stripe Checkout order identifier: {order_identifier}'
+            prospect.save()
+
+            prosepct_email_unsubscribe_str = (
+                'You are NOT included in our email marketing list. If you would like to be '
+                'added to our marketing email list please reply to this email and let us know.'
+            )
+
+            order_confirmation_email_namespace = {
+                'line_break': '\r\n\r\n',
+                'short_line_break': '\r\n',
+                'recipient_first_name': customer_name,
+                'order_information': order_info_text,
+                'product_information': product_text,
+                'shipping_information': shipping_text,
+                'discount_information': discount_code_text,
+                'order_total_information': order_totals_text,
+                'payment_information': payment_text,
+                'shipping_address_information': shipping_address_text,
+                'billing_address_information': billing_address_text,
+                'ENVIRONMENT_DOMAIN': settings.ENVIRONMENT_DOMAIN,
+                'identifier': order_identifier,
+                'em_cd': email.em_cd,
+                'pr_cd': prospect.pr_cd,
+                'prosepct_email_unsubscribe_str': prosepct_email_unsubscribe_str,
+            }
+            formatted_order_confirmation_email_body_text = order_confirmation_email_body_text.format(
+                **order_confirmation_email_namespace
+            )
+
+        msg = EmailMultiAlternatives(
+            subject=email.subject,
+            body=formatted_order_confirmation_email_body_text,
+            from_email=email.from_address,
+            to=[to_address],
+            bcc=[email.bcc_address] if email.bcc_address else [],
+            reply_to=[email.from_address],
+        )
+
+        try:
+            msg.send(fail_silently=False)
+            now = timezone.now()
+            if request.user.is_authenticated:
+                Emailsent.objects.create(
+                    member=request.user.member, prospect=None, email=email, sent_date_time=now
+                )
+            else:
+                Emailsent.objects.create(
+                    member=None, prospect=prospect, email=email, sent_date_time=now
+                )
+        except SMTPDataError:
+            logger.exception('SMTPDataError sending order confirmation email')
+
+        #####################################
+        # END Send Order Confirmation Email #
+        #####################################
+
+        # Delete the cart
+        cart.delete()
+
+        response = JsonResponse(
+            {
+                'checkout_session_success': 'success',
+                'order_identifier': order.identifier,
+                'order-api-version': order_api_version,
+            },
+            safe=False,
+        )
+
+    except stripe.error.InvalidRequestError as e:
+        logger.error(f'Invalid Stripe session: {str(e)}')
+        error_dict = {
+            "error": 'invalid-session',
+            "description": str(e)
+        }
+        response = JsonResponse(
+            {
+                'checkout_session_success': 'error',
+                'errors': error_dict,
+                'order-api-version': order_api_version,
+            },
+            safe=False,
+        )
+    except Exception as e:
+        logger.error(f'Unexpected error processing checkout session: {str(e)}')
+        error_dict = {
+            "error": 'unexpected-error',
+            "description": str(e)
+        }
+        response = JsonResponse(
+            {
+                'checkout_session_success': 'error',
                 'errors': error_dict,
                 'order-api-version': order_api_version,
             },

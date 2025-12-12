@@ -272,6 +272,7 @@ class Orderpayment(models.Model):
     card_exp_month = models.CharField(max_length=2, blank=True, null=True)
     card_exp_year = models.CharField(max_length=4, blank=True, null=True)
     card_zip = models.CharField(max_length=10, blank=True, null=True)
+    stripe_payment_intent_id = models.CharField(max_length=100, blank=True, null=True, unique=True)
 
     class Meta:
         db_table = 'order_order_payment'
