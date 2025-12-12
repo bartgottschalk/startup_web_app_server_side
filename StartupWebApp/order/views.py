@@ -1315,6 +1315,142 @@ def confirm_place_order(request):
     return response
 
 
+def create_checkout_session(request):
+    """
+    Create a Stripe Checkout Session for the user's cart.
+    Returns session_id and checkout_url for frontend to redirect to Stripe.
+    """
+    checkout_allowed = order_utils.checkout_allowed(request)
+
+    if not checkout_allowed:
+        error_dict = {"error": 'checkout-not-allowed'}
+        response = JsonResponse(
+            {
+                'create_checkout_session': 'error',
+                'errors': error_dict,
+                'order-api-version': order_api_version,
+            },
+            safe=False,
+        )
+        return response
+
+    # Look up the cart
+    cart = order_utils.look_up_cart(request)
+
+    if cart is None:
+        error_dict = {"error": 'cart-not-found'}
+        response = JsonResponse(
+            {
+                'create_checkout_session': 'error',
+                'errors': error_dict,
+                'order-api-version': order_api_version,
+            },
+            safe=False,
+        )
+        return response
+
+    # Check if cart has items
+    cart_items = order_utils.get_cart_items(request, cart)
+    if not cart_items.get('product_sku_data') or len(cart_items['product_sku_data']) == 0:
+        error_dict = {"error": 'cart-is-empty'}
+        response = JsonResponse(
+            {
+                'create_checkout_session': 'error',
+                'errors': error_dict,
+                'order-api-version': order_api_version,
+            },
+            safe=False,
+        )
+        return response
+
+    try:
+        # Build line items for Stripe
+        line_items = []
+        for item_key, item_data in cart_items['product_sku_data'].items():
+            # Convert price to cents (Stripe requires integer cents)
+            unit_amount_cents = int(float(item_data['price']) * 100)
+
+            line_item = {
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': item_data['parent_product__title'],
+                        'description': f"{item_data['color']} - {item_data['size']}",
+                        'images': [item_data['sku_image_url']],
+                    },
+                    'unit_amount': unit_amount_cents,
+                },
+                'quantity': item_data['quantity'],
+            }
+            line_items.append(line_item)
+
+        # Determine customer email
+        customer_email = None
+        if request.user.is_authenticated:
+            customer_email = request.user.email
+
+        # Build success and cancel URLs
+        # Use settings to get the frontend domain
+        frontend_domain = getattr(settings, 'ENVIRONMENT_DOMAIN', 'http://localhost:8080')
+        success_url = f"{frontend_domain}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}"
+        cancel_url = f"{frontend_domain}/checkout/confirm"
+
+        # Create Stripe Checkout Session
+        session_params = {
+            'mode': 'payment',
+            'line_items': line_items,
+            'success_url': success_url,
+            'cancel_url': cancel_url,
+        }
+
+        # Add customer_email if available
+        if customer_email:
+            session_params['customer_email'] = customer_email
+
+        session = stripe.checkout.Session.create(**session_params)
+
+        response = JsonResponse(
+            {
+                'create_checkout_session': 'success',
+                'session_id': session.id,
+                'checkout_url': session.url,
+                'order-api-version': order_api_version,
+            },
+            safe=False,
+        )
+
+    except stripe.error.StripeError as e:
+        logger.error(f'Stripe error creating checkout session: {str(e)}')
+        error_dict = {
+            "error": 'stripe-error',
+            "description": str(e)
+        }
+        response = JsonResponse(
+            {
+                'create_checkout_session': 'error',
+                'errors': error_dict,
+                'order-api-version': order_api_version,
+            },
+            safe=False,
+        )
+    except Exception as e:
+        logger.error(f'Unexpected error creating checkout session: {str(e)}')
+        error_dict = {
+            "error": 'unexpected-error',
+            "description": str(e)
+        }
+        response = JsonResponse(
+            {
+                'create_checkout_session': 'error',
+                'errors': error_dict,
+                'order-api-version': order_api_version,
+            },
+            safe=False,
+        )
+
+    return response
+
+
 def process_stripe_payment_token(request):
     # raise ValueError('A very specific bad thing happened.')
     checkout_allowed = order_utils.checkout_allowed(request)

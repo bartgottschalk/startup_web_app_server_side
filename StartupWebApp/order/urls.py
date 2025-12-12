@@ -39,6 +39,8 @@ urlpatterns = [
     path('confirm-payment-data', views.confirm_payment_data, name='confirm_payment_data'),
     path('confirm-place-order', views.confirm_place_order, name='confirm_place_order'),
 
+    path('create-checkout-session', views.create_checkout_session, name='create_checkout_session'),
+
     path('process-stripe-payment-token',
          views.process_stripe_payment_token,
          name='process_stripe_payment_token'),
