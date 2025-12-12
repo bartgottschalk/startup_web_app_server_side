@@ -23,12 +23,12 @@ This document tracks the complete development history and modernization effort f
 - [✅ 2025-11-03: Phase 2.1 - ClientEvent Tests](milestones/2025-11-03-phase-2-1-clientevent-tests.md) - Analytics event tracking (51 tests)
 - [✅ 2025-11-03: Phase 2.2 - Order Tests](milestones/2025-11-03-phase-2-2-order-tests.md) - E-commerce functionality (239 tests)
 
-### Current Status: 746 Tests Passing ✅ (100% Pass Rate with PostgreSQL!)
+### Current Status: 753 Tests Passing ✅ (100% Pass Rate with PostgreSQL!)
 - **User App**: 299 tests (+3 superuser creation tests)
-- **Order App**: 315 tests (+19 DecimalField precision tests)
+- **Order App**: 322 tests (+19 DecimalField precision tests, +7 Stripe Checkout Session tests)
 - **ClientEvent App**: 51 tests
 - **Validators**: 50 tests
-- **Total Unit Tests**: 715 tests
+- **Total Unit Tests**: 722 tests
 - **Functional Tests**: 31 Selenium tests (+3 Django Admin login tests) - 100% reliable
 - **Database**: PostgreSQL 16 (multi-tenant architecture, local + AWS RDS ready)
 - **AWS Infrastructure**: Deployed (VPC, RDS, Secrets Manager, CloudWatch) - $29/month
@@ -1189,6 +1189,58 @@ See [Technical Note](technical-notes/2025-11-26-phase-5-15-production-deployment
 - `docker-compose.yml` (line 13)
 
 **Next Session**: Session 3 - Create Checkout Session endpoint
+
+**See**: `docs/technical-notes/2025-12-11-stripe-upgrade-plan.md` for full 10-session plan
+
+---
+
+#### Phase 5.16 Stripe Upgrade - Session 3: Create Checkout Session Endpoint (Complete - December 12, 2025)
+
+**Status**: ✅ COMPLETE - Backend endpoint ready for Stripe Checkout Sessions
+**Branch**: `feature/stripe-checkout-session-endpoint`
+**PR**: #50 (pending)
+**Session**: 3 of 10 (Stripe upgrade multi-session project)
+
+**Changes Made**:
+- ✅ **New Endpoint**: `/order/create-checkout-session` (POST)
+  - Creates Stripe Checkout Session with cart line items
+  - Returns `session_id` and `checkout_url` for frontend redirect
+  - Handles both authenticated members (with email) and anonymous users
+  - Calculates line items with prices in cents (Stripe requirement)
+  - Uses `ENVIRONMENT_DOMAIN` setting for success/cancel URLs
+  - Comprehensive error handling (no cart, empty cart, Stripe API errors)
+
+- ✅ **Implementation Details**:
+  - Uses `stripe.checkout.Session.create()` with modern API
+  - Line items include product name, description (color/size), image URL, price, quantity
+  - Member emails pre-filled, anonymous users prompted by Stripe
+  - Success URL: `{domain}/checkout/success?session_id={CHECKOUT_SESSION_ID}`
+  - Cancel URL: `{domain}/checkout/confirm`
+
+- ✅ **Test Coverage**: 7 new comprehensive unit tests
+  - Checkout not allowed (permission check)
+  - Cart not found (user has no cart)
+  - Cart is empty (no items)
+  - Success for authenticated member (with email pre-fill)
+  - Success without email (anonymous flow)
+  - Stripe API error handling
+  - Multiple line items calculation
+
+**Test Results**:
+- ✅ **Unit Tests**: 722/722 passed (715 → 722, +7 new tests)
+- ✅ **Test Approach**: TDD methodology (tests written first)
+- ✅ All Stripe calls mocked (real API testing in Session 8)
+- ✅ Zero linting errors
+
+**Files Modified**:
+- `StartupWebApp/order/views.py` - New `create_checkout_session()` function
+- `StartupWebApp/order/urls.py` - Added route for new endpoint
+- `StartupWebApp/order/tests/test_stripe_checkout_session.py` - New test file (7 tests)
+- `docs/technical-notes/2025-12-11-stripe-upgrade-plan.md` - Added to branch
+
+**Next Session**: Session 4 - Create success handler endpoint to process completed payments
+
+**Note**: Functional tests deferred to Session 8 (requires frontend integration from Sessions 6-7)
 
 **See**: `docs/technical-notes/2025-12-11-stripe-upgrade-plan.md` for full 10-session plan
 

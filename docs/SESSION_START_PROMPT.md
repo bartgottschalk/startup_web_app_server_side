@@ -416,7 +416,7 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
 #### 1. **Stripe Integration Upgrade** (CRITICAL - In Progress)
 
-   **Status**: Phase 5.16 multi-session project - Session 2 COMPLETE ✅
+   **Status**: Phase 5.16 multi-session project - Session 3 COMPLETE ✅
 
    **Problem:**
    - Current: Stripe Checkout v2 (deprecated, non-functional)
@@ -427,13 +427,14 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
    **Solution:**
    - Migrate to Stripe Checkout Sessions (modern hosted checkout)
    - ✅ Upgraded stripe library to 14.0.1 (Session 2, PR #49, deployed)
+   - ✅ Created checkout session endpoint (Session 3, PR #50, pending)
    - 10-session plan documented in `docs/technical-notes/2025-12-11-stripe-upgrade-plan.md`
 
    **Session Progress:**
    - Session 1: ✅ Planning & assessment complete (branch not merged)
-   - Session 2: ✅ Library upgrade complete (merged to master, deployed to production)
-   - Session 3: Create checkout session endpoint (NEXT)
-   - Session 4: Success handler
+   - Session 2: ✅ Library upgrade complete (PR #49, merged to master, deployed to production)
+   - Session 3: ✅ Checkout session endpoint (PR #50, pending review - 722 tests passing)
+   - Session 4: Success handler (NEXT)
    - Session 5: Webhook handler
    - Session 6: Frontend checkout flow
    - Session 7: Frontend account payments
@@ -443,7 +444,7 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 
    **Estimated Timeline:** 3-6 days (10 sessions × 2-3 hours each)
 
-   **See:** `docs/technical-notes/2025-12-11-stripe-upgrade-plan.md` for Session 3 starting prompt
+   **See:** `docs/technical-notes/2025-12-11-stripe-upgrade-plan.md` for full plan
 
 #### 2. **Email Address Updates** (Ready to Deploy - After Stripe)
 
@@ -459,7 +460,7 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
    **Testing:**
    - ✅ 7/9 email types tested locally (order emails blocked by Stripe)
    - ⏸️ 2/9 order emails waiting for Stripe fix
-   - All tests passing (715 unit + 31 functional)
+   - All tests passing (722 unit + 31 functional)
 
    **Future Work:**
    - Create `startupwebapp@mosaicmeshai.com` email account

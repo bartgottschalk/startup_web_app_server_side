@@ -8,7 +8,7 @@ A Django REST API backend for an e-commerce startup, featuring comprehensive tes
 ## Current Status (December 2025)
 
 ✅ **Production Live** - Full-stack deployed to AWS (ECS Fargate + S3/CloudFront)
-✅ **740 Tests Passing** - Comprehensive test coverage (712 unit + 28 functional) with PostgreSQL
+✅ **753 Tests Passing** - Comprehensive test coverage (722 unit + 31 functional) with PostgreSQL
 ✅ **CI/CD Pipeline** - Auto-deploy on merge to master with PR validation
 ✅ **PostgreSQL 16** - Production-ready database with multi-tenant architecture
 ✅ **Python 3.12 Compatible** - Fully modernized for latest Python
@@ -21,11 +21,11 @@ A Django REST API backend for an e-commerce startup, featuring comprehensive tes
 - Frontend: `https://startupwebapp.mosaicmeshai.com`
 
 ### Test Coverage Breakdown
-- **User App**: 296 tests (authentication, profiles, email management, Stripe error handling, admin actions)
-- **Order App**: 296 tests (products, cart, checkout, payments via Stripe)
+- **User App**: 299 tests (authentication, profiles, email management, Stripe error handling, admin actions)
+- **Order App**: 322 tests (products, cart, checkout, payments via Stripe, Checkout Sessions)
 - **ClientEvent App**: 51 tests (analytics event tracking)
 - **Validators**: 50 tests (input validation)
-- **Functional Tests**: 28 Selenium tests (full user journey testing)
+- **Functional Tests**: 31 Selenium tests (full user journey testing, Django Admin)
 
 ### Code Quality
 - **Backend**: pylint 4.0.2, flake8 7.3.0 (runs in Docker)
@@ -128,14 +128,14 @@ See [Seed Data & Data Migrations](#seed-data--data-migrations) section for detai
 
 ### Run Tests
 
-**Run all unit tests** (712 tests with PostgreSQL):
+**Run all unit tests** (722 tests with PostgreSQL):
 ```bash
 docker-compose exec backend python manage.py test order.tests user.tests clientevent.tests StartupWebApp.tests --parallel=4
 ```
 
 **Note**: Tests use PostgreSQLTestCase (TransactionTestCase with `reset_sequences=True`) to handle PostgreSQL's sequence management correctly.
 
-**Run functional tests** (28 tests):
+**Run functional tests** (31 tests):
 ```bash
 # IMPORTANT: Setup hosts file first (required after each container restart)
 docker-compose exec backend bash /app/setup_docker_test_hosts.sh
