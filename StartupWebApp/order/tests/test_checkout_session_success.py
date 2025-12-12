@@ -55,7 +55,7 @@ class CheckoutSessionSuccessHandlerTest(PostgreSQLTestCase):
         )
 
         # Create initial order status
-        initial_status = Status.objects.create(
+        Status.objects.create(
             identifier='order-received',
             title='Order Received'
         )
@@ -330,7 +330,9 @@ class CheckoutSessionSuccessHandlerTest(PostgreSQLTestCase):
     @patch('stripe.checkout.Session.retrieve')
     @patch('order.utilities.order_utils.look_up_cart')
     @patch('django.core.mail.EmailMultiAlternatives.send')
-    def test_checkout_session_success_creates_order_for_prospect(self, mock_email_send, mock_look_up_cart, mock_retrieve):
+    def test_checkout_session_success_creates_order_for_prospect(
+        self, mock_email_send, mock_look_up_cart, mock_retrieve
+    ):
         """Test successful order creation for anonymous prospect"""
         # Create prospect
         prospect = Prospect.objects.create(
