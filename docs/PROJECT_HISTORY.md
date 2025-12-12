@@ -1246,6 +1246,73 @@ See [Technical Note](technical-notes/2025-11-26-phase-5-15-production-deployment
 
 ---
 
+#### Phase 5.16 Stripe Upgrade - Session 4: Checkout Session Success Handler (Complete - December 12, 2025)
+
+**Status**: ✅ COMPLETE - Backend success handler ready for order creation
+**Branch**: `feature/stripe-checkout-success-handler`
+**PR**: #51 (pending)
+**Session**: 4 of 10 (Stripe upgrade multi-session project)
+
+**Changes Made**:
+- ✅ **New Endpoint**: `/order/checkout-session-success` (GET)
+  - Retrieves completed Stripe Checkout Session by `session_id` query parameter
+  - Verifies payment status is `paid` before creating order
+  - Extracts shipping and billing addresses from Stripe session
+  - Creates complete Order with all related objects (OrderSku, OrderStatus, OrderShippingMethod, OrderDiscount)
+  - Sends order confirmation email (member or prospect flow)
+  - Deletes cart after successful order creation
+  - Prevents duplicate orders using `stripe_payment_intent_id` unique constraint
+
+- ✅ **Database Migration**: Added `stripe_payment_intent_id` field to OrderPayment model
+  - Enables idempotent order creation (prevents duplicates if user refreshes page)
+  - Unique constraint ensures one order per Stripe payment
+  - Migration: `order/migrations/0005_orderpayment_stripe_payment_intent_id.py`
+
+- ✅ **Updated Checkout Session Creation**: Added address collection
+  - `billing_address_collection: 'required'`
+  - `shipping_address_collection: {'allowed_countries': ['US', 'CA']}`
+  - `phone_number_collection: {'enabled': True}`
+  - Ensures Stripe collects all required data before redirecting back
+
+- ✅ **Test Coverage**: 7 new comprehensive unit tests (TDD approach)
+  - Requires `session_id` parameter
+  - Handles invalid session ID
+  - Requires payment completed status
+  - Creates order for authenticated member
+  - Creates order for anonymous prospect (with prospect creation)
+  - Handles cart not found error
+  - Prevents duplicate orders (idempotent behavior)
+
+**Test Results**:
+- ✅ **Unit Tests**: 729/729 passed (722 → 729, +7 new tests)
+- ✅ **Test Approach**: TDD methodology (tests written first, saw them fail, then implemented)
+- ✅ All Stripe `Session.retrieve()` calls mocked
+- ✅ Email sending mocked to verify confirmation emails sent
+- ✅ Zero linting errors
+
+**Files Modified**:
+- `StartupWebApp/order/models.py` - Added `stripe_payment_intent_id` field to Orderpayment
+- `StartupWebApp/order/views.py` - New `checkout_session_success()` function (344 lines)
+- `StartupWebApp/order/views.py` - Updated `create_checkout_session()` to collect addresses
+- `StartupWebApp/order/urls.py` - Added route for success handler
+- `StartupWebApp/order/migrations/0005_orderpayment_stripe_payment_intent_id.py` - New migration
+- `StartupWebApp/order/tests/test_checkout_session_success.py` - New test file (7 tests, 417 lines)
+
+**Implementation Highlights**:
+- Complete order creation flow mirrors existing `confirm_place_order()` function
+- Handles both member and prospect email confirmation flows
+- Extracts customer name, email, and addresses from Stripe session objects
+- Creates Prospect records automatically for anonymous checkouts
+- Supports all existing order features (discounts, shipping methods, order status)
+
+**Next Session**: Session 5 - Create webhook handler for `checkout.session.completed` events
+
+**Note**: This endpoint will be called by frontend after Stripe redirects user with `session_id` parameter
+
+**See**: `docs/technical-notes/2025-12-11-stripe-upgrade-plan.md` for full 10-session plan
+
+---
+
 #### Phase 5.17: Production Hardening (Future)
 - AWS WAF for security
 - Enhanced CloudWatch monitoring

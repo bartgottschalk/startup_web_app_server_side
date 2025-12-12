@@ -187,44 +187,61 @@ Custom payment form embedded in your site using Stripe Elements with Payment Int
 
 ---
 
-### Session 3: Backend - Create Checkout Session Endpoint (2-3 hours)
-**Branch:** `feature/stripe-checkout-session-endpoint`
+### Session 3: Backend - Create Checkout Session Endpoint (2-3 hours) ✅ COMPLETE
+**Branch:** `feature/stripe-checkout-session-endpoint` (merged to master via PR #50)
+**Date:** December 12, 2025
 
-**Tasks:**
-- Create new endpoint: `/order/create-checkout-session`
-- Implement `stripe.checkout.Session.create()`
-- Calculate order total and line items
-- Handle member vs prospect flows
-- Add proper error handling
-- Write unit tests for new endpoint
-- Run all tests (715 + new tests)
-- Commit and merge
+**Tasks Completed:**
+- ✅ Create new endpoint: `/order/create-checkout-session`
+- ✅ Implement `stripe.checkout.Session.create()`
+- ✅ Calculate order total and line items
+- ✅ Handle member vs prospect flows
+- ✅ Add proper error handling
+- ✅ Write unit tests for new endpoint (7 tests)
+- ✅ Run all tests (722 unit tests passing)
+- ✅ Commit and merge
 
-**Deliverable:** Working checkout session creation endpoint
+**Deliverable:** ✅ Working checkout session creation endpoint
 
 **Files Modified:**
-- `order/views.py` (new function)
-- `order/tests/` (new test file)
+- `order/views.py` (new `create_checkout_session()` function)
+- `order/urls.py` (added route)
+- `order/tests/test_stripe_checkout_session.py` (new test file, 7 tests)
 
 ---
 
-### Session 4: Backend - Checkout Session Success Handler (2-3 hours)
-**Branch:** `feature/stripe-checkout-success`
+### Session 4: Backend - Checkout Session Success Handler (2-3 hours) ✅ COMPLETE
+**Branch:** `feature/stripe-checkout-success-handler` (PR #51, pending review)
+**Date:** December 12, 2025
 
-**Tasks:**
-- Create success endpoint: `/order/checkout-session-success`
-- Retrieve session data from Stripe
-- Create order in database
-- Send order confirmation email
-- Write unit tests
-- Run all tests
-- Commit and merge
+**Tasks Completed:**
+- ✅ Create success endpoint: `/order/checkout-session-success`
+- ✅ Retrieve session data from Stripe with `stripe.checkout.Session.retrieve()`
+- ✅ Create order in database with all related objects
+- ✅ Send order confirmation email (member and prospect flows)
+- ✅ Add database migration for `stripe_payment_intent_id` field (prevents duplicates)
+- ✅ Update checkout session creation to collect addresses
+- ✅ Write unit tests (7 comprehensive tests, TDD approach)
+- ✅ Run all tests (729 unit tests passing)
+- ✅ Commit and push
 
-**Deliverable:** Order creation after successful payment
+**Deliverable:** ✅ Order creation after successful payment
 
 **Files Modified:**
-- `order/views.py` (new function)
-- `order/tests/` (new tests)
+- `order/models.py` (added `stripe_payment_intent_id` to Orderpayment)
+- `order/views.py` (new `checkout_session_success()` function - 344 lines)
+- `order/views.py` (updated `create_checkout_session()` to collect addresses)
+- `order/urls.py` (added route)
+- `order/migrations/0005_orderpayment_stripe_payment_intent_id.py` (new migration)
+- `order/tests/test_checkout_session_success.py` (new test file, 7 tests)
+
+**Key Features:**
+- Idempotent order creation (prevents duplicates via unique constraint)
+- Extracts shipping and billing addresses from Stripe session
+- Handles both authenticated members and anonymous prospects
+- Creates Prospect records automatically for guest checkouts
+- Sends order confirmation emails with full order details
+- Deletes cart after successful order creation
 
 ---
 
@@ -400,8 +417,8 @@ Custom payment form embedded in your site using Stripe Elements with Payment Int
 
 ## Current Session Status
 
-**Session:** Session 2 Complete - Ready for Session 3
-**Date:** December 11, 2025
+**Session:** Session 4 Complete - Ready for Session 5
+**Date:** December 12, 2025
 
 **Session 1 (Complete):**
 - ✅ Email address changes in code (7 email types updated)
@@ -423,10 +440,24 @@ Custom payment form embedded in your site using Stripe Elements with Payment Int
 - ✅ Deployed to production successfully
 - ✅ PROJECT_HISTORY.md updated
 
-**Ready for Session 3:**
-- Create Checkout Session endpoint
-- Implement `stripe.checkout.Session.create()`
-- Branch will be: `feature/stripe-checkout-session-endpoint`
+**Session 3 (Complete - Merged to Master):**
+- ✅ New endpoint: `/order/create-checkout-session` (PR #50)
+- ✅ Implemented `stripe.checkout.Session.create()`
+- ✅ 7 new unit tests, all 722 tests passing
+- ✅ Merged to master and deployed
+
+**Session 4 (Complete - PR Pending):**
+- ✅ New endpoint: `/order/checkout-session-success` (PR #51)
+- ✅ Database migration: Added `stripe_payment_intent_id` field
+- ✅ Updated checkout session creation to collect addresses
+- ✅ Implemented complete order creation flow
+- ✅ 7 new unit tests (TDD approach), all 729 tests passing
+- ✅ Idempotent design prevents duplicate orders
+
+**Ready for Session 5:**
+- Create Stripe webhook handler
+- Handle `checkout.session.completed` and `checkout.session.expired` events
+- Branch will be: `feature/stripe-webhooks`
 
 ---
 
