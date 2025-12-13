@@ -433,10 +433,10 @@ See: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
    **Session Progress:**
    - Session 1: ✅ Planning & assessment complete (branch not merged)
    - Session 2: ✅ Library upgrade complete (PR #49, merged to master, deployed to production)
-   - Session 3: ✅ Checkout session endpoint (PR #50, merged to master)
-   - Session 4: ✅ Success handler complete (PR #51, pending review - 729 tests passing)
-   - Session 5: Webhook handler (NEXT)
-   - Session 6: Frontend checkout flow
+   - Session 3: ✅ Checkout session endpoint (PR #50, merged to master, deployed to production)
+   - Session 4: ✅ Success handler complete (PR #51, merged to master, deployed to production)
+   - Session 5: ✅ Webhook handler complete (PR #52, pending review - 735 tests passing)
+   - Session 6: Frontend checkout flow (NEXT)
    - Session 7: Frontend account payments
    - Session 8: Testing & bug fixes
    - Session 9: Production deployment
