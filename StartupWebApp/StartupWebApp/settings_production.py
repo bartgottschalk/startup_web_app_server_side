@@ -75,6 +75,7 @@ except Exception as e:
         'django_secret_key': os.environ.get('DJANGO_SECRET_KEY', 'insecure-fallback-key-change-me'),
         'stripe_secret_key': os.environ.get('STRIPE_SECRET_KEY', ''),
         'stripe_publishable_key': os.environ.get('STRIPE_PUBLISHABLE_KEY', ''),
+        'stripe_webhook_secret': os.environ.get('STRIPE_WEBHOOK_SECRET', ''),
         'email_host': os.environ.get('EMAIL_HOST', ''),
         'email_port': int(os.environ.get('EMAIL_PORT', '587')),
         'email_user': os.environ.get('EMAIL_USER', ''),
@@ -162,6 +163,7 @@ DATABASES = {
 # Stripe configuration from Secrets Manager
 STRIPE_SERVER_SECRET_KEY = secrets.get('stripe_secret_key', '')
 STRIPE_PUBLISHABLE_SECRET_KEY = secrets.get('stripe_publishable_key', '')
+STRIPE_WEBHOOK_SECRET = secrets.get('stripe_webhook_secret', '')
 STRIPE_LOG_LEVEL = 'info'  # Production: less verbose than 'debug'
 
 # Email configuration from Secrets Manager
