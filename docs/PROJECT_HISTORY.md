@@ -23,12 +23,12 @@ This document tracks the complete development history and modernization effort f
 - [✅ 2025-11-03: Phase 2.1 - ClientEvent Tests](milestones/2025-11-03-phase-2-1-clientevent-tests.md) - Analytics event tracking (51 tests)
 - [✅ 2025-11-03: Phase 2.2 - Order Tests](milestones/2025-11-03-phase-2-2-order-tests.md) - E-commerce functionality (239 tests)
 
-### Current Status: 753 Tests Passing ✅ (100% Pass Rate with PostgreSQL!)
+### Current Status: 766 Tests Passing ✅ (100% Pass Rate with PostgreSQL!)
 - **User App**: 299 tests (+3 superuser creation tests)
-- **Order App**: 322 tests (+19 DecimalField precision tests, +7 Stripe Checkout Session tests)
+- **Order App**: 328 tests (+19 DecimalField precision tests, +7 Stripe Checkout Session tests, +7 success handler tests, +6 webhook tests)
 - **ClientEvent App**: 51 tests
 - **Validators**: 50 tests
-- **Total Unit Tests**: 722 tests
+- **Total Unit Tests**: 735 tests
 - **Functional Tests**: 31 Selenium tests (+3 Django Admin login tests) - 100% reliable
 - **Database**: PostgreSQL 16 (multi-tenant architecture, local + AWS RDS ready)
 - **AWS Infrastructure**: Deployed (VPC, RDS, Secrets Manager, CloudWatch) - $29/month
@@ -1308,6 +1308,77 @@ See [Technical Note](technical-notes/2025-11-26-phase-5-15-production-deployment
 **Next Session**: Session 5 - Create webhook handler for `checkout.session.completed` events
 
 **Note**: This endpoint will be called by frontend after Stripe redirects user with `session_id` parameter
+
+**See**: `docs/technical-notes/2025-12-11-stripe-upgrade-plan.md` for full 10-session plan
+
+---
+
+#### Phase 5.16 Stripe Upgrade - Session 5: Stripe Webhook Handler (Complete - December 13, 2025)
+
+**Status**: ✅ COMPLETE - Webhook handler provides production reliability
+**Branch**: `feature/stripe-webhooks`
+**PR**: #52 (pending)
+**Session**: 5 of 10 (Stripe upgrade multi-session project)
+
+**Changes Made**:
+- ✅ **New Endpoint**: `/order/stripe-webhook` (POST) with `@csrf_exempt`
+  - Verifies webhook signatures using `stripe.Webhook.construct_event()`
+  - Handles `checkout.session.completed` event (creates orders if webhook arrives first)
+  - Handles `checkout.session.expired` event (logging only)
+  - Returns 200 for unknown event types (graceful handling)
+  - Provides backup order creation if user closes browser before success redirect completes
+
+- ✅ **Signature Verification**: Cryptographic security
+  - Uses `STRIPE_WEBHOOK_SECRET` from settings (more secure than CSRF tokens)
+  - Validates entire payload integrity
+  - Returns 400 for invalid signatures or malformed JSON
+  - Prevents malicious webhook injection attacks
+
+- ✅ **Order Creation Logic**: Reuses checkout session success handler patterns
+  - Idempotent: Checks for existing orders via `stripe_payment_intent_id`
+  - Retrieves cart using `cart_id` from session metadata
+  - Creates complete Order with all related objects
+  - Sends order confirmation emails (member or prospect flow)
+  - Deletes cart after successful creation
+  - Helper function `send_order_confirmation_email()` extracted for reuse
+
+- ✅ **Enhanced Checkout Session**: Added metadata for webhook handler
+  - Stores `cart_id` in session metadata for webhook access
+  - Enables webhook to process orders independently of browser session
+  - Critical for production reliability (handles network failures, browser closes, etc.)
+
+- ✅ **Test Coverage**: 6 new comprehensive unit tests (TDD approach)
+  - Rejects invalid webhook signatures (400 error)
+  - Handles malformed JSON gracefully (400 error)
+  - Handles existing orders (idempotent, returns order identifier)
+  - Handles expired sessions (logging only, 200 response)
+  - Handles unknown event types (logging only, 200 response)
+  - Creates orders for completed sessions (full order creation workflow)
+
+**Test Results**:
+- ✅ **Unit Tests**: 735/735 passed (729 → 735, +6 new webhook tests)
+- ✅ **Test Approach**: TDD methodology (wrote tests first, saw failures, then implemented)
+- ✅ All Stripe `Webhook.construct_event()` calls mocked with dictionary-style event objects
+- ✅ Email sending mocked to verify confirmation emails sent
+- ✅ Zero linting errors (fixed unused imports and variables)
+
+**Files Modified**:
+- `StartupWebApp/order/views.py` - New `stripe_webhook()`, `handle_checkout_session_completed()`, `handle_checkout_session_expired()`, `send_order_confirmation_email()` functions (~350 lines)
+- `StartupWebApp/order/views.py` - Updated `create_checkout_session()` to include `cart_id` in metadata
+- `StartupWebApp/order/urls.py` - Added route for webhook endpoint
+- `StartupWebApp/StartupWebApp/settings_secret.py` - Added `STRIPE_WEBHOOK_SECRET` setting
+- `StartupWebApp/order/tests/test_stripe_webhook.py` - New test file (6 tests, 425 lines)
+
+**Implementation Highlights**:
+- **Security**: `@csrf_exempt` required for webhooks, but signature verification provides stronger security
+- **Reliability**: Webhooks ensure orders created even if user doesn't complete redirect
+- **Idempotency**: Both success handler AND webhook check for existing orders (prevents duplicates)
+- **Code Reuse**: Extracted email helper function used by both success handler and webhook
+- **Error Handling**: Returns 500 if `STRIPE_WEBHOOK_SECRET` not configured (prevents silent failures)
+
+**Next Session**: Session 6 - Update frontend checkout flow to use new Stripe Checkout Sessions
+
+**Production Note**: Webhook secret will be configured in AWS Secrets Manager during Session 9
 
 **See**: `docs/technical-notes/2025-12-11-stripe-upgrade-plan.md` for full 10-session plan
 

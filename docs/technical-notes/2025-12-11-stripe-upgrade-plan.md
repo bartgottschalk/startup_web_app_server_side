@@ -245,26 +245,39 @@ Custom payment form embedded in your site using Stripe Elements with Payment Int
 
 ---
 
-### Session 5: Backend - Stripe Webhook Handler (2-4 hours)
-**Branch:** `feature/stripe-webhooks`
+### Session 5: Backend - Stripe Webhook Handler (2-4 hours) ✅ COMPLETE
+**Branch:** `feature/stripe-webhooks` (merged to master via PR #52)
+**Date:** December 13, 2025
 
-**Tasks:**
-- Create webhook endpoint: `/order/stripe-webhook`
-- Implement webhook signature verification
-- Handle `checkout.session.completed` event
-- Handle `checkout.session.expired` event
-- Add proper logging
-- Write tests (mocking webhook events)
-- Update AWS infrastructure (allow Stripe webhook IPs)
-- Commit and merge
+**Tasks Completed:**
+- ✅ Create webhook endpoint: `/order/stripe-webhook` with `@csrf_exempt`
+- ✅ Implement webhook signature verification using `stripe.Webhook.construct_event()`
+- ✅ Handle `checkout.session.completed` event (creates orders if webhook arrives first)
+- ✅ Handle `checkout.session.expired` event (logging only)
+- ✅ Add proper logging for all webhook events
+- ✅ Write comprehensive tests (6 tests, TDD approach, mocking webhook events)
+- ✅ Add `STRIPE_WEBHOOK_SECRET` setting
+- ✅ Add `cart_id` to checkout session metadata for webhook access
+- ✅ Extract email helper function for code reuse
+- ✅ Run all 735 unit tests (729 → 735, +6 new tests)
+- ✅ Zero linting errors
 
-**Deliverable:** Webhook handler for payment confirmations
+**Deliverable:** ✅ Webhook handler providing production reliability
 
 **Files Modified:**
-- `order/views.py` (new webhook endpoint)
-- `order/tests/` (webhook tests)
+- `StartupWebApp/order/views.py` - New `stripe_webhook()`, `handle_checkout_session_completed()`, `handle_checkout_session_expired()`, `send_order_confirmation_email()` functions (~350 lines)
+- `StartupWebApp/order/views.py` - Updated `create_checkout_session()` to include `cart_id` in metadata
+- `StartupWebApp/order/urls.py` - Added route for webhook endpoint
+- `StartupWebApp/StartupWebApp/settings_secret.py` - Added `STRIPE_WEBHOOK_SECRET` setting
+- `StartupWebApp/order/tests/test_stripe_webhook.py` - New test file (6 tests, 425 lines)
 
-**Critical:** Required for production reliability
+**Implementation Highlights:**
+- **Security:** `@csrf_exempt` + signature verification (more secure than CSRF tokens)
+- **Reliability:** Webhooks ensure orders created even if user closes browser
+- **Idempotency:** Both success handler AND webhook check for existing orders
+- **Code Reuse:** Extracted email helper function used by both handlers
+
+**Note:** AWS infrastructure update (allow Stripe webhook IPs) deferred to Session 9 production deployment
 
 ---
 
@@ -338,7 +351,37 @@ Custom payment form embedded in your site using Stripe Elements with Payment Int
 - Test all email types in production (including order emails)
 - Document production configuration
 
-**Deliverable:** Stripe working in production
+**Webhook Configuration Steps:**
+
+1. **Add webhook secret to AWS Secrets Manager**:
+   - Secret name: `rds/startupwebapp/multi-tenant/master`
+   - Add new key: `stripe_webhook_secret`
+   - Get value from Stripe Dashboard after step 2
+
+2. **Configure webhook in Stripe Dashboard**:
+   - Go to: https://dashboard.stripe.com/webhooks
+   - Click "Add endpoint"
+   - URL: `https://startupwebapp-api.mosaicmeshai.com/order/stripe-webhook`
+   - Events to send: `checkout.session.completed`, `checkout.session.expired`
+   - Copy the webhook signing secret (starts with `whsec_`)
+
+3. **Update AWS Secrets Manager**:
+   - Add the webhook signing secret as `stripe_webhook_secret` key
+   - Production code reads from: `settings_production.py:165`
+
+4. **Verify webhook**:
+   - Stripe Dashboard shows webhook as "Enabled"
+   - Test by triggering a checkout session
+   - Check CloudWatch logs for webhook events
+   - Verify idempotency (webhook + success handler both create same order)
+
+**Security Notes:**
+- Webhook endpoint uses `@csrf_exempt` (required for webhooks)
+- Security provided by signature verification (more secure than CSRF)
+- Webhook secret must match between Stripe and AWS Secrets Manager
+- Production code automatically retrieves secret from Secrets Manager
+
+**Deliverable:** Stripe working in production with webhook backup for order creation
 
 ---
 
@@ -417,8 +460,8 @@ Custom payment form embedded in your site using Stripe Elements with Payment Int
 
 ## Current Session Status
 
-**Session:** Session 4 Complete - Ready for Session 5
-**Date:** December 12, 2025
+**Session:** Session 5 Complete - Ready for Session 6
+**Date:** December 13, 2025
 
 **Session 1 (Complete):**
 - ✅ Email address changes in code (7 email types updated)
@@ -446,18 +489,29 @@ Custom payment form embedded in your site using Stripe Elements with Payment Int
 - ✅ 7 new unit tests, all 722 tests passing
 - ✅ Merged to master and deployed
 
-**Session 4 (Complete - PR Pending):**
+**Session 4 (Complete - Merged to Master):**
 - ✅ New endpoint: `/order/checkout-session-success` (PR #51)
 - ✅ Database migration: Added `stripe_payment_intent_id` field
 - ✅ Updated checkout session creation to collect addresses
 - ✅ Implemented complete order creation flow
 - ✅ 7 new unit tests (TDD approach), all 729 tests passing
 - ✅ Idempotent design prevents duplicate orders
+- ✅ Merged to master and deployed
 
-**Ready for Session 5:**
-- Create Stripe webhook handler
-- Handle `checkout.session.completed` and `checkout.session.expired` events
-- Branch will be: `feature/stripe-webhooks`
+**Session 5 (Complete - PR Pending):**
+- ✅ New endpoint: `/order/stripe-webhook` with signature verification (PR #52)
+- ✅ Handles `checkout.session.completed` event (creates orders via webhook)
+- ✅ Handles `checkout.session.expired` event (logging only)
+- ✅ Added `cart_id` to checkout session metadata
+- ✅ Extracted `send_order_confirmation_email()` helper function
+- ✅ 6 new unit tests (TDD approach), all 735 tests passing
+- ✅ Zero linting errors
+- ✅ Idempotent with success handler (prevents duplicate orders)
+
+**Ready for Session 6:**
+- Update frontend checkout flow to use new Stripe Checkout Sessions
+- Replace deprecated StripeCheckout.configure() with session redirect
+- Branch will be: `feature/stripe-frontend-checkout`
 
 ---
 
