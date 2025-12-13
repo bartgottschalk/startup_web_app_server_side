@@ -351,7 +351,37 @@ Custom payment form embedded in your site using Stripe Elements with Payment Int
 - Test all email types in production (including order emails)
 - Document production configuration
 
-**Deliverable:** Stripe working in production
+**Webhook Configuration Steps:**
+
+1. **Add webhook secret to AWS Secrets Manager**:
+   - Secret name: `rds/startupwebapp/multi-tenant/master`
+   - Add new key: `stripe_webhook_secret`
+   - Get value from Stripe Dashboard after step 2
+
+2. **Configure webhook in Stripe Dashboard**:
+   - Go to: https://dashboard.stripe.com/webhooks
+   - Click "Add endpoint"
+   - URL: `https://startupwebapp-api.mosaicmeshai.com/order/stripe-webhook`
+   - Events to send: `checkout.session.completed`, `checkout.session.expired`
+   - Copy the webhook signing secret (starts with `whsec_`)
+
+3. **Update AWS Secrets Manager**:
+   - Add the webhook signing secret as `stripe_webhook_secret` key
+   - Production code reads from: `settings_production.py:165`
+
+4. **Verify webhook**:
+   - Stripe Dashboard shows webhook as "Enabled"
+   - Test by triggering a checkout session
+   - Check CloudWatch logs for webhook events
+   - Verify idempotency (webhook + success handler both create same order)
+
+**Security Notes:**
+- Webhook endpoint uses `@csrf_exempt` (required for webhooks)
+- Security provided by signature verification (more secure than CSRF)
+- Webhook secret must match between Stripe and AWS Secrets Manager
+- Production code automatically retrieves secret from Secrets Manager
+
+**Deliverable:** Stripe working in production with webhook backup for order creation
 
 ---
 
