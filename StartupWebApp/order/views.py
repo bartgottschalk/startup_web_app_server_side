@@ -1399,6 +1399,23 @@ def create_checkout_session(request):
             }
             line_items.append(line_item)
 
+        # Add shipping as a separate line item
+        cart_totals = order_utils.get_cart_totals(cart)
+        shipping_cost = float(cart_totals.get('shipping_subtotal', 0))
+        if shipping_cost > 0:
+            shipping_line_item = {
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': 'Shipping',
+                        'description': cart_totals.get('shipping_method_carrier', 'Standard Shipping'),
+                    },
+                    'unit_amount': int(shipping_cost * 100),  # Convert to cents
+                },
+                'quantity': 1,
+            }
+            line_items.append(shipping_line_item)
+
         # Determine customer email
         customer_email = None
         if request.user.is_authenticated:
