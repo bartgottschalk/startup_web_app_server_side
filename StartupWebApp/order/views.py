@@ -1366,11 +1366,24 @@ def create_checkout_session(request):
         return response
 
     try:
+        # Get frontend domain for building absolute URLs
+        # Use settings to get the frontend domain
+        frontend_domain = getattr(settings, 'ENVIRONMENT_DOMAIN', 'http://localhost:8080')
+
         # Build line items for Stripe
         line_items = []
         for item_key, item_data in cart_items['product_sku_data'].items():
             # Convert price to cents (Stripe requires integer cents)
             unit_amount_cents = int(float(item_data['price']) * 100)
+
+            # Build absolute image URL (Stripe requires absolute URLs, not relative paths)
+            sku_image_url = item_data['sku_image_url']
+            if sku_image_url.startswith('http://') or sku_image_url.startswith('https://'):
+                # Already absolute URL (e.g., from test data)
+                image_url = sku_image_url
+            else:
+                # Relative URL - prepend frontend domain
+                image_url = f"{frontend_domain}{sku_image_url}"
 
             line_item = {
                 'price_data': {
@@ -1378,7 +1391,7 @@ def create_checkout_session(request):
                     'product_data': {
                         'name': item_data['parent_product__title'],
                         'description': f"{item_data['color']} - {item_data['size']}",
-                        'images': [item_data['sku_image_url']],
+                        'images': [image_url],
                     },
                     'unit_amount': unit_amount_cents,
                 },
@@ -1386,14 +1399,29 @@ def create_checkout_session(request):
             }
             line_items.append(line_item)
 
+        # Add shipping as a separate line item
+        cart_totals = order_utils.get_cart_totals(cart)
+        shipping_cost = float(cart_totals.get('shipping_subtotal', 0))
+        if shipping_cost > 0:
+            shipping_line_item = {
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': 'Shipping',
+                        'description': cart_totals.get('shipping_method_carrier', 'Standard Shipping'),
+                    },
+                    'unit_amount': int(shipping_cost * 100),  # Convert to cents
+                },
+                'quantity': 1,
+            }
+            line_items.append(shipping_line_item)
+
         # Determine customer email
         customer_email = None
         if request.user.is_authenticated:
             customer_email = request.user.email
 
         # Build success and cancel URLs
-        # Use settings to get the frontend domain
-        frontend_domain = getattr(settings, 'ENVIRONMENT_DOMAIN', 'http://localhost:8080')
         success_url = f"{frontend_domain}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}"
         cancel_url = f"{frontend_domain}/checkout/confirm"
 
@@ -1538,7 +1566,10 @@ def checkout_session_success(request):
 
         # Extract address information from session
         customer_details = session.customer_details
-        shipping_details = session.shipping_details
+        # Stripe API change: shipping_details moved to collected_information
+        shipping_details = None
+        if hasattr(session, 'collected_information') and session.collected_information:
+            shipping_details = getattr(session.collected_information, 'shipping_details', None)
 
         # Get customer name and email
         customer_name = customer_details.name if customer_details else 'Customer'
@@ -1603,7 +1634,10 @@ def checkout_session_success(request):
             # Anonymous user - get or create prospect
             prospect, created = Prospect.objects.get_or_create(
                 email=customer_email,
-                defaults={'pr_cd': identifier.getNewProspectCode()}
+                defaults={
+                    'pr_cd': identifier.getNewProspectCode(),
+                    'created_date_time': timezone.now()
+                }
             )
             order = Order.objects.create(
                 identifier=order_identifier,
@@ -1906,7 +1940,10 @@ def handle_checkout_session_completed(event):
 
         # Extract address information
         customer_details = full_session.customer_details
-        shipping_details = full_session.shipping_details
+        # Stripe API change: shipping_details moved to collected_information
+        shipping_details = None
+        if hasattr(full_session, 'collected_information') and full_session.collected_information:
+            shipping_details = getattr(full_session.collected_information, 'shipping_details', None)
 
         # Get customer name and email
         customer_name = customer_details.name if customer_details else 'Customer'
@@ -1962,7 +1999,10 @@ def handle_checkout_session_completed(event):
             # Anonymous checkout - get or create prospect
             prospect, created = Prospect.objects.get_or_create(
                 email=customer_email,
-                defaults={'pr_cd': identifier.getNewProspectCode()}
+                defaults={
+                    'pr_cd': identifier.getNewProspectCode(),
+                    'created_date_time': timezone.now()
+                }
             )
 
         order = Order.objects.create(

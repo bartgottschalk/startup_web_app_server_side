@@ -254,16 +254,17 @@ class CheckoutSessionSuccessHandlerTest(PostgreSQLTestCase):
         mock_session.customer_details.address.postal_code = '10001'
         mock_session.customer_details.address.country = 'US'
 
-        # Mock shipping details
-        mock_session.shipping_details = MagicMock()
-        mock_session.shipping_details.name = 'John Doe'
-        mock_session.shipping_details.address = MagicMock()
-        mock_session.shipping_details.address.line1 = '456 Oak Ave'
-        mock_session.shipping_details.address.line2 = ''
-        mock_session.shipping_details.address.city = 'Boston'
-        mock_session.shipping_details.address.state = 'MA'
-        mock_session.shipping_details.address.postal_code = '02101'
-        mock_session.shipping_details.address.country = 'US'
+        # Mock shipping details (new Stripe API structure)
+        mock_session.collected_information = MagicMock()
+        mock_session.collected_information.shipping_details = MagicMock()
+        mock_session.collected_information.shipping_details.name = 'John Doe'
+        mock_session.collected_information.shipping_details.address = MagicMock()
+        mock_session.collected_information.shipping_details.address.line1 = '456 Oak Ave'
+        mock_session.collected_information.shipping_details.address.line2 = ''
+        mock_session.collected_information.shipping_details.address.city = 'Boston'
+        mock_session.collected_information.shipping_details.address.state = 'MA'
+        mock_session.collected_information.shipping_details.address.postal_code = '02101'
+        mock_session.collected_information.shipping_details.address.country = 'US'
 
         # Mock payment intent
         mock_session.payment_intent = 'pi_test_123'
@@ -373,15 +374,16 @@ class CheckoutSessionSuccessHandlerTest(PostgreSQLTestCase):
         mock_session.customer_details.address.postal_code = '60601'
         mock_session.customer_details.address.country = 'US'
 
-        mock_session.shipping_details = MagicMock()
-        mock_session.shipping_details.name = 'Jane Smith'
-        mock_session.shipping_details.address = MagicMock()
-        mock_session.shipping_details.address.line1 = '789 Elm St'
-        mock_session.shipping_details.address.line2 = None
-        mock_session.shipping_details.address.city = 'Chicago'
-        mock_session.shipping_details.address.state = 'IL'
-        mock_session.shipping_details.address.postal_code = '60601'
-        mock_session.shipping_details.address.country = 'US'
+        mock_session.collected_information = MagicMock()
+        mock_session.collected_information.shipping_details = MagicMock()
+        mock_session.collected_information.shipping_details.name = 'Jane Smith'
+        mock_session.collected_information.shipping_details.address = MagicMock()
+        mock_session.collected_information.shipping_details.address.line1 = '789 Elm St'
+        mock_session.collected_information.shipping_details.address.line2 = None
+        mock_session.collected_information.shipping_details.address.city = 'Chicago'
+        mock_session.collected_information.shipping_details.address.state = 'IL'
+        mock_session.collected_information.shipping_details.address.postal_code = '60601'
+        mock_session.collected_information.shipping_details.address.country = 'US'
 
         mock_session.payment_intent = 'pi_test_prospect'
 
@@ -402,6 +404,76 @@ class CheckoutSessionSuccessHandlerTest(PostgreSQLTestCase):
 
         # Verify email was sent
         mock_email_send.assert_called_once()
+
+    @patch('order.utilities.order_utils.look_up_cart')
+    @patch('stripe.checkout.Session.retrieve')
+    @patch('django.core.mail.EmailMultiAlternatives.send')
+    def test_creates_prospect_with_created_date_time_for_new_anonymous_user(
+        self, mock_email_send, mock_retrieve, mock_look_up_cart
+    ):
+        """Test that Prospect is created with created_date_time for new anonymous users"""
+        # Create anonymous cart (no existing prospect)
+        anon_cart = Cart.objects.create(anonymous_cart_id='new_anon_cart')
+        Cartsku.objects.create(cart=anon_cart, sku=self.sku, quantity=1)
+        Cartshippingmethod.objects.create(
+            cart=anon_cart,
+            shippingmethod=self.shipping_method
+        )
+
+        # Mock cart lookup
+        mock_look_up_cart.return_value = anon_cart
+
+        # Mock completed Stripe session
+        mock_session = MagicMock()
+        mock_session.id = 'cs_test_new_prospect'
+        mock_session.payment_status = 'paid'
+        mock_session.amount_total = 3598
+        mock_session.amount_subtotal = 2999
+        mock_session.customer_email = 'newprospect@test.com'  # Email that doesn't exist yet
+
+        mock_session.customer_details = MagicMock()
+        mock_session.customer_details.name = 'New User'
+        mock_session.customer_details.email = 'newprospect@test.com'
+        mock_session.customer_details.phone = '+15551234567'
+        mock_session.customer_details.address = MagicMock()
+        mock_session.customer_details.address.line1 = '999 New St'
+        mock_session.customer_details.address.city = 'Newcity'
+        mock_session.customer_details.address.state = 'CA'
+        mock_session.customer_details.address.postal_code = '90210'
+        mock_session.customer_details.address.country = 'US'
+
+        mock_session.collected_information = MagicMock()
+        mock_session.collected_information.shipping_details = MagicMock()
+        mock_session.collected_information.shipping_details.name = 'New User'
+        mock_session.collected_information.shipping_details.address = MagicMock()
+        mock_session.collected_information.shipping_details.address.line1 = '999 New St'
+        mock_session.collected_information.shipping_details.address.city = 'Newcity'
+        mock_session.collected_information.shipping_details.address.state = 'CA'
+        mock_session.collected_information.shipping_details.address.postal_code = '90210'
+        mock_session.collected_information.shipping_details.address.country = 'US'
+
+        mock_session.payment_intent = 'pi_test_new_prospect'
+
+        mock_retrieve.return_value = mock_session
+
+        # Verify prospect doesn't exist yet
+        self.assertFalse(Prospect.objects.filter(email='newprospect@test.com').exists())
+
+        # Call endpoint (don't log in - anonymous)
+        response = self.client.get('/order/checkout-session-success?session_id=cs_test_new_prospect')
+
+        unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+        # Verify prospect was created with created_date_time
+        prospect = Prospect.objects.get(email='newprospect@test.com')
+        self.assertIsNotNone(prospect.created_date_time, "Prospect should have created_date_time set")
+        self.assertIsNotNone(prospect.pr_cd, "Prospect should have pr_cd set")
+
+        # Verify order was created
+        data = json.loads(response.content.decode('utf8'))
+        self.assertEqual(data['checkout_session_success'], 'success')
+        order = Order.objects.get(identifier=data['order_identifier'])
+        self.assertEqual(order.prospect, prospect)
 
     @patch('stripe.checkout.Session.retrieve')
     @patch('django.core.mail.EmailMultiAlternatives.send')
@@ -429,15 +501,16 @@ class CheckoutSessionSuccessHandlerTest(PostgreSQLTestCase):
         mock_session.customer_details.address.postal_code = '12345'
         mock_session.customer_details.address.country = 'US'
 
-        mock_session.shipping_details = MagicMock()
-        mock_session.shipping_details.name = 'Test User'
-        mock_session.shipping_details.address = MagicMock()
-        mock_session.shipping_details.address.line1 = '123 Test St'
-        mock_session.shipping_details.address.line2 = None
-        mock_session.shipping_details.address.city = 'Test City'
-        mock_session.shipping_details.address.state = 'TS'
-        mock_session.shipping_details.address.postal_code = '12345'
-        mock_session.shipping_details.address.country = 'US'
+        mock_session.collected_information = MagicMock()
+        mock_session.collected_information.shipping_details = MagicMock()
+        mock_session.collected_information.shipping_details.name = 'Test User'
+        mock_session.collected_information.shipping_details.address = MagicMock()
+        mock_session.collected_information.shipping_details.address.line1 = '123 Test St'
+        mock_session.collected_information.shipping_details.address.line2 = None
+        mock_session.collected_information.shipping_details.address.city = 'Test City'
+        mock_session.collected_information.shipping_details.address.state = 'TS'
+        mock_session.collected_information.shipping_details.address.postal_code = '12345'
+        mock_session.collected_information.shipping_details.address.country = 'US'
 
         mock_session.payment_intent = 'pi_test_duplicate'
 
