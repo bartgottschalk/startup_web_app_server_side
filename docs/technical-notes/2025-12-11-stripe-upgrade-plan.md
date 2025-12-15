@@ -325,17 +325,21 @@ Custom payment form embedded in your site using Stripe Elements with Payment Int
 **Branch:** `feature/stripe-testing`
 
 **Tasks:**
+- **Fix known backend bug**: Convert relative image URLs to absolute URLs in `create_checkout_session()`
+  - Issue: Stripe rejects `/img/product/...` (needs `https://domain.com/img/...`)
+  - Location: `order/views.py` - `create_checkout_session()` function
+  - Solution: Prepend domain from request.get_host() or settings
 - Test complete checkout flow (member)
 - Test complete checkout flow (prospect/guest)
 - Test saved payment methods
 - Test order confirmation emails (finally!)
 - Test error scenarios
-- Fix any bugs discovered
+- Fix any other bugs discovered
 - Update functional tests if needed
-- Run all 746 tests
+- Run all 735+ tests
 - Commit and merge
 
-**Deliverable:** Fully tested Stripe integration
+**Deliverable:** Fully tested Stripe integration with all bugs fixed
 
 ---
 
@@ -385,16 +389,48 @@ Custom payment form embedded in your site using Stripe Elements with Payment Int
 
 ---
 
-### Session 10: Documentation & Cleanup (1-2 hours)
-**Branch:** `feature/stripe-docs`
+### Session 10: Email Updates from Session 1 (2-3 hours)
+**Branch:** `feature/email-address-updates`
+
+**Context:**
+Session 1 included email address updates that were never merged. After Stripe is fully working in production (Session 9), we can finally test ALL 9 email types including order confirmation emails.
 
 **Tasks:**
-- Create comprehensive technical note
+- Apply email address changes from Session 1:
+  - Update: `contact@startupwebapp.com` → `bart+startupwebapp@mosaicmeshai.com`
+  - Remove: BCC from all emails
+  - Update: Phone to 1-800-123-4567
+  - Update: Signatures to "StartUpWebApp"
+  - Files: 7 user emails + 2 order emails + 1 chat email
+- Create database migration to update email templates
+- Test ALL 9 email types in local environment
+- Test ALL 9 email types in production
+- Run all backend tests (should be 735+ passing)
+- Update documentation
+- Commit and merge
+
+**Why After Session 9:**
+- Stripe must be working to test order confirmation emails
+- This was the original blocker that started the Stripe upgrade
+- Production testing ensures emails work end-to-end
+
+**Deliverable:** All email addresses updated and fully tested
+
+**Reference:** Session 1 branch `feature/email-updates-and-stripe-planning` (will be closed)
+
+---
+
+### Session 11: Final Documentation & Cleanup (1-2 hours)
+**Branch:** `feature/stripe-final-docs`
+
+**Tasks:**
+- Create comprehensive technical note for entire Stripe upgrade
 - Update README.md with new Stripe setup
 - Update SESSION_START_PROMPT.md
 - Update PROJECT_HISTORY.md
 - Clean up old Stripe code (if any remains)
 - Archive this planning document
+- Close Session 1 branch
 - Commit and merge
 
 **Deliverable:** Complete documentation
@@ -403,8 +439,8 @@ Custom payment form embedded in your site using Stripe Elements with Payment Int
 
 ## Effort Estimate
 
-**Total Sessions:** 10 sessions
-**Total Time:** 20-30 hours
+**Total Sessions:** 11 sessions (was 10, added Session 10 for email updates)
+**Total Time:** 22-33 hours
 **Timeline:** 2-3 weeks (at ~2 sessions per day)
 
 **Per Session:**
@@ -460,10 +496,10 @@ Custom payment form embedded in your site using Stripe Elements with Payment Int
 
 ## Current Session Status
 
-**Session:** Session 5 Complete - Ready for Session 6
-**Date:** December 13, 2025
+**Session:** Session 6 In Progress - Frontend Checkout Flow
+**Date:** December 14, 2025
 
-**Session 1 (Complete):**
+**Session 1 (Complete - SUPERSEDED, NOT TO BE MERGED):**
 - ✅ Email address changes in code (7 email types updated)
 - ✅ BCC removed from all emails
 - ✅ Phone number updated to 1-800-123-4567
@@ -473,6 +509,8 @@ Custom payment form embedded in your site using Stripe Elements with Payment Int
 - ✅ 7/9 email types tested locally (order emails blocked by Stripe)
 - ✅ Stripe upgrade assessment and planning complete
 - ✅ Branch: `feature/email-updates-and-stripe-planning` (backend + frontend, NOT merged)
+- ⚠️ **IMPORTANT**: Decimal parsing fixes from this branch were re-applied in Session 6
+- ⚠️ **ACTION**: Close this branch - email updates can be done in separate PR later
 
 **Session 2 (Complete - Merged to Master):**
 - ✅ Stripe library upgraded: `5.5.0` → `14.0.1` (PR #49)
@@ -498,7 +536,7 @@ Custom payment form embedded in your site using Stripe Elements with Payment Int
 - ✅ Idempotent design prevents duplicate orders
 - ✅ Merged to master and deployed
 
-**Session 5 (Complete - PR Pending):**
+**Session 5 (Complete - Merged to Master):**
 - ✅ New endpoint: `/order/stripe-webhook` with signature verification (PR #52)
 - ✅ Handles `checkout.session.completed` event (creates orders via webhook)
 - ✅ Handles `checkout.session.expired` event (logging only)
@@ -507,11 +545,25 @@ Custom payment form embedded in your site using Stripe Elements with Payment Int
 - ✅ 6 new unit tests (TDD approach), all 735 tests passing
 - ✅ Zero linting errors
 - ✅ Idempotent with success handler (prevents duplicate orders)
+- ✅ Merged to master and deployed to production
 
-**Ready for Session 6:**
-- Update frontend checkout flow to use new Stripe Checkout Sessions
-- Replace deprecated StripeCheckout.configure() with session redirect
-- Branch will be: `feature/stripe-frontend-checkout`
+**Session 6 (In Progress - Frontend Checkout):**
+- ✅ Branch: `feature/stripe-frontend-checkout` (Client PR #12)
+- ✅ Replaced `checkout.stripe.com/checkout.js` with `js.stripe.com/v3/`
+- ✅ Added `create_stripe_checkout_session()` function
+- ✅ Added `handle_checkout_session_success()` function
+- ✅ Updated checkout flow to redirect to Stripe
+- ✅ 10 new QUnit unit tests (TDD approach), all passing
+- ✅ ESLint: 0 errors, 2 warnings
+- ✅ **Decimal parsing bugfixes included** (parseFloat on price/shipping fields)
+- ⚠️ **NOTE**: These decimal fixes duplicate Session 1 work (Session 1 branch will NOT be merged)
+- ⚠️ **KNOWN ISSUE**: Backend sends relative image URLs to Stripe (e.g., `/img/product/...`)
+  - Stripe requires absolute URLs (e.g., `https://domain.com/img/...`)
+  - Error: "url_invalid" on `line_items[0][price_data][product_data][images][0]`
+  - **Fix in Session 8**: Add domain prefix to image URLs in backend
+  - **Impact**: Checkout works but no product images shown on Stripe checkout page
+  - **Workaround**: None needed - no real users yet
+- 🔄 Currently: Manual testing in progress
 
 ---
 
@@ -523,10 +575,20 @@ Custom payment form embedded in your site using Stripe Elements with Payment Int
 - Order confirmation emails depend on functional checkout
 - This blocks completion of email testing
 
+**Session 1 Branch Superseded (December 14, 2025):**
+- **Issue**: Session 1 branch `feature/email-updates-and-stripe-planning` included decimal parsing bugfixes
+- **Problem**: Session 6 needed same fixes to test checkout flow
+- **Decision**: Re-applied decimal fixes in Session 6 to avoid blocking testing
+- **Impact**: Session 1 branch should NOT be merged (would create conflicts/duplicates)
+- **Action Required**:
+  - Close Session 1 branch after Session 6 merges
+  - Email updates from Session 1 can be redone in new PR later if needed
+- **Affected Files** (frontend): `js/checkout/confirm-0.0.1.js` (7 parseFloat fixes)
+- **Lesson**: Merge bugfixes quickly to avoid duplication across branches
+
 **Integration with Other Work:**
-- Email address changes are ready (just need order email testing)
-- Can deploy email changes independently
-- Stripe upgrade is separate concern
+- Email address changes from Session 1 can be done in separate PR later
+- Stripe upgrade is separate concern from email updates
 - After Stripe works, complete email testing
 
 ---
