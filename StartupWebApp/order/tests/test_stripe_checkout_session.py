@@ -305,12 +305,61 @@ class CreateCheckoutSessionEndpointTest(PostgreSQLTestCase):
         data = json.loads(response.content.decode('utf8'))
         self.assertEqual(data['create_checkout_session'], 'success')
 
-        # Verify two line items were created
+        # Verify two product line items (no shipping in this test)
         call_args = mock_stripe_session.call_args
         line_items = call_args.kwargs['line_items']
-        self.assertEqual(len(line_items), 2)
+        self.assertEqual(len(line_items), 2, "Should have 2 products")
 
         # Verify prices
         prices = {item['price_data']['unit_amount'] for item in line_items}
         self.assertIn(2999, prices)  # $29.99
         self.assertIn(4999, prices)  # $49.99
+
+    @patch('stripe.checkout.Session.create')
+    def test_create_checkout_session_includes_shipping_line_item(self, mock_stripe_session):
+        """Test that shipping cost is included as a separate line item"""
+        from order.models import Shippingmethod, Cartshippingmethod
+
+        # Create and assign shipping method to cart
+        shipping_method = Shippingmethod.objects.create(
+            identifier='test-shipping',
+            carrier='Test Carrier',
+            shipping_cost=9.99
+        )
+        Cartshippingmethod.objects.create(
+            cart=self.cart,
+            shippingmethod=shipping_method
+        )
+
+        # Mock Stripe response
+        mock_session = MagicMock()
+        mock_session.id = 'cs_test_shipping'
+        mock_session.url = 'https://checkout.stripe.com/c/pay/cs_test_shipping'
+        mock_stripe_session.return_value = mock_session
+
+        self.client.login(username='testuser', password='testpass123')
+
+        response = self.client.post('/order/create-checkout-session', {})
+
+        unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+        data = json.loads(response.content.decode('utf8'))
+        self.assertEqual(data['create_checkout_session'], 'success')
+
+        # Verify Stripe was called
+        call_args = mock_stripe_session.call_args
+        line_items = call_args.kwargs['line_items']
+
+        # Should have 2 line items: 1 product + 1 shipping
+        self.assertEqual(len(line_items), 2, "Should have product + shipping")
+
+        # Find shipping line item
+        shipping_items = [item for item in line_items if item['price_data']['product_data']['name'] == 'Shipping']
+        self.assertEqual(len(shipping_items), 1, "Should have exactly 1 shipping line item")
+
+        shipping_item = shipping_items[0]
+        self.assertEqual(shipping_item['price_data']['product_data']['name'], 'Shipping')
+        self.assertIn('description', shipping_item['price_data']['product_data'])
+        self.assertEqual(shipping_item['quantity'], 1)
+        self.assertGreater(shipping_item['price_data']['unit_amount'], 0, "Shipping cost should be positive")
+        self.assertEqual(shipping_item['price_data']['currency'], 'usd')
