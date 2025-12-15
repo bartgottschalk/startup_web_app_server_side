@@ -254,16 +254,17 @@ class CheckoutSessionSuccessHandlerTest(PostgreSQLTestCase):
         mock_session.customer_details.address.postal_code = '10001'
         mock_session.customer_details.address.country = 'US'
 
-        # Mock shipping details
-        mock_session.shipping_details = MagicMock()
-        mock_session.shipping_details.name = 'John Doe'
-        mock_session.shipping_details.address = MagicMock()
-        mock_session.shipping_details.address.line1 = '456 Oak Ave'
-        mock_session.shipping_details.address.line2 = ''
-        mock_session.shipping_details.address.city = 'Boston'
-        mock_session.shipping_details.address.state = 'MA'
-        mock_session.shipping_details.address.postal_code = '02101'
-        mock_session.shipping_details.address.country = 'US'
+        # Mock shipping details (new Stripe API structure)
+        mock_session.collected_information = MagicMock()
+        mock_session.collected_information.shipping_details = MagicMock()
+        mock_session.collected_information.shipping_details.name = 'John Doe'
+        mock_session.collected_information.shipping_details.address = MagicMock()
+        mock_session.collected_information.shipping_details.address.line1 = '456 Oak Ave'
+        mock_session.collected_information.shipping_details.address.line2 = ''
+        mock_session.collected_information.shipping_details.address.city = 'Boston'
+        mock_session.collected_information.shipping_details.address.state = 'MA'
+        mock_session.collected_information.shipping_details.address.postal_code = '02101'
+        mock_session.collected_information.shipping_details.address.country = 'US'
 
         # Mock payment intent
         mock_session.payment_intent = 'pi_test_123'
@@ -373,15 +374,16 @@ class CheckoutSessionSuccessHandlerTest(PostgreSQLTestCase):
         mock_session.customer_details.address.postal_code = '60601'
         mock_session.customer_details.address.country = 'US'
 
-        mock_session.shipping_details = MagicMock()
-        mock_session.shipping_details.name = 'Jane Smith'
-        mock_session.shipping_details.address = MagicMock()
-        mock_session.shipping_details.address.line1 = '789 Elm St'
-        mock_session.shipping_details.address.line2 = None
-        mock_session.shipping_details.address.city = 'Chicago'
-        mock_session.shipping_details.address.state = 'IL'
-        mock_session.shipping_details.address.postal_code = '60601'
-        mock_session.shipping_details.address.country = 'US'
+        mock_session.collected_information = MagicMock()
+        mock_session.collected_information.shipping_details = MagicMock()
+        mock_session.collected_information.shipping_details.name = 'Jane Smith'
+        mock_session.collected_information.shipping_details.address = MagicMock()
+        mock_session.collected_information.shipping_details.address.line1 = '789 Elm St'
+        mock_session.collected_information.shipping_details.address.line2 = None
+        mock_session.collected_information.shipping_details.address.city = 'Chicago'
+        mock_session.collected_information.shipping_details.address.state = 'IL'
+        mock_session.collected_information.shipping_details.address.postal_code = '60601'
+        mock_session.collected_information.shipping_details.address.country = 'US'
 
         mock_session.payment_intent = 'pi_test_prospect'
 
@@ -429,15 +431,16 @@ class CheckoutSessionSuccessHandlerTest(PostgreSQLTestCase):
         mock_session.customer_details.address.postal_code = '12345'
         mock_session.customer_details.address.country = 'US'
 
-        mock_session.shipping_details = MagicMock()
-        mock_session.shipping_details.name = 'Test User'
-        mock_session.shipping_details.address = MagicMock()
-        mock_session.shipping_details.address.line1 = '123 Test St'
-        mock_session.shipping_details.address.line2 = None
-        mock_session.shipping_details.address.city = 'Test City'
-        mock_session.shipping_details.address.state = 'TS'
-        mock_session.shipping_details.address.postal_code = '12345'
-        mock_session.shipping_details.address.country = 'US'
+        mock_session.collected_information = MagicMock()
+        mock_session.collected_information.shipping_details = MagicMock()
+        mock_session.collected_information.shipping_details.name = 'Test User'
+        mock_session.collected_information.shipping_details.address = MagicMock()
+        mock_session.collected_information.shipping_details.address.line1 = '123 Test St'
+        mock_session.collected_information.shipping_details.address.line2 = None
+        mock_session.collected_information.shipping_details.address.city = 'Test City'
+        mock_session.collected_information.shipping_details.address.state = 'TS'
+        mock_session.collected_information.shipping_details.address.postal_code = '12345'
+        mock_session.collected_information.shipping_details.address.country = 'US'
 
         mock_session.payment_intent = 'pi_test_duplicate'
 

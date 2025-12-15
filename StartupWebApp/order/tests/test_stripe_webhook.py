@@ -365,14 +365,15 @@ class StripeWebhookHandlerTest(PostgreSQLTestCase):
         mock_session.customer_details.address.country = 'US'
 
         # Mock shipping details
-        mock_session.shipping_details = MagicMock()
-        mock_session.shipping_details.name = 'John Doe'
-        mock_session.shipping_details.address = MagicMock()
-        mock_session.shipping_details.address.line1 = '123 Main St'
-        mock_session.shipping_details.address.city = 'Anytown'
-        mock_session.shipping_details.address.state = 'CA'
-        mock_session.shipping_details.address.postal_code = '12345'
-        mock_session.shipping_details.address.country = 'US'
+        mock_session.collected_information = MagicMock()
+        mock_session.collected_information.shipping_details = MagicMock()
+        mock_session.collected_information.shipping_details.name = 'John Doe'
+        mock_session.collected_information.shipping_details.address = MagicMock()
+        mock_session.collected_information.shipping_details.address.line1 = '123 Main St'
+        mock_session.collected_information.shipping_details.address.city = 'Anytown'
+        mock_session.collected_information.shipping_details.address.state = 'CA'
+        mock_session.collected_information.shipping_details.address.postal_code = '12345'
+        mock_session.collected_information.shipping_details.address.country = 'US'
 
         mock_session_retrieve.return_value = mock_session
 

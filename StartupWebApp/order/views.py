@@ -1566,7 +1566,10 @@ def checkout_session_success(request):
 
         # Extract address information from session
         customer_details = session.customer_details
-        shipping_details = session.shipping_details
+        # Stripe API change: shipping_details moved to collected_information
+        shipping_details = None
+        if hasattr(session, 'collected_information') and session.collected_information:
+            shipping_details = getattr(session.collected_information, 'shipping_details', None)
 
         # Get customer name and email
         customer_name = customer_details.name if customer_details else 'Customer'
@@ -1934,7 +1937,10 @@ def handle_checkout_session_completed(event):
 
         # Extract address information
         customer_details = full_session.customer_details
-        shipping_details = full_session.shipping_details
+        # Stripe API change: shipping_details moved to collected_information
+        shipping_details = None
+        if hasattr(full_session, 'collected_information') and full_session.collected_information:
+            shipping_details = getattr(full_session.collected_information, 'shipping_details', None)
 
         # Get customer name and email
         customer_name = customer_details.name if customer_details else 'Customer'
