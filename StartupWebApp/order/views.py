@@ -1634,7 +1634,10 @@ def checkout_session_success(request):
             # Anonymous user - get or create prospect
             prospect, created = Prospect.objects.get_or_create(
                 email=customer_email,
-                defaults={'pr_cd': identifier.getNewProspectCode()}
+                defaults={
+                    'pr_cd': identifier.getNewProspectCode(),
+                    'created_date_time': timezone.now()
+                }
             )
             order = Order.objects.create(
                 identifier=order_identifier,
@@ -1996,7 +1999,10 @@ def handle_checkout_session_completed(event):
             # Anonymous checkout - get or create prospect
             prospect, created = Prospect.objects.get_or_create(
                 email=customer_email,
-                defaults={'pr_cd': identifier.getNewProspectCode()}
+                defaults={
+                    'pr_cd': identifier.getNewProspectCode(),
+                    'created_date_time': timezone.now()
+                }
             )
 
         order = Order.objects.create(
