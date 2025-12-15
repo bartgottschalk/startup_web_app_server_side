@@ -302,6 +302,37 @@ Custom payment form embedded in your site using Stripe Elements with Payment Int
 
 ---
 
+### Session 6.5: Frontend CI/CD - Add PR Validation Workflow (1-2 hours)
+**Branch:** `feature/frontend-pr-validation`
+
+**Context:**
+Frontend repository lacks PR validation workflow. Backend has comprehensive PR checks
+(ESLint, tests, etc.) but frontend PRs merge without automated validation. This was
+discovered during Session 6 review.
+
+**Tasks:**
+- Create `.github/workflows/pr-validation.yml` for frontend repository
+- Run ESLint on all JavaScript files (should pass - 0 errors currently)
+- Run QUnit tests in headless browser (Puppeteer or Playwright)
+  - Test file: `unittests/checkout_confirm_tests.html` (13 tests)
+  - Test file: `unittests/index_tests.html` (existing tests)
+- Fail PR if linting errors or test failures
+- Add workflow badge to README.md
+- Test workflow with dummy PR
+- Commit and merge
+
+**Deliverable:** Automated PR validation for frontend repository
+
+**Why This Matters:**
+- Ensures code quality before merge
+- Catches regressions automatically
+- Matches backend workflow consistency
+- Prevents broken code from reaching master
+
+**Reference:** Backend PR validation: `.github/workflows/pr-validation.yml` (server repo)
+
+---
+
 ### Session 7: Frontend - Update Account Payment Management (2-3 hours)
 **Branch:** `feature/stripe-frontend-account`
 
@@ -457,8 +488,8 @@ Session 1 included email address updates that were never merged. After Stripe is
 
 ## Effort Estimate
 
-**Total Sessions:** 11 sessions (was 10, added Session 10 for email updates)
-**Total Time:** 22-33 hours
+**Total Sessions:** 12 sessions (includes Session 6.5 for frontend PR validation)
+**Total Time:** 23-35 hours
 **Timeline:** 2-3 weeks (at ~2 sessions per day)
 
 **Per Session:**
