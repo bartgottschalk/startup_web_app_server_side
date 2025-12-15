@@ -106,6 +106,12 @@ curl https://startupwebapp-api.mosaicmeshai.com/user/logged-in
 - **PR #47**: Hotfix - collectstatic in deploy workflow - December 7, 2025
 - **PR #48**: Production frontend fixes (ENVIRONMENT_DOMAIN + CloudFront Function) - December 9, 2025
 - **Client PR #12**: Updated CloudFront distribution ID - December 9, 2025
+- **PR #49**: Stripe library upgrade 5.5.0 → 14.0.1 (Session 2) - December 11, 2025
+- **PR #50**: Stripe Checkout Session endpoint (Session 3) - December 12, 2025
+- **PR #51**: Checkout session success handler (Session 4) - December 12, 2025
+- **PR #52**: Stripe webhook handler (Session 5) - December 13, 2025
+- **Client PR #12**: Frontend Stripe Checkout Sessions migration (Session 6) - December 15, 2025
+- **PR #53**: Stripe checkout bugfixes (image URLs, shipping, API changes) (Session 6) - December 15, 2025
 
 ### Current Branch
 
