@@ -8,6 +8,25 @@
 
 The current Stripe Checkout v2 integration is deprecated and non-functional. Stripe is phasing out the old APIs, causing "integration surface is unsupported for publishable key tokenization" errors. This document outlines a multi-phase upgrade plan to migrate to modern Stripe Checkout Sessions.
 
+## IMPORTANT: StartUpWebApp Architecture
+
+**StartUpWebApp is a demo/template project, not a real business.**
+
+Key architectural decisions:
+- **Production ALWAYS uses Stripe TEST mode keys** (pk_test_..., sk_test_...)
+- **Test cards work in production** (4242 4242 4242 4242)
+- **No real payment processing** will ever occur in StartUpWebApp itself
+- **Real payments** will only occur in **forks** of this project
+- **Forks** will configure their own Stripe LIVE mode keys (pk_live_..., sk_live_...)
+
+**Why?**
+- StartUpWebApp demonstrates e-commerce functionality without financial risk
+- Serves as a template for real businesses to fork and customize
+- Allows safe testing and demonstration of full checkout flow
+- Forks inherit battle-tested payment infrastructure
+
+**For Session 9**: Configure webhook in Stripe **TEST mode** dashboard, not live mode.
+
 ---
 
 ## Current State (Broken)
@@ -392,17 +411,26 @@ must add automated tests to prevent regressions.
 
 ---
 
-### Session 9: Production Deployment (2-3 hours)
-**Branch:** `feature/stripe-production-config`
+### Session 9: Production Webhook Configuration (1-2 hours)
+**Branch:** `feature/stripe-webhook-production`
+
+**IMPORTANT - StartUpWebApp Architecture:**
+StartUpWebApp is a **demo/template project** that will ALWAYS use Stripe TEST mode keys,
+even in production. Real Stripe transactions will only occur in forks of this project.
+This is intentional - the deployed demo shows functionality without real payments.
+
+**Note:** Stripe TEST keys already configured in Session 6. Production checkout working
+with test card `4242 4242 4242 4242`.
 
 **Tasks:**
-- Configure production Stripe keys in AWS Secrets Manager
-- Set up Stripe webhook endpoint in production
-- Configure webhook secret in Secrets Manager
-- Test in production environment
-- Monitor CloudWatch logs
-- Test all email types in production (including order emails)
-- Document production configuration
+- ~~Configure production Stripe keys~~ (Using TEST keys - already done in Session 6)
+- Set up Stripe webhook endpoint in TEST mode dashboard
+- Configure webhook secret in AWS Secrets Manager
+- Test webhook delivery in production
+- Monitor CloudWatch logs for webhook events
+- Verify webhook + success handler idempotency
+- Test all email types in production (including order emails with real Stripe checkout)
+- Document webhook configuration
 
 **Webhook Configuration Steps:**
 
@@ -411,12 +439,13 @@ must add automated tests to prevent regressions.
    - Add new key: `stripe_webhook_secret`
    - Get value from Stripe Dashboard after step 2
 
-2. **Configure webhook in Stripe Dashboard**:
-   - Go to: https://dashboard.stripe.com/webhooks
+2. **Configure webhook in Stripe TEST mode Dashboard**:
+   - Go to: https://dashboard.stripe.com/test/webhooks (TEST mode!)
    - Click "Add endpoint"
    - URL: `https://startupwebapp-api.mosaicmeshai.com/order/stripe-webhook`
    - Events to send: `checkout.session.completed`, `checkout.session.expired`
    - Copy the webhook signing secret (starts with `whsec_`)
+   - **Note**: Use TEST mode dashboard since production uses TEST keys
 
 3. **Update AWS Secrets Manager**:
    - Add the webhook signing secret as `stripe_webhook_secret` key

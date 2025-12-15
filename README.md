@@ -35,6 +35,28 @@ A Django REST API backend for an e-commerce startup, featuring comprehensive tes
 
 📚 **See [docs/PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md) for detailed project timeline and completed phases.**
 
+## ⚠️ Important: Demo Project - TEST Mode Only
+
+**This is a demonstration/template project, not a real business.**
+
+**Stripe Configuration:**
+- Production uses **TEST mode keys** (pk_test_..., sk_test_...) - NOT live keys
+- Deployed site accepts **test credit cards only** (4242 4242 4242 4242)
+- **No real payment processing** occurs, even in production
+- Demonstrates full e-commerce functionality without financial risk
+
+**For Real Businesses:**
+- Fork this repository for your own business
+- Configure your own Stripe **LIVE mode keys** (pk_live_..., sk_live_...)
+- Update AWS Secrets Manager with your keys
+- You'll inherit battle-tested payment infrastructure
+
+**Why This Architecture?**
+- Safe demonstration of complete checkout flow
+- Template for real businesses to customize
+- Allows public deployment without payment liability
+- Forks can use real Stripe accounts for actual transactions
+
 ## About This Project
 
 I'm co-founder of a startup which:
