@@ -325,21 +325,39 @@ Custom payment form embedded in your site using Stripe Elements with Payment Int
 **Branch:** `feature/stripe-testing`
 
 **Tasks:**
-- **Fix known backend bug**: Convert relative image URLs to absolute URLs in `create_checkout_session()`
-  - Issue: Stripe rejects `/img/product/...` (needs `https://domain.com/img/...`)
-  - Location: `order/views.py` - `create_checkout_session()` function
-  - Solution: Prepend domain from request.get_host() or settings
-- Test complete checkout flow (member)
-- Test complete checkout flow (prospect/guest)
-- Test saved payment methods
-- Test order confirmation emails (finally!)
-- Test error scenarios
+- ~~**Fix known backend bug**: Image URLs (FIXED IN SESSION 6)~~
+- **Add functional tests for 3 critical flows tested manually in Session 6**:
+  - **Test 1**: Logged-in member checkout flow (Selenium)
+    - Login, add to cart, checkout, complete Stripe payment, verify order created
+  - **Test 2**: Anonymous user checkout flow (Selenium)
+    - Add to cart, anonymous checkout with email, Stripe payment, verify order
+  - **Test 3**: Declined card error handling (Selenium)
+    - Attempt checkout with test declined card `4000 0000 0000 0002`
+    - Verify error shown, no order created, user can retry
+- Add missing unit tests for Session 6 bugfixes:
+  - Backend: Shipping line item in checkout session
+  - Backend: Prospect creation includes `created_date_time`
+  - Backend: `collected_information.shipping_details` handling
+  - Frontend: Decimal parsing helper or tests
+- Test saved payment methods (if applicable)
+- Test order confirmation emails in all scenarios
+- Test other error scenarios (network errors, timeouts, etc.)
+- **Remove dead code from frontend** (Session 6 marked as unused):
+  - `display_payment_data()` - ~45 lines
+  - `process_stripe_payment_token()` - ~45 lines
+  - `process_stripe_payment_token_callback()` - ~25 lines
+  - `confirm_place_order()` - ~120 lines
+  - `confirm_place_order_callback()` - ~50 lines
+  - Total: ~285 lines to remove from js/checkout/confirm-0.0.1.js
 - Fix any other bugs discovered
-- Update functional tests if needed
-- Run all 735+ tests
+- Run all 737+ backend tests
+- Run all 13+ frontend QUnit tests
 - Commit and merge
 
-**Deliverable:** Fully tested Stripe integration with all bugs fixed
+**Deliverable:** Fully tested Stripe integration with comprehensive test coverage
+
+**Critical**: Session 6 manual testing revealed 9 bugs that were fixed. Session 8
+must add automated tests to prevent regressions.
 
 ---
 
