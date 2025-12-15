@@ -1366,11 +1366,24 @@ def create_checkout_session(request):
         return response
 
     try:
+        # Get frontend domain for building absolute URLs
+        # Use settings to get the frontend domain
+        frontend_domain = getattr(settings, 'ENVIRONMENT_DOMAIN', 'http://localhost:8080')
+
         # Build line items for Stripe
         line_items = []
         for item_key, item_data in cart_items['product_sku_data'].items():
             # Convert price to cents (Stripe requires integer cents)
             unit_amount_cents = int(float(item_data['price']) * 100)
+
+            # Build absolute image URL (Stripe requires absolute URLs, not relative paths)
+            sku_image_url = item_data['sku_image_url']
+            if sku_image_url.startswith('http://') or sku_image_url.startswith('https://'):
+                # Already absolute URL (e.g., from test data)
+                image_url = sku_image_url
+            else:
+                # Relative URL - prepend frontend domain
+                image_url = f"{frontend_domain}{sku_image_url}"
 
             line_item = {
                 'price_data': {
@@ -1378,7 +1391,7 @@ def create_checkout_session(request):
                     'product_data': {
                         'name': item_data['parent_product__title'],
                         'description': f"{item_data['color']} - {item_data['size']}",
-                        'images': [item_data['sku_image_url']],
+                        'images': [image_url],
                     },
                     'unit_amount': unit_amount_cents,
                 },
@@ -1392,8 +1405,6 @@ def create_checkout_session(request):
             customer_email = request.user.email
 
         # Build success and cancel URLs
-        # Use settings to get the frontend domain
-        frontend_domain = getattr(settings, 'ENVIRONMENT_DOMAIN', 'http://localhost:8080')
         success_url = f"{frontend_domain}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}"
         cancel_url = f"{frontend_domain}/checkout/confirm"
 

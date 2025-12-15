@@ -184,6 +184,15 @@ class CreateCheckoutSessionEndpointTest(PostgreSQLTestCase):
         self.assertEqual(line_items[0]['price_data']['unit_amount'], 2999)  # $29.99 in cents
         self.assertEqual(line_items[0]['price_data']['product_data']['name'], 'Test Product')
 
+        # Verify product images are absolute URLs (not relative paths)
+        images = line_items[0]['price_data']['product_data']['images']
+        self.assertEqual(len(images), 1)
+        image_url = images[0]
+        self.assertTrue(image_url.startswith('http://') or image_url.startswith('https://'),
+                        f"Image URL should be absolute, got: {image_url}")
+        # Verify it's a valid URL (has protocol and domain)
+        self.assertIn('://', image_url, "Image URL should be a complete URL with protocol")
+
         # Verify customer_email
         self.assertEqual(call_args.kwargs['customer_email'], 'test@test.com')
 
