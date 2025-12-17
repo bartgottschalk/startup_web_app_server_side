@@ -352,22 +352,30 @@ discovered during Session 6 review.
 
 ---
 
-### Session 7: Frontend - Update Account Payment Management (2-3 hours)
-**Branch:** `feature/stripe-frontend-account`
+### Session 7: Frontend - Update Account Payment Management (2-3 hours) ✅ COMPLETE
+**Branch:** `feature/stripe-frontend-account` (merged to master via Client PR #14)
+**Date:** December 17, 2025
+**Duration:** ~1 hour (lightweight as expected)
 
-**Tasks:**
-- Update account page Stripe integration
-- Replace old checkout handler
-- Update saved payment method management
-- Test account payment flows
-- Run functional tests
-- Commit and merge
+**Tasks Completed:**
+- ✅ Removed deprecated Stripe Checkout v2 script from account page
+- ✅ Removed entire "SHIPPING & BILLING ADDRESSES AND PAYMENT INFORMATION" section
+- ✅ Removed 5 deprecated JavaScript functions (~149 lines total)
+- ✅ Removed unused Stripe-related variables
+- ✅ All 88 frontend tests passing
+- ✅ ESLint: 0 errors, 2 warnings (unchanged)
+- ✅ Merged to master and deployed to production
 
-**Deliverable:** Updated account payment management
+**Deliverable:** ✅ Cleaned up account page, removed all deprecated Stripe v2 code
 
 **Files Modified:**
-- `js/account-0.0.1.js`
-- `account/index.html`
+- `js/account-0.0.1.js` - Removed 147 lines of deprecated Stripe code
+- `account/index.html` - Removed Stripe v2 script and payment info section
+
+**Key Decision:**
+- **Removed payment info section entirely** (not read-only display)
+- Rationale: New Checkout Sessions don't save payment methods; users enter info during checkout
+- Account page now shows: My Information, Communication Preferences, My Password, My Orders
 
 ---
 
@@ -574,8 +582,8 @@ Session 1 included email address updates that were never merged. After Stripe is
 
 ## Current Session Status
 
-**Session:** Session 6.5 Complete - Frontend PR Validation Workflow
-**Date:** December 16, 2025
+**Session:** Session 7 Complete - Frontend Account Payment Management
+**Date:** December 17, 2025
 
 **Session 1 (Complete - SUPERSEDED, NOT TO BE MERGED):**
 - ✅ Email address changes in code (7 email types updated)
@@ -656,6 +664,19 @@ Session 1 included email address updates that were never merged. After Stripe is
 - ✅ Workflow runtime: 45 seconds in CI, 2 seconds locally
 - ✅ Frontend now matches backend's automated PR validation standards
 - ✅ All future frontend PRs must pass 88 tests + ESLint before merging
+
+**Session 7 (Complete - Frontend Account Payment Management):**
+- ✅ Branch: `feature/stripe-frontend-account` (Client PR #14, merged)
+- ✅ Removed deprecated Stripe Checkout v2 script (`checkout.stripe.com/checkout.js`)
+- ✅ Removed entire "SHIPPING & BILLING ADDRESSES AND PAYMENT INFORMATION" section from account page
+- ✅ Removed 5 deprecated JavaScript functions: `set_up_stripe_checkout_handler()`, `stripe_checkout_handler_token_callback()`, `process_stripe_payment_token()`, `process_stripe_payment_token_callback()`, `display_payment_data()`
+- ✅ Removed 4 unused variables: `stripe_checkout_handler`, `stripe_payment_token`, `stripe_payment_args`, `token_retried`
+- ✅ Total code removed: 149 lines
+- ✅ Key decision: Removed payment info section entirely (not read-only) - new Checkout Sessions don't save payment methods
+- ✅ Account page now shows: My Information, Communication Preferences, My Password, My Orders
+- ✅ All 88 frontend tests passing, ESLint: 0 errors, 2 warnings
+- ✅ Deployed to production (frontend to S3/CloudFront)
+- ✅ Session duration: ~1 hour (lightweight as expected)
 
 ---
 
