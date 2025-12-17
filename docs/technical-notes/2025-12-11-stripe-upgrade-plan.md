@@ -574,8 +574,8 @@ Session 1 included email address updates that were never merged. After Stripe is
 
 ## Current Session Status
 
-**Session:** Session 6 In Progress - Frontend Checkout Flow
-**Date:** December 14, 2025
+**Session:** Session 6.5 Complete - Frontend PR Validation Workflow
+**Date:** December 16, 2025
 
 **Session 1 (Complete - SUPERSEDED, NOT TO BE MERGED):**
 - ✅ Email address changes in code (7 email types updated)
@@ -625,23 +625,37 @@ Session 1 included email address updates that were never merged. After Stripe is
 - ✅ Idempotent with success handler (prevents duplicate orders)
 - ✅ Merged to master and deployed to production
 
-**Session 6 (In Progress - Frontend Checkout):**
-- ✅ Branch: `feature/stripe-frontend-checkout` (Client PR #12)
+**Session 6 (Complete - Frontend Checkout Migration):**
+- ✅ Frontend Branch: `feature/stripe-frontend-checkout` (Client PR #12, merged)
+- ✅ Backend Branch: `feature/stripe-backend-image-url-fix` (Server PR #53, merged)
 - ✅ Replaced `checkout.stripe.com/checkout.js` with `js.stripe.com/v3/`
 - ✅ Added `create_stripe_checkout_session()` function
 - ✅ Added `handle_checkout_session_success()` function
+- ✅ Created checkout success page (`checkout/success`)
 - ✅ Updated checkout flow to redirect to Stripe
-- ✅ 10 new QUnit unit tests (TDD approach), all passing
+- ✅ Fixed 9 bugs (7 decimal parsing, 1 missing error div, 1 cart quantity selector)
+- ✅ 13 new QUnit unit tests (10 Stripe + 3 decimal parsing), all passing
 - ✅ ESLint: 0 errors, 2 warnings
-- ✅ **Decimal parsing bugfixes included** (parseFloat on price/shipping fields)
-- ⚠️ **NOTE**: These decimal fixes duplicate Session 1 work (Session 1 branch will NOT be merged)
-- ⚠️ **KNOWN ISSUE**: Backend sends relative image URLs to Stripe (e.g., `/img/product/...`)
-  - Stripe requires absolute URLs (e.g., `https://domain.com/img/...`)
-  - Error: "url_invalid" on `line_items[0][price_data][product_data][images][0]`
-  - **Fix in Session 8**: Add domain prefix to image URLs in backend
-  - **Impact**: Checkout works but no product images shown on Stripe checkout page
-  - **Workaround**: None needed - no real users yet
-- 🔄 Currently: Manual testing in progress
+- ✅ Backend image URL fix: Added domain prefix for Stripe product images
+- ✅ 2 new backend tests for image URL validation
+- ✅ All 737 backend tests + 88 frontend tests passing
+- ✅ End-to-end checkout tested in production with test cards
+- ✅ Order confirmation emails verified working
+- ✅ Deployed to production (frontend to S3/CloudFront, backend to ECS)
+- ⚠️ **NOTE**: Decimal parsing fixes duplicated Session 1 work (Session 1 branch NOT merged)
+
+**Session 6.5 (Complete - Frontend PR Validation Workflow):**
+- ✅ Branch: `feature/frontend-pr-validation` (Client PR #13, merged)
+- ✅ Created `.github/workflows/pr-validation.yml` for frontend repository
+- ✅ Automated ESLint validation (0 errors, 2 warnings)
+- ✅ Automated QUnit tests via Playwright + Chromium (88 tests)
+- ✅ Test infrastructure: `playwright.config.js`, `playwright-tests/qunit.spec.js`
+- ✅ Package updates: Added `@playwright/test`, `http-server`
+- ✅ New npm scripts: `npm test` (headless), `npm run test:headed` (debugging)
+- ✅ Documentation updates: README badge, test instructions
+- ✅ Workflow runtime: 45 seconds in CI, 2 seconds locally
+- ✅ Frontend now matches backend's automated PR validation standards
+- ✅ All future frontend PRs must pass 88 tests + ESLint before merging
 
 ---
 

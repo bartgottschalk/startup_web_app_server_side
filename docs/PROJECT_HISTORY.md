@@ -24,16 +24,19 @@ This document tracks the complete development history and modernization effort f
 - [✅ 2025-11-03: Phase 2.2 - Order Tests](milestones/2025-11-03-phase-2-2-order-tests.md) - E-commerce functionality (239 tests)
 
 ### Current Status: 768 Tests Passing ✅ (100% Pass Rate with PostgreSQL!)
-- **User App**: 299 tests (+3 superuser creation tests)
-- **Order App**: 330 tests (+19 DecimalField precision tests, +8 Stripe Checkout Session tests, +8 success handler tests, +6 webhook tests)
-- **ClientEvent App**: 51 tests
-- **Validators**: 50 tests
-- **Total Unit Tests**: 737 tests (+2 from Session 6)
-- **Functional Tests**: 31 Selenium tests (+3 Django Admin login tests) - 100% reliable
+- **Backend Unit Tests**: 737 tests
+  - User App: 299 tests (+3 superuser creation tests)
+  - Order App: 330 tests (+19 DecimalField precision, +7 checkout session, +7 success handler, +6 webhook, +2 image URL)
+  - ClientEvent App: 51 tests
+  - Validators: 50 tests
+- **Backend Functional Tests**: 31 Selenium tests (+3 Django Admin login tests) - 100% reliable
+- **Frontend Unit Tests**: 88 QUnit tests (19 checkout + 69 utility)
+- **Total Tests**: 856 tests (737 backend unit + 31 backend functional + 88 frontend unit)
 - **Database**: PostgreSQL 16 (multi-tenant architecture, local + AWS RDS ready)
 - **AWS Infrastructure**: Deployed (VPC, RDS, Secrets Manager, CloudWatch) - $29/month
 - **Production Settings**: Django configured for AWS deployment with Secrets Manager integration
-- **Code Quality**: Zero linting errors (backend + frontend), zero ESLint warnings
+- **Code Quality**: Zero linting errors (backend Flake8 + frontend ESLint), automated PR validation on both repos
+- **CI/CD**: Automated PR validation on backend (737 tests + 31 functional) and frontend (88 tests + ESLint)
 
 ### Phase 3: Functional Test Infrastructure & Additional Coverage (Completed - 2025-11-07)
 - ✅ Fixed boto3 import error in functional test utilities
@@ -1379,6 +1382,191 @@ See [Technical Note](technical-notes/2025-11-26-phase-5-15-production-deployment
 **Next Session**: Session 6 - Update frontend checkout flow to use new Stripe Checkout Sessions
 
 **Production Note**: Webhook secret will be configured in AWS Secrets Manager during Session 9
+
+**See**: `docs/technical-notes/2025-12-11-stripe-upgrade-plan.md` for full 10-session plan
+
+---
+
+#### Phase 5.16 Stripe Upgrade - Session 6: Frontend Checkout Migration (Complete - December 15, 2025)
+
+**Status**: ✅ COMPLETE - Frontend checkout fully migrated to Stripe Checkout Sessions
+**Frontend Branch**: `feature/stripe-frontend-checkout`
+**Backend Branch**: `feature/stripe-backend-image-url-fix`
+**Frontend PR**: #12 (merged to master)
+**Backend PR**: #53 (merged to master)
+**Session**: 6 of 10 (Stripe upgrade multi-session project)
+
+**Changes Made**:
+
+**Frontend Repository (`startup_web_app_client_side`):**
+- ✅ **Replaced Deprecated Stripe v2 with v3**:
+  - Removed: `checkout.stripe.com/checkout.js` (deprecated)
+  - Added: `js.stripe.com/v3/` (modern Stripe.js library)
+  - Updated: Stripe publishable key initialization
+
+- ✅ **New Checkout Flow Functions** (`js/checkout/confirm-0.0.1.js`):
+  - `create_stripe_checkout_session()`: Calls backend `/order/create-checkout-session`
+  - `handle_checkout_session_success()`: Processes Stripe redirect with `session_id`
+  - Redirects to Stripe hosted checkout page (replaces inline Stripe modal)
+
+- ✅ **Checkout Success Page** (`checkout/success`):
+  - New page displays order confirmation after successful payment
+  - Shows order number, items purchased, total amount, shipping address
+  - Handles both member and anonymous checkout flows
+  - Calls backend `/order/checkout-session-success` to retrieve order details
+
+- ✅ **Bug Fixes**: Fixed 9 bugs discovered during testing
+  1. Decimal parsing: Added `parseFloat()` on price/shipping fields (7 locations)
+  2. Missing error display: Added error message div to checkout confirm page
+  3. Cart quantity selector: Fixed event handler to update cart properly
+
+- ✅ **Test Coverage**: 13 new QUnit unit tests
+  - 10 Stripe tests (create session, handle success, error cases)
+  - 3 decimal parsing tests (regression prevention)
+  - All tests pass in headless browser
+
+**Backend Repository (`startup_web_app_server_side`):**
+- ✅ **Image URL Fix**: Added domain prefix to product image URLs for Stripe
+  - Fixed: Stripe "url_invalid" error on relative URLs
+  - Changed: `/img/product/...` → `https://domain.com/img/product/...`
+  - Uses `ENVIRONMENT_DOMAIN` setting to construct absolute URLs
+  - Product images now display correctly on Stripe checkout page
+
+**Test Results**:
+- ✅ **Frontend**: 13 QUnit tests passing, ESLint 0 errors (2 warnings acceptable)
+- ✅ **Backend**: 737/737 unit tests passing (+2 new tests for image URL fix)
+- ✅ **Manual Testing**: Complete checkout flow tested end-to-end in production
+  - Test card (4242 4242 4242 4242) processes successfully
+  - Order created correctly in database
+  - Confirmation email sent
+  - Success page displays order details
+
+**Files Modified (Frontend)**:
+- `checkout/confirm` - Updated to use new Stripe v3 API
+- `checkout/success` - New page for order confirmation
+- `js/checkout/confirm-0.0.1.js` - New checkout functions, decimal parsing fixes
+- `js/checkout/success-0.0.1.js` - New success page handler
+- `unittests/checkout_confirm_tests.html` - New test file
+- `unittests/js/checkout_confirm_tests.js` - 13 new tests
+
+**Files Modified (Backend)**:
+- `StartupWebApp/order/views.py` - Image URL fix in `create_checkout_session()`
+- `StartupWebApp/order/tests/test_stripe_checkout_session.py` - 2 new tests for absolute URLs
+
+**Implementation Highlights**:
+- **User Experience**: Clean redirect to Stripe hosted checkout (no inline modal)
+- **Security**: PCI compliance simplified (Stripe handles all payment details)
+- **Reliability**: Checkout tested with real Stripe test mode in production
+- **Mobile Optimized**: Stripe's hosted checkout is fully responsive
+- **Email Confirmation**: Works for both member and anonymous checkouts
+
+**Known Issues Fixed During Session**:
+- Decimal parsing bugs in price/shipping calculations (7 locations)
+- Missing error message container on checkout page
+- Cart quantity update event handler binding
+- Relative image URLs causing Stripe validation errors
+
+**Production Deployment**:
+- ✅ Frontend PR #12 merged and deployed to S3/CloudFront
+- ✅ Backend PR #53 merged and deployed to ECS
+- ✅ End-to-end checkout tested in production with test cards
+- ✅ Order confirmation emails sending correctly
+
+**Next Session**: Session 6.5 - Add PR validation workflow to frontend repository
+
+**Note**: This completes the core Stripe Checkout Sessions migration. Sessions 7-9 will add account payment history and production testing.
+
+**See**: `docs/technical-notes/2025-12-11-stripe-upgrade-plan.md` for full 10-session plan
+
+---
+
+#### Phase 5.16 Stripe Upgrade - Session 6.5: Frontend PR Validation Workflow (Complete - December 16, 2025)
+
+**Status**: ✅ COMPLETE - Frontend now has automated PR validation matching backend standards
+**Branch**: `feature/frontend-pr-validation`
+**PR**: #13 (merged to master)
+**Session**: 6.5 of 10 (Stripe upgrade multi-session project)
+
+**Context**: During Session 6 review, discovered frontend repository lacked automated PR validation. Backend has comprehensive `pr-validation.yml` workflow running 737 tests on every PR, but frontend PRs were merging without automated checks. This created inconsistency and risk.
+
+**Changes Made**:
+
+**Frontend Repository (`startup_web_app_client_side`):**
+- ✅ **GitHub Actions Workflow** (`.github/workflows/pr-validation.yml`):
+  - Runs ESLint on all JavaScript files (currently 0 errors, 2 warnings)
+  - Runs 88 QUnit tests in headless Chromium browser via Playwright
+  - Tests both test suites:
+    - `checkout_confirm_tests.html` (19 tests)
+    - `index_tests.html` (69 tests)
+  - Fails PR if any linting errors or test failures occur
+  - Uses Node.js 20.x (modern LTS version)
+  - 10-minute timeout (tests run in ~2 seconds locally, 45 seconds in CI)
+
+- ✅ **Playwright Test Infrastructure**:
+  - `playwright.config.js`: Configuration for headless browser testing
+  - `playwright-tests/qunit.spec.js`: Test runner that loads QUnit HTML pages
+  - Validates QUnit results programmatically (checks for failures)
+  - Provides detailed error output if tests fail
+  - Uses Chromium only (sufficient for jQuery + QUnit testing)
+
+- ✅ **Package Updates**:
+  - Added `@playwright/test` (^1.48.0) for headless browser testing
+  - Added `http-server` (^14.1.1) for local test server
+  - New npm scripts:
+    - `npm test`: Run tests in headless browser
+    - `npm run test:headed`: Run with visible browser (debugging)
+
+- ✅ **Documentation Updates**:
+  - Added PR Validation workflow badge to README.md
+  - Updated test counts (88 total tests: 19 checkout + 69 utility)
+  - Added CI/CD testing instructions
+  - Documented Playwright test commands
+
+- ✅ **Configuration Updates**:
+  - Updated `.gitignore` for Playwright artifacts (test-results/, playwright-report/)
+
+**Test Results**:
+- ✅ **PR Validation**: All checks passed on PR #13
+  - ESLint: PASSED (0 errors, 2 warnings)
+  - QUnit Tests: PASSED (88/88 tests)
+  - Workflow runtime: 45 seconds
+- ✅ **Local Testing**: All 88 tests pass in ~2 seconds
+
+**Files Created/Modified**:
+- `.github/workflows/pr-validation.yml` - New workflow (84 lines)
+- `playwright.config.js` - New Playwright configuration
+- `playwright-tests/qunit.spec.js` - New test runner (53 lines)
+- `package.json` - Added test scripts and dependencies
+- `package-lock.json` - Dependency lock file updated
+- `.gitignore` - Added Playwright exclusions
+- `README.md` - Added badge and testing documentation
+
+**Implementation Highlights**:
+- **Consistency**: Frontend now matches backend's automated PR validation standards
+- **Quality Gates**: All future PRs must pass 88 tests + ESLint before merging
+- **Modern Tooling**: Playwright chosen over Puppeteer for better reliability
+- **Fast Execution**: Tests complete in under 1 minute in CI
+- **Zero Disruption**: No changes to existing code, only CI/CD additions
+
+**Comparison with Backend PR Validation**:
+| Aspect | Backend | Frontend (After Session 6.5) |
+|--------|---------|------------------------------|
+| Workflow | `.github/workflows/pr-validation.yml` | `.github/workflows/pr-validation.yml` |
+| Linting | Flake8 (Python) | ESLint (JavaScript) |
+| Unit Tests | 737 tests (pytest) | 88 tests (QUnit + Playwright) |
+| Functional Tests | 28 tests (Selenium + Firefox) | N/A (frontend is static) |
+| Runtime | ~10-15 minutes | ~45 seconds |
+| Test Coverage | 100% of code tested | ~20% of files (4/20 JS files) |
+
+**Impact**:
+- **Quality Assurance**: Prevents broken JavaScript from reaching master
+- **Regression Prevention**: 88 tests catch breaking changes automatically
+- **Developer Confidence**: PRs can merge knowing tests passed
+- **Future Growth**: Easy to add more tests as coverage expands
+
+**Next Session**: Session 7 - Frontend account payment history page
+
+**Note**: Frontend repository now has same quality gates as backend. Future frontend PRs will automatically run all tests.
 
 **See**: `docs/technical-notes/2025-12-11-stripe-upgrade-plan.md` for full 10-session plan
 

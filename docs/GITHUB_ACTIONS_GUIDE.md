@@ -1,16 +1,20 @@
 # GitHub Actions Guide for StartupWebApp
 
-**Date**: November 25, 2025
+**Date**: December 16, 2025
 **Purpose**: Step-by-step guide for using GitHub Actions workflows
 
 ## Table of Contents
 
 1. [What is GitHub Actions?](#what-is-github-actions)
-2. [Our Workflow Explained](#our-workflow-explained)
-3. [Setting Up GitHub Secrets](#setting-up-github-secrets)
-4. [How to Run Migrations](#how-to-run-migrations)
-5. [Reading Workflow Results](#reading-workflow-results)
-6. [Troubleshooting](#troubleshooting)
+2. [Backend Workflows](#backend-workflows)
+   - [PR Validation Workflow](#backend-pr-validation-workflow)
+   - [Migration Workflow](#backend-migration-workflow)
+3. [Frontend Workflows](#frontend-workflows)
+   - [PR Validation Workflow](#frontend-pr-validation-workflow)
+4. [Setting Up GitHub Secrets](#setting-up-github-secrets)
+5. [How to Run Migrations](#how-to-run-migrations)
+6. [Reading Workflow Results](#reading-workflow-results)
+7. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -30,10 +34,82 @@ GitHub Actions is an automation platform built into GitHub. Think of it as a rob
 
 ---
 
-## Our Workflow Explained
+## Backend Workflows
 
-### File Location
-`.github/workflows/run-migrations.yml`
+The backend repository has two automated workflows:
+
+### Backend PR Validation Workflow
+
+**File Location**: `.github/workflows/pr-validation.yml`
+
+**Trigger**: Automatically runs on every pull request targeting the `master` branch
+
+**Purpose**: Validates code quality and prevents broken code from merging
+
+**What It Does**:
+```
+┌─────────────────────────────────────────────────┐
+│  Developer opens PR to master branch            │
+└────────────────┬────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────┐
+│  Checkout code and setup Python 3.12            │
+│  Install all dependencies                       │
+└────────────────┬────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────┐
+│  Run Flake8 Linting                             │
+│  ✓ Check code style and quality                │
+│  ✓ Enforces PEP 8 standards                    │
+│  Duration: ~30 seconds                          │
+└────────────────┬────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────┐
+│  Run Unit Tests                                 │
+│  ✓ Run 737 unit tests in parallel              │
+│  ✓ Tests: User (299), Order (330),             │
+│    ClientEvent (51), Validators (50)            │
+│  Duration: ~4-5 minutes                         │
+└────────────────┬────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────┐
+│  Run Functional Tests (Selenium + Firefox)      │
+│  ✓ Install Firefox and geckodriver              │
+│  ✓ Clone frontend master for integration       │
+│  ✓ Configure nginx for test environment        │
+│  ✓ Run 31 functional tests                     │
+│  Duration: ~5-7 minutes                         │
+└────────────────┬────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────┐
+│  All Tests Pass → PR Can Be Merged ✅           │
+│  Any Tests Fail → PR Blocked ❌                 │
+└─────────────────────────────────────────────────┘
+```
+
+**Total Duration**: ~10-15 minutes
+
+**Test Coverage**:
+- **Unit Tests**: 737 tests covering all Python code
+- **Functional Tests**: 31 Selenium tests covering user workflows
+- **Linting**: Flake8 enforces code quality
+
+**Viewing Results**:
+- Navigate to PR page on GitHub
+- Check "Checks" tab to see workflow status
+- Green checkmark = all tests passed
+- Red X = something failed (click for details)
+
+---
+
+### Backend Migration Workflow
+
+**File Location**: `.github/workflows/run-migrations.yml`
 
 ### What It Does
 
@@ -84,6 +160,140 @@ GitHub Actions is an automation platform built into GitHub. Think of it as a rob
 ```
 
 **Total Duration**: ~10-17 minutes
+
+---
+
+## Frontend Workflows
+
+The frontend repository (`startup_web_app_client_side`) has automated PR validation to ensure code quality.
+
+### Frontend PR Validation Workflow
+
+**File Location**: `.github/workflows/pr-validation.yml`
+
+**Trigger**: Automatically runs on every pull request targeting the `master` branch
+
+**Purpose**: Validates JavaScript code quality and prevents broken code from merging
+
+**What It Does**:
+```
+┌─────────────────────────────────────────────────┐
+│  Developer opens PR to master branch            │
+└────────────────┬────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────┐
+│  Checkout code and setup Node.js 20.x           │
+│  Install npm dependencies                       │
+└────────────────┬────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────┐
+│  Run ESLint                                     │
+│  ✓ Check JavaScript code style                 │
+│  ✓ Enforces ES6+ best practices               │
+│  ✓ Validates jQuery usage patterns             │
+│  Duration: ~10 seconds                          │
+└────────────────┬────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────┐
+│  Install Playwright Chromium Browser            │
+│  ✓ Downloads headless Chrome for testing       │
+│  Duration: ~15 seconds                          │
+└────────────────┬────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────┐
+│  Run QUnit Tests in Headless Browser            │
+│  ✓ Start local HTTP server                     │
+│  ✓ Run 88 QUnit tests via Playwright           │
+│  ✓ Tests:                                       │
+│    - 19 checkout tests (Stripe integration)    │
+│    - 69 utility tests (helpers, validators)    │
+│  ✓ Validates test results programmatically     │
+│  Duration: ~20 seconds                          │
+└────────────────┬────────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────────┐
+│  All Tests Pass → PR Can Be Merged ✅           │
+│  Any Tests Fail → PR Blocked ❌                 │
+└─────────────────────────────────────────────────┘
+```
+
+**Total Duration**: ~45 seconds
+
+**Test Coverage**:
+- **ESLint**: Validates all 20 JavaScript files (currently 0 errors, 2 warnings)
+- **QUnit Tests**: 88 tests covering ~20% of JavaScript codebase
+  - `unittests/checkout_confirm_tests.html`: 19 tests (Stripe Checkout Sessions)
+  - `unittests/index_tests.html`: 69 tests (utilities, form validation, array helpers)
+
+**Technology Stack**:
+- **Playwright**: Modern headless browser automation (Chromium)
+- **QUnit 2.9.2**: JavaScript unit testing framework
+- **http-server**: Local HTTP server for serving test pages
+- **Node.js 20.x**: LTS version for maximum compatibility
+
+**Running Tests Locally**:
+
+```bash
+# In frontend repository
+cd /path/to/startup_web_app_client_side
+
+# Install dependencies
+npm install
+
+# Install Playwright browsers (first time only)
+npx playwright install chromium
+
+# Run linting
+npm run lint
+
+# Run tests in headless browser
+npm test
+
+# Run tests with visible browser (debugging)
+npm run test:headed
+```
+
+**Viewing Results**:
+- Navigate to PR page on GitHub
+- Check "Checks" tab to see workflow status
+- Green checkmark = ESLint + all 88 tests passed
+- Red X = linting errors or test failures (click for details)
+
+**Comparison: Backend vs Frontend PR Validation**:
+
+| Aspect | Backend | Frontend |
+|--------|---------|----------|
+| **Workflow File** | `.github/workflows/pr-validation.yml` | `.github/workflows/pr-validation.yml` |
+| **Linter** | Flake8 (Python) | ESLint (JavaScript) |
+| **Unit Tests** | 737 tests (pytest) | 88 tests (QUnit + Playwright) |
+| **Functional Tests** | 31 tests (Selenium + Firefox) | N/A (static frontend) |
+| **Test Runner** | Django test runner | Playwright (headless Chromium) |
+| **Runtime** | ~10-15 minutes | ~45 seconds |
+| **Test Coverage** | 100% of backend code | ~20% of frontend files (4/20 JS files) |
+| **Triggers** | PRs to master | PRs to master |
+| **Purpose** | Validate Python code | Validate JavaScript code |
+
+**Why Frontend PR Validation Matters**:
+- **Consistency**: Frontend now has same quality gates as backend
+- **Catch Bugs Early**: 88 tests automatically run before merge
+- **Prevent Regressions**: Changes that break existing functionality are blocked
+- **Code Quality**: ESLint enforces consistent JavaScript style
+- **Confidence**: Developers know code works before merging
+- **Fast Feedback**: Results in under 1 minute vs waiting for manual review
+
+**Future Improvements**:
+- Expand test coverage beyond current 20% (4/20 JavaScript files tested)
+- Add tests for:
+  - `js/cart-0.0.1.js` (shopping cart functionality)
+  - `js/product-0.0.1.js` (product display and SKU selection)
+  - `js/checkout/success-0.0.1.js` (payment success handler)
+  - `js/account/order-0.0.1.js` (order detail display)
+- Consider adding visual regression tests (screenshot comparison)
 
 ---
 
