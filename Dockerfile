@@ -37,7 +37,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install geckodriver for Selenium 4
-RUN GECKODRIVER_VERSION=0.35.0 && \
+RUN GECKODRIVER_VERSION=0.36.0 && \
     wget -q https://github.com/mozilla/geckodriver/releases/download/v${GECKODRIVER_VERSION}/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz && \
     tar -xzf geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz && \
     mv geckodriver /usr/local/bin/ && \
