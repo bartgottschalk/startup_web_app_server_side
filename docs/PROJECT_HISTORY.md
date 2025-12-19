@@ -1697,6 +1697,73 @@ See [Technical Note](technical-notes/2025-11-26-phase-5-15-production-deployment
 
 ---
 
+### **Phase 5.16 - Session 10: Email Address Updates** ✅ (December 19, 2025)
+
+**Branch**: `feature/email-address-updates` (merged to master via PR #56)
+**Frontend Branch**: `bugfix/anonymous-checkout-email-prefill` (merged to master via PR #17)
+**Duration**: ~4 hours
+
+**Milestone**: Updated all email addresses and improved email presentation throughout application
+
+**What Was Accomplished:**
+
+**Email Address Updates (13 types total):**
+- ✅ Updated 9 code-based emails (8 user + 1 admin)
+- ✅ Updated 4 database email templates via migration
+- ✅ Changed: `contact@startupwebapp.com` → `bart+startupwebapp@mosaicmeshai.com`
+- ✅ Added professional display name: `StartUpWebApp <bart+...>`
+- ✅ Removed BCC from all emails (no longer copying admin)
+- ✅ Updated phone: `1-844-473-3744` → `1-800-123-4567`
+- ✅ Updated signatures: `StartUpWebApp.com` → `StartUpWebApp`
+
+**Order Email Cleanup:**
+- ✅ Removed PAYMENT INFORMATION section from order confirmations
+  - Was showing: `None: **** **** **** None, Exp: None/None`
+  - Stripe Checkout Sessions don't save card details (Session 7 decision)
+  - Order emails now cleaner and less confusing
+
+**Critical Bugfix (Anonymous Checkout Email):**
+- ✅ Fixed email pre-fill for anonymous checkout
+  - Problem: Email entered on checkout/confirm ignored, Stripe showed empty field
+  - User could enter different email at Stripe (bypassed validation)
+  - Solution: Pass anonymous email to Stripe, pre-fill and lock field
+- ✅ Frontend passes email in create_checkout_session call
+- ✅ Backend sends email to Stripe as customer_email parameter
+- ✅ Stripe pre-fills and makes email read-only
+- ✅ Prevents validation bypass (can't use member email at Stripe)
+
+**Display Name Enhancement:**
+- ✅ Gmail shows "StartUpWebApp" instead of "bart"
+- ✅ Professional appearance, prevents spam filtering
+- ✅ Applied to all 13 email types
+
+**Test Results:**
+- Backend: 693 tests passing (692 + 1 new for anonymous email)
+- Frontend: 88 tests passing
+- Zero linting errors
+- Migration reversible and idempotent
+
+**Production Verification:**
+- ✅ Order Confirmation - Anonymous: Professional sender, no payment info
+- ✅ Order Confirmation - Logged In: Professional sender
+- ✅ Welcome Email: Professional sender, updated contact info
+- ✅ Anonymous email pre-fill: Email locked at Stripe
+
+**Why This Matters:**
+- Completes email updates deferred from Session 1
+- Now that Stripe works (Sessions 2-9), all email types testable
+- Order confirmation emails verified end-to-end
+- Professional email presentation improves deliverability
+- Anonymous checkout security improved
+
+**Documentation:**
+- Created: `docs/technical-notes/2025-12-19-session-10-email-address-updates.md`
+- Comprehensive documentation of all email updates and bugfix
+
+**See**: `docs/technical-notes/2025-12-19-session-10-email-address-updates.md`
+
+---
+
 #### Phase 5.17: Production Hardening (Future)
 - AWS WAF for security
 - Enhanced CloudWatch monitoring
