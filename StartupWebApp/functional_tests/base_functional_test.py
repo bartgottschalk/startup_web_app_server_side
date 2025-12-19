@@ -21,8 +21,13 @@ class BaseFunctionalTest(LiveServerTestCase):
 	options = Options()
 	if "HEADLESS" in os.environ and os.environ['HEADLESS'] == 'TRUE':
 		options.add_argument('--headless')
-	# Selenium 4: Explicitly set Firefox binary path for ARM64 compatibility
-	options.binary_location = '/usr/bin/firefox-esr'
+	# Selenium 4: Set Firefox binary path (Docker uses firefox-esr, CI uses firefox)
+	if os.environ.get('CI_ENV'):
+		# GitHub Actions: Let Selenium auto-discover Firefox
+		pass  # Don't set binary_location, let Selenium find it
+	else:
+		# Docker: Explicitly set firefox-esr path
+		options.binary_location = '/usr/bin/firefox-esr'
 	host = '0.0.0.0'  # Bind to all interfaces so test server is accessible via Docker network hostname 'backend'
 	port = 60767 # hardcoding the port so that I can access the LiveServerTestCase API from the staticically deployed client at a predictable url:port combo
 	yesterday = start_date_time=timezone.now() - timedelta(days=1)
@@ -40,8 +45,13 @@ class BaseFunctionalTest(LiveServerTestCase):
 		static_home_page_url = "http://localliveservertestcase.startupwebapp.com:8080/"
 
 	def setUp(self):
-		# Selenium 4: Explicitly configure geckodriver path for ARM64 compatibility
-		service = Service(executable_path='/usr/local/bin/geckodriver')
+		# Selenium 4: Configure geckodriver service
+		if os.environ.get('CI_ENV'):
+			# GitHub Actions: Let Selenium auto-discover geckodriver (in PATH)
+			service = Service()
+		else:
+			# Docker: Explicitly set geckodriver path for ARM64 compatibility
+			service = Service(executable_path='/usr/local/bin/geckodriver')
 		self.browser = webdriver.Firefox(service=service, options=self.options)
 
 		# Setup necessary DB Objects
