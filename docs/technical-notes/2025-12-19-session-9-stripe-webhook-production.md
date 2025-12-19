@@ -15,6 +15,8 @@ Successfully configured and deployed Stripe webhook infrastructure in production
 - ✅ Production Docker image fixed (added curl for health checks)
 - ✅ Webhook delivery tested and verified working in production
 - ✅ Order creation idempotency confirmed (webhook + success handler)
+- ✅ **Bonus**: Fixed checkout login race condition (Frontend PR #16)
+- ✅ **Bonus**: Removed deprecated "save payment info" checkbox (Frontend PR #16)
 
 ## What Was Completed
 
@@ -266,6 +268,86 @@ aws logs tail /ecs/startupwebapp-service --since 20m
 - Issue resolved without code changes
 
 **Note:** Not related to Session 9 changes, just coincidental timing with deployment.
+
+### Challenge 3: Checkout Login Race Condition (Critical - Frontend PR #16)
+
+**Symptom:**
+- Logged-in users saw Login/Create Account/Checkout Anonymous buttons on checkout page
+- Place Order button was grayed out (disabled)
+- Required clicking "Login" again even though already authenticated
+- Intermittent - sometimes worked, sometimes didn't
+
+**Root Cause:**
+- Session 8 removed `/order/confirm-payment-data` endpoint (provided synchronous login status)
+- Hotfix (commit 54787f7) assumed `index.js` would set `$.user_logged_in` before checkout JavaScript ran
+- **Race condition**: Checkout's `load_confirm_totals` checked `$.user_logged_in` before `/user/logged-in` API call completed
+- Fast network: index.js usually won (bug hidden in development)
+- Slow network: checkout won (bug appeared in production)
+
+**Discovery Process:**
+1. Noticed issue in production during webhook testing
+2. Initially thought it was CloudFront cache (was partially correct earlier)
+3. Issue persisted after cache cleared - identified as actual bug
+4. Reviewed Session 8 hotfix commit - found race condition assumption
+
+**Investigation:**
+```javascript
+// index.js - Sets $.user_logged_in asynchronously
+$.ajax('/user/logged-in', success: set_logged_in)  // ~200-500ms
+
+// checkout/confirm.js - Checks immediately
+load_confirm_totals = function(data) {
+    if ($.user_logged_in) {  // ← RACE: Might still be false!
+        // Show Place Order button
+    }
+}
+```
+
+**Solution (Promise Pattern):**
+1. **index.js**: Expose `$.loginStatusReady` promise (AJAX return value)
+2. **checkout/confirm.js**: Wait for promise with `.then()` before checking login status
+
+```javascript
+// index.js
+$.loginStatusReady = $.ajax('/user/logged-in', success: set_logged_in)
+
+// checkout/confirm.js
+$.loginStatusReady.then(function() {
+    if ($.user_logged_in) {
+        // NOW it's safe to check - promise resolved
+    }
+});
+```
+
+**Additional Cleanup:**
+- Removed deprecated "Save shipping and payment information" checkbox (3 lines HTML)
+- Checkbox was misleading - Stripe Checkout Sessions don't save payment info
+- Aligns with Session 7 decision (removed payment info from account page)
+
+**Testing:**
+- Added 3-second sleep to backend `/user/logged-in` endpoint for testing
+- Verified promise flow with debug console logging
+- Tested anonymous user: Shows login/anonymous buttons after 3-second delay
+- Tested logged-in user: Shows Place Order button after 3-second delay
+- Removed sleep and debug logging before production deployment
+
+**Files Modified (Frontend PR #16):**
+- `js/index-0.0.2.js` - Expose `$.loginStatusReady` promise (3 lines changed)
+- `js/checkout/confirm-0.0.1.js` - Wait for promise before showing UI (18 lines changed)
+- `checkout/confirm` - Remove deprecated checkbox HTML (3 lines removed)
+
+**Production Verification:**
+- ✅ Logged-in users see Place Order button immediately (~100ms flash of buttons)
+- ✅ Anonymous users see login/anonymous buttons
+- ✅ No deprecated "save payment info" checkbox visible
+- ✅ All 88 frontend tests passing
+- ✅ ESLint: 0 errors, 3 warnings (unchanged)
+
+**Impact:**
+- Fixes critical UX bug preventing logged-in checkout
+- Clean architecture: Single source of truth for login status
+- Pattern reusable for future pages that need login status
+- No impact on other pages (cart, products, orders all work unchanged)
 
 ## Production Architecture
 

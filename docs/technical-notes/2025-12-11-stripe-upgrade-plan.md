@@ -732,7 +732,8 @@ Session 1 included email address updates that were never merged. After Stripe is
 - ✅ Documentation: `docs/technical-notes/2025-12-18-session-8-dead-code-cleanup-selenium-upgrade.md`
 
 **Session 9 (Complete - Merged to Master):**
-- ✅ Branch: `feature/stripe-webhook-production` (PR #55, merged and deployed)
+- ✅ Backend Branch: `feature/stripe-webhook-production` (PR #55, merged and deployed)
+- ✅ Frontend Branch: `bugfix/checkout-login-race-condition` (PR #16, merged and deployed)
 - ✅ Created webhook destination in Stripe TEST mode dashboard
   - URL: `https://startupwebapp-api.mosaicmeshai.com/order/stripe-webhook`
   - Events: `checkout.session.completed`, `checkout.session.expired`
@@ -744,8 +745,14 @@ Session 1 included email address updates that were never merged. After Stripe is
 - ✅ Idempotency verified (webhook + success handler)
 - ✅ Stripe Dashboard shows 200 OK responses
 - ✅ CloudWatch logs confirm successful order creation
-- ✅ All 724 tests passing, zero linting errors
-- ✅ Session duration: ~3 hours (including troubleshooting)
+- ✅ **BONUS**: Fixed checkout login race condition (Frontend PR #16)
+  - Exposed `$.loginStatusReady` promise to prevent race condition
+  - Checkout waits for login status before showing UI
+  - Removed deprecated "Save shipping and payment info" checkbox
+- ✅ Backend: All 724 tests passing, zero linting errors
+- ✅ Frontend: All 88 tests passing, ESLint clean
+- ✅ Production verified: Logged-in checkout working correctly
+- ✅ Session duration: ~5 hours (webhook config + frontend bugfix)
 - ✅ Documentation: `docs/technical-notes/2025-12-19-session-9-stripe-webhook-production.md`
 
 ---

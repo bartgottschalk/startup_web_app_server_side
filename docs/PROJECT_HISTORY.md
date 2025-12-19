@@ -1644,12 +1644,23 @@ See [Technical Note](technical-notes/2025-11-26-phase-5-15-production-deployment
   - Key: `stripe_webhook_secret`
 - ✅ Webhook delivery tested and verified working in production
 
-**Critical Bug Fix:**
+**Critical Bug Fix (Backend):**
 - ✅ Fixed Docker health check issue blocking deployment
   - Problem: ECS task definition used curl-based health check
   - Production image: curl not installed
   - Solution: Added curl to Dockerfile production stage (5 lines)
   - Deployment time: 20+ minutes stuck → 10 minutes successful
+
+**Critical Bug Fix (Frontend PR #16):**
+- ✅ Fixed checkout login race condition
+  - Problem: Logged-in users saw login/anonymous buttons (Place Order disabled)
+  - Root cause: Session 8 hotfix created race condition checking `$.user_logged_in` before API completed
+  - Solution: Exposed `$.loginStatusReady` promise, checkout waits with `.then()`
+  - Testing: Verified with 3-second backend delay + debug logging
+- ✅ Removed deprecated "Save shipping and payment information" checkbox
+  - Checkbox was misleading (Checkout Sessions don't save payment info)
+  - Aligns with Session 7 decision (removed payment info from account page)
+- ✅ All 88 frontend tests passing, ESLint clean
 
 **Production Testing:**
 - ✅ Completed test checkout with Stripe test card (4242...)
@@ -1666,10 +1677,11 @@ See [Technical Note](technical-notes/2025-11-26-phase-5-15-production-deployment
 - Production-grade payment reliability
 
 **Test Results:**
-- All 724 tests passing (692 unit + 32 functional)
-- Zero linting errors
+- Backend: All 724 tests passing (692 unit + 32 functional), zero linting errors
+- Frontend: All 88 tests passing (19 Checkout + 69 Index), ESLint clean
 - Webhook signature verification working (secret from AWS Secrets Manager)
 - Confirmation emails sending successfully
+- Checkout flow working for both logged-in and anonymous users
 
 **Why This Matters:**
 - Completes core payment infrastructure from Sessions 5-9
