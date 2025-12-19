@@ -72,6 +72,11 @@ LABEL maintainer="bart@mosaicmeshai.com"
 LABEL version="1.0.0"
 LABEL description="StartupWebApp Django Backend - Production"
 
+# Install curl for ECS health checks
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy only necessary files (no tests, no development tools)
 COPY StartupWebApp/ /app/
 
