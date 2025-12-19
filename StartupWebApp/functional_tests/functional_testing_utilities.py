@@ -2,13 +2,14 @@ from django.conf import settings
 import time
 # import boto3  # Commented out - not used in any tests
 from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.common.by import By
 
 MAX_WAIT = 10
 
 def wait_for_element_by_id_text_value(context, id, expected_value):
 	start_time = time.time()
 	while True:
-		new_value = context.browser.find_element_by_id(id).text
+		new_value = context.browser.find_element(By.ID, id).text
 		if expected_value == new_value:
 			return True
 		else:
@@ -19,7 +20,7 @@ def wait_for_element_by_id_text_value(context, id, expected_value):
 def wait_for_element_by_class_name_text_value(context, class_name, expected_value):
 	start_time = time.time()
 	while True:
-		new_value = context.browser.find_element_by_class_name(class_name).text
+		new_value = context.browser.find_element(By.CLASS_NAME, class_name).text
 		if expected_value == new_value:
 			return True
 		else:
@@ -40,7 +41,7 @@ def wait_for_page_title(context, expected_value):
 def wait_for_element_to_display_by_id(context, id):
 	start_time = time.time()
 	while True:
-		display_val = context.browser.find_element_by_id(id).value_of_css_property('display')
+		display_val = context.browser.find_element(By.ID, id).value_of_css_property('display')
 		if display_val == 'block':
 			return True
 		else:
@@ -52,7 +53,7 @@ def wait_for_element_to_load_by_id(context, id):
 	start_time = time.time()
 	while True:
 		try:
-			context.browser.find_element_by_id(id)
+			context.browser.find_element(By.ID, id)
 			return
 		except (AssertionError, WebDriverException) as e:
 			if time.time() - start_time > MAX_WAIT: 
@@ -63,7 +64,7 @@ def wait_for_element_to_load_by_class_name(context, class_name):
 	start_time = time.time()
 	while True:
 		try:
-			context.browser.find_element_by_class_name(class_name)
+			context.browser.find_element(By.CLASS_NAME, class_name)
 			return
 		except (AssertionError, WebDriverException) as e:
 			if time.time() - start_time > MAX_WAIT: 
@@ -74,7 +75,7 @@ def wait_click_by_id(context, id):
 	start_time = time.time()
 	while True:
 		try:
-			context.browser.find_element_by_id(id).click()
+			context.browser.find_element(By.ID, id).click()
 			return
 		except (AssertionError, WebDriverException) as e:
 			if time.time() - start_time > MAX_WAIT: 
@@ -85,7 +86,7 @@ def wait_click_by_class_name(context, class_name):
 	start_time = time.time()
 	while True:
 		try:
-			context.browser.find_element_by_class_name(class_name).click()
+			context.browser.find_element(By.CLASS_NAME, class_name).click()
 			return
 		except (AssertionError, WebDriverException) as e:
 			if time.time() - start_time > MAX_WAIT: 
@@ -96,9 +97,9 @@ def wait_for_shopping_cart_count(context, count_val, count_text):
 	start_time = time.time()
 	while True:
 		try:
-			shopping_cart_element = context.browser.find_element_by_id('header-shopping-cart')
-			context.assertEqual(shopping_cart_element.find_element_by_id('cart-item-count-wrapper').get_attribute("title"), count_text)
-			context.assertEqual(shopping_cart_element.find_element_by_id('cart-item-count-wrapper').text, count_val)
+			shopping_cart_element = context.browser.find_element(By.ID, 'header-shopping-cart')
+			context.assertEqual(shopping_cart_element.find_element(By.ID, 'cart-item-count-wrapper').get_attribute("title"), count_text)
+			context.assertEqual(shopping_cart_element.find_element(By.ID, 'cart-item-count-wrapper').text, count_val)
 			return
 		except (AssertionError, WebDriverException) as e:
 			if time.time() - start_time > MAX_WAIT: 
@@ -109,10 +110,10 @@ def wait_for_welcome_image_carousel(context, href_val, text_val, src_val):
 	start_time = time.time()
 	while True:
 		try:
-			context.assertIn(href_val, context.browser.find_element_by_id('welcome-image-carousel-link').get_attribute("href"))
-			context.assertEqual(context.browser.find_elements_by_class_name('welcome-image-carousel-quote-container')[0].text, text_val)
-			context.assertEqual(context.browser.find_elements_by_class_name('welcome-image-carousel-image')[0].get_attribute("alt"), text_val)
-			context.assertEqual(context.browser.find_elements_by_class_name('welcome-image-carousel-image')[0].get_attribute("src"), src_val)
+			context.assertIn(href_val, context.browser.find_element(By.ID, 'welcome-image-carousel-link').get_attribute("href"))
+			context.assertEqual(context.browser.find_elements(By.CLASS_NAME, 'welcome-image-carousel-quote-container')[0].text, text_val)
+			context.assertEqual(context.browser.find_elements(By.CLASS_NAME, 'welcome-image-carousel-image')[0].get_attribute("alt"), text_val)
+			context.assertEqual(context.browser.find_elements(By.CLASS_NAME, 'welcome-image-carousel-image')[0].get_attribute("src"), src_val)
 			return
 		except (AssertionError, WebDriverException) as e:
 			if time.time() - start_time > MAX_WAIT: 

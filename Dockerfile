@@ -30,14 +30,14 @@ RUN pip install --no-cache-dir --upgrade pip && \
 #############################################
 FROM base as development
 
-# Install Firefox ESR and geckodriver for Selenium tests
+# Install Firefox ESR and geckodriver for Selenium 4 functional tests
 RUN apt-get update && apt-get install -y \
     firefox-esr \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Install geckodriver for Selenium
-RUN GECKODRIVER_VERSION=0.33.0 && \
+# Install geckodriver for Selenium 4
+RUN GECKODRIVER_VERSION=0.35.0 && \
     wget -q https://github.com/mozilla/geckodriver/releases/download/v${GECKODRIVER_VERSION}/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz && \
     tar -xzf geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz && \
     mv geckodriver /usr/local/bin/ && \

@@ -6,6 +6,7 @@ from functional_tests import functional_testing_utilities
 from unittest import skip
 
 from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.common.by import By
 
 class ContactPageTests(BaseFunctionalTest):
 
@@ -14,10 +15,10 @@ class ContactPageTests(BaseFunctionalTest):
 		functional_testing_utilities.wait_for_page_title(self, 'Contact')
 		self.assertEqual('Contact', self.browser.title)
 
-		email_us_link = self.browser.find_element_by_id('email-us-link')
+		email_us_link = self.browser.find_element(By.ID, 'email-us-link')
 		self.assertEqual(email_us_link.get_attribute('href'), 'mailto:contact@startupwebapp.com?Subject=Contact%20Request')
 
-		call_us_link = self.browser.find_element_by_id('call-us-link')
+		call_us_link = self.browser.find_element(By.ID, 'call-us-link')
 		self.assertEqual(call_us_link.get_attribute('href'), 'tel:+1-800-800-8000')
 
 		#with self.assertRaises(WebDriverException):

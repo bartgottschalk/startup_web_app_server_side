@@ -379,43 +379,82 @@ discovered during Session 6 review.
 
 ---
 
-### Session 8: Testing & Bug Fixes (3-4 hours)
-**Branch:** `feature/stripe-testing`
+### Session 8: Dead Code Cleanup + Selenium Upgrade (4 hours) ✅ COMPLETE
+**Branch:** `feature/stripe-cleanup-dead-code` (merged to master via PR #54)
+**Date:** December 18, 2025
+
+**Tasks Completed:**
+- ✅ Removed 847 lines of deprecated Stripe v2 backend code
+- ✅ Removed 4 deprecated URL patterns
+- ✅ Removed ~2,193 lines of obsolete tests (45 tests)
+- ✅ Updated 1 test to remove payment data assertions
+- ✅ All 692 unit tests passing
+- ✅ Zero linting errors
+- ✅ **BONUS**: Upgraded Selenium 3.141.0 → 4.27.1
+- ✅ **BONUS**: Migrated all 31 functional tests to Selenium 4 syntax
+- ✅ **BONUS**: Added 1 new functional test (checkout success page)
+- ✅ All 32 functional tests passing
+
+**Deliverable:** ✅ Clean codebase with modern Selenium 4 testing infrastructure
+
+**Files Modified:**
+- Dead code removed from: `order/views.py`, `user/views.py`, `order_utils.py`
+- URL patterns cleaned: `order/urls.py`, `user/urls.py`
+- Tests removed from: 5 test files
+- Selenium 4: `requirements.txt`, `Dockerfile`, 6 functional test files
+
+**Test Count Changes:**
+- Unit tests: 737 → 692 (-45 obsolete)
+- Functional tests: 31 → 32 (+1 new)
+- **Total: 768 → 724 tests**
+
+---
+
+### Session 8.5: Functional Test Development (2-3 hours) - FUTURE
+**Branch:** `feature/functional-test-checkout-flow`
+
+**Goal:** Add comprehensive functional tests for checkout flow
+
+**Context:**
+Session 8 added 1 simple functional test but identified that comprehensive checkout
+flow testing requires more investigation of frontend structure. This session will
+complete the functional test coverage.
+
+**Prerequisites:**
+- Read `docs/technical-notes/2025-12-18-session-8-dead-code-cleanup-selenium-upgrade.md`
+- Review "Key Learnings for Future Functional Test Development" section
+- Frontend repository: `~/Projects/WebApps/StartUpWebApp/startup_web_app_client_side`
 
 **Tasks:**
-- ~~**Fix known backend bug**: Image URLs (FIXED IN SESSION 6)~~
-- **Add functional tests for 3 critical flows tested manually in Session 6**:
-  - **Test 1**: Logged-in member checkout flow (Selenium)
-    - Login, add to cart, checkout, complete Stripe payment, verify order created
-  - **Test 2**: Anonymous user checkout flow (Selenium)
-    - Add to cart, anonymous checkout with email, Stripe payment, verify order
-  - **Test 3**: Declined card error handling (Selenium)
-    - Attempt checkout with test declined card `4000 0000 0000 0002`
-    - Verify error shown, no order created, user can retry
-- Add missing unit tests for Session 6 bugfixes:
-  - Backend: Shipping line item in checkout session
-  - Backend: Prospect creation includes `created_date_time`
-  - Backend: `collected_information.shipping_details` handling
-  - Frontend: Decimal parsing helper or tests
-- Test saved payment methods (if applicable)
-- Test order confirmation emails in all scenarios
-- Test other error scenarios (network errors, timeouts, etc.)
-- **Remove dead code from frontend** (Session 6 marked as unused):
-  - `display_payment_data()` - ~45 lines
-  - `process_stripe_payment_token()` - ~45 lines
-  - `process_stripe_payment_token_callback()` - ~25 lines
-  - `confirm_place_order()` - ~120 lines
-  - `confirm_place_order_callback()` - ~50 lines
-  - Total: ~285 lines to remove from js/checkout/confirm-0.0.1.js
-- Fix any other bugs discovered
-- Run all 737+ backend tests
-- Run all 13+ frontend QUnit tests
-- Commit and merge
+1. Inspect frontend HTML/JS to map element IDs:
+   - Check `/cart` page source for actual element IDs
+   - Check `/checkout/confirm` page source for actual element IDs
+   - Understand JavaScript content loading patterns
 
-**Deliverable:** Fully tested Stripe integration with comprehensive test coverage
+2. Complete PRE-STRIPE functional tests:
+   - Add product to cart (click Add to Cart button)
+   - View cart with products, shipping methods, totals displayed
+   - Navigate to checkout confirm page
+   - Verify order summary (items, shipping, totals) displayed
+   - Verify Place Order button exists
 
-**Critical**: Session 6 manual testing revealed 9 bugs that were fixed. Session 8
-must add automated tests to prevent regressions.
+3. Complete POST-STRIPE functional tests:
+   - Solve authentication challenge (session cookies across frontend/backend)
+   - View order detail page with all information
+   - View order in My Orders list
+   - Success page with valid session_id (may need Stripe test integration)
+
+4. Uncomment and fix 2 TODOs in `functional_tests/checkout/test_checkout_flow.py`:
+   - `test_cart_page_structure()`
+   - `test_checkout_confirm_page_structure()`
+
+5. Run all tests (692 unit + 34-36 functional expected)
+6. Commit and merge
+
+**Deliverable:** Comprehensive functional test coverage for checkout flow
+
+**Note:** Frontend content loads dynamically via JavaScript. Tests must wait for
+content to load, not just check initial HTML.
 
 ---
 

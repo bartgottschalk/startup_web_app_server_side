@@ -4,6 +4,7 @@ import os
 
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.service import Service
 
 from datetime import timedelta
 
@@ -19,7 +20,9 @@ class BaseFunctionalTest(LiveServerTestCase):
 	# class variables
 	options = Options()
 	if "HEADLESS" in os.environ and os.environ['HEADLESS'] == 'TRUE':
-		options.headless = True
+		options.add_argument('--headless')
+	# Selenium 4: Explicitly set Firefox binary path for ARM64 compatibility
+	options.binary_location = '/usr/bin/firefox-esr'
 	host = '0.0.0.0'  # Bind to all interfaces so test server is accessible via Docker network hostname 'backend'
 	port = 60767 # hardcoding the port so that I can access the LiveServerTestCase API from the staticically deployed client at a predictable url:port combo
 	yesterday = start_date_time=timezone.now() - timedelta(days=1)
@@ -37,7 +40,9 @@ class BaseFunctionalTest(LiveServerTestCase):
 		static_home_page_url = "http://localliveservertestcase.startupwebapp.com:8080/"
 
 	def setUp(self):
-		self.browser = webdriver.Firefox(options=self.options)
+		# Selenium 4: Explicitly configure geckodriver path for ARM64 compatibility
+		service = Service(executable_path='/usr/local/bin/geckodriver')
+		self.browser = webdriver.Firefox(service=service, options=self.options)
 
 		# Setup necessary DB Objects
 		ClientEventConfiguration.objects.create(id=1, log_client_events=True)

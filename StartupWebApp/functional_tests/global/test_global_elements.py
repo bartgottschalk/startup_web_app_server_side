@@ -7,6 +7,7 @@ import time
 from unittest import skip
 
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException
 from selenium.common.exceptions import NoSuchElementException
 
@@ -32,10 +33,10 @@ class AnonymousGlobalNavigationTests(BaseFunctionalTest):
 		functional_testing_utilities.wait_click_by_id(self, 'header-hamburger-menu')
 
 		# she reads each item in the expanded menu
-		menu_expanded = self.browser.find_element_by_id('hamburger-menu-open')
+		menu_expanded = self.browser.find_element(By.ID, 'hamburger-menu-open')
 		expected_menu_values = ['Login', 'PythonABot', 'Products', 'About', 'Contact', 'Terms of Use', 'Privacy Policy']
-		for num, item in enumerate(menu_expanded.find_elements_by_tag_name("a"), start=0):
-			for element in item.find_elements_by_tag_name("menu-item-expanded"):
+		for num, item in enumerate(menu_expanded.find_elements(By.TAG_NAME, "a"), start=0):
+			for element in item.find_elements(By.TAG_NAME, "menu-item-expanded"):
 				self.assertEqual(element.text, expected_menu_values[num])
 		
 		# she notices the shopping cart icon, that it's empty and clicks on it
@@ -67,8 +68,8 @@ class AnonymousGlobalNavigationTests(BaseFunctionalTest):
 		functional_testing_utilities.wait_for_element_to_load_by_id(self, 'menu-login-link')
 
 		# she notices the Call Us link and clicks on it
-		self.assertEqual('tel:+1-800-800-8000', self.browser.find_element_by_id('header-phone-number').find_element_by_tag_name('a').get_attribute('href'))
-		call_us_element = self.browser.find_element_by_id('header-phone-number').find_element_by_tag_name('a')
+		self.assertEqual('tel:+1-800-800-8000', self.browser.find_element(By.ID, 'header-phone-number').find_element(By.TAG_NAME, 'a').get_attribute('href'))
+		call_us_element = self.browser.find_element(By.ID, 'header-phone-number').find_element(By.TAG_NAME, 'a')
 		try:
 			call_us_element.click()
 		except (WebDriverException) as e:  
@@ -93,29 +94,29 @@ class AnonymousGlobalFunctionalTests(BaseFunctionalTest):
 		functional_testing_utilities.wait_click_by_id(self, 'terms_and_conditions_agree_terms_of_use_link')
 
 		new_window_handle = functional_testing_utilities.wait_for_new_window_handle(self, previous_window_handles)
-		self.browser.switch_to_window(new_window_handle)
+		self.browser.switch_to.window(new_window_handle)
 
 		#self.assertEqual('Terms of Use', self.browser.title)
-		#self.browser.find_element_by_tag_name('body').send_keys(Keys.COMMAND + 'w')
-		self.browser.switch_to_window(main_window)
+		#self.browser.find_element(By.TAG_NAME, 'body').send_keys(Keys.COMMAND + 'w')
+		self.browser.switch_to.window(main_window)
 
 		previous_window_handles = self.browser.window_handles
 		functional_testing_utilities.wait_click_by_id(self, 'terms_and_conditions_agree_privacy_policy_link')
 
 		new_window_handle = functional_testing_utilities.wait_for_new_window_handle(self, previous_window_handles)
 
-		self.browser.switch_to_window(new_window_handle)
+		self.browser.switch_to.window(new_window_handle)
 
 		# Wait for the Privacy Policy page to load
 		functional_testing_utilities.wait_for_page_title(self, 'Privacy Policy')
 		self.assertEqual('Privacy Policy', self.browser.title)
-		#self.browser.find_element_by_tag_name('body').send_keys(Keys.COMMAND + 'w')
-		self.browser.switch_to_window(main_window)
+		#self.browser.find_element(By.TAG_NAME, 'body').send_keys(Keys.COMMAND + 'w')
+		self.browser.switch_to.window(main_window)
 
 		functional_testing_utilities.wait_click_by_class_name(self, 'footer-fixed-action-link')
 
 		# verify that the terms-and-conditions-agree-div is hidden
-		self.assertIn('hide', self.browser.find_element_by_id('terms-and-conditions-agree-div').get_attribute('class'))
+		self.assertIn('hide', self.browser.find_element(By.ID, 'terms-and-conditions-agree-div').get_attribute('class'))
 
 	def test_chat(self):
 		self.browser.get(self.static_home_page_url)
@@ -140,32 +141,32 @@ class AnonymousGlobalFunctionalTests(BaseFunctionalTest):
 		functional_testing_utilities.wait_click_by_class_name(self, 'footer-fixed-action-link')
 
 		# ensure that the div is currently hidden
-		self.assertIn('hide', self.browser.find_element_by_id('chat-dialogue-wrapper').get_attribute('class'))
+		self.assertIn('hide', self.browser.find_element(By.ID, 'chat-dialogue-wrapper').get_attribute('class'))
 		# ensure that the open chat icon is visible
-		self.assertNotIn('hide', self.browser.find_element_by_id('chat-icon').get_attribute('class'))
+		self.assertNotIn('hide', self.browser.find_element(By.ID, 'chat-icon').get_attribute('class'))
 		# ensure that the close chat icon is NOT visible
-		self.assertIn('hide', self.browser.find_element_by_id('chat-icon-close').get_attribute('class'))
+		self.assertIn('hide', self.browser.find_element(By.ID, 'chat-icon-close').get_attribute('class'))
 
 		# she clicks on the chat icon
 		functional_testing_utilities.wait_click_by_id(self, 'chat-icon-wrapper')
 
 		# ensure that the div is currently visible
-		self.assertNotIn('hide', self.browser.find_element_by_id('chat-dialogue-wrapper').get_attribute('class'))
+		self.assertNotIn('hide', self.browser.find_element(By.ID, 'chat-dialogue-wrapper').get_attribute('class'))
 		# ensure that the open chat icon is NOT visible
-		self.assertIn('hide', self.browser.find_element_by_id('chat-icon').get_attribute('class'))
+		self.assertIn('hide', self.browser.find_element(By.ID, 'chat-icon').get_attribute('class'))
 		# ensure that the close chat icon is visible
-		self.assertNotIn('hide', self.browser.find_element_by_id('chat-icon-close').get_attribute('class'))
+		self.assertNotIn('hide', self.browser.find_element(By.ID, 'chat-icon-close').get_attribute('class'))
 
 		# ensure that the div has the correct contents
-		self.assertEqual(self.browser.find_element_by_class_name('chat-dialogue-header-intro').text, 'So sorry, but we\'re unavailable to chat at this time.')
-		self.assertEqual(self.browser.find_element_by_class_name('chat-dialogue-header-message').text, 'Please submit your message and we\'ll get back to you as soon as possible!')
-		name_input_box = self.browser.find_element_by_id('chat-dialogue-name')
+		self.assertEqual(self.browser.find_element(By.CLASS_NAME, 'chat-dialogue-header-intro').text, 'So sorry, but we\'re unavailable to chat at this time.')
+		self.assertEqual(self.browser.find_element(By.CLASS_NAME, 'chat-dialogue-header-message').text, 'Please submit your message and we\'ll get back to you as soon as possible!')
+		name_input_box = self.browser.find_element(By.ID, 'chat-dialogue-name')
 		self.assertEqual(name_input_box.get_attribute('placeholder'), 'Name *')
-		email_address_input_box = self.browser.find_element_by_id('chat-dialogue-email-address')
+		email_address_input_box = self.browser.find_element(By.ID, 'chat-dialogue-email-address')
 		self.assertEqual(email_address_input_box.get_attribute('placeholder'), 'Email Address *')
-		message_input_box = self.browser.find_element_by_id('chat-dialogue-message')
+		message_input_box = self.browser.find_element(By.ID, 'chat-dialogue-message')
 		self.assertEqual(message_input_box.get_attribute('placeholder'), 'Message *')
-		chat_go_button = self.browser.find_element_by_id('submit-message-go')
+		chat_go_button = self.browser.find_element(By.ID, 'submit-message-go')
 		self.assertEqual(chat_go_button.get_attribute('value'), 'SUBMIT MESSAGE')
 
 		# she submits a chat message
@@ -178,15 +179,15 @@ class AnonymousGlobalFunctionalTests(BaseFunctionalTest):
 		functional_testing_utilities.wait_for_element_by_class_name_text_value(self, 'chat-dialogue-header-intro', 'Thank you. We got your message.')
 
 		# she gets a confirmation response
-		self.assertEqual(self.browser.find_element_by_class_name('chat-dialogue-header-intro').text, 'Thank you. We got your message.')
-		self.assertEqual(self.browser.find_element_by_class_name('chat-dialogue-header-message').text, 'We\'ll get back to you ASAP!')
-		self.assertEqual(self.browser.find_element_by_id('chat-dialogue-go-button-wrapper').text, 'Name: Test Name\nEmail Address: test@test.com\nMessage:\nHi! I have a questions...?')
+		self.assertEqual(self.browser.find_element(By.CLASS_NAME, 'chat-dialogue-header-intro').text, 'Thank you. We got your message.')
+		self.assertEqual(self.browser.find_element(By.CLASS_NAME, 'chat-dialogue-header-message').text, 'We\'ll get back to you ASAP!')
+		self.assertEqual(self.browser.find_element(By.ID, 'chat-dialogue-go-button-wrapper').text, 'Name: Test Name\nEmail Address: test@test.com\nMessage:\nHi! I have a questions...?')
 
 		# she clicks on the close chat icon
 		functional_testing_utilities.wait_click_by_id(self, 'chat-icon-wrapper')
 		# ensure that the div is currently hidden
-		self.assertIn('hide', self.browser.find_element_by_id('chat-dialogue-wrapper').get_attribute('class'))
+		self.assertIn('hide', self.browser.find_element(By.ID, 'chat-dialogue-wrapper').get_attribute('class'))
 		# ensure that the open chat icon is visible
-		self.assertNotIn('hide', self.browser.find_element_by_id('chat-icon').get_attribute('class'))
+		self.assertNotIn('hide', self.browser.find_element(By.ID, 'chat-icon').get_attribute('class'))
 		# ensure that the close chat icon is NOT visible
-		self.assertIn('hide', self.browser.find_element_by_id('chat-icon-close').get_attribute('class'))
+		self.assertIn('hide', self.browser.find_element(By.ID, 'chat-icon-close').get_attribute('class'))

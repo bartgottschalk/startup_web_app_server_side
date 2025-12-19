@@ -29,8 +29,7 @@ whitenoise==6.7.0  # Static file serving for Python web apps (Django Admin CSS)
 
 # Testing (dev dependencies)
 coverage==6.2
-selenium==3.141.0  # Last 3.x version
-urllib3<2.0.0  # Selenium 3.x requires urllib3 1.x
+selenium==4.27.1  # Selenium 4.x with modern API (upgraded from 3.141.0 December 2025)
 
 # Code Quality (linting)
 flake8==7.3.0

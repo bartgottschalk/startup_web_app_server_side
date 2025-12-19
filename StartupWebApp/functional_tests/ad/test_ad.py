@@ -2,6 +2,7 @@
 
 from functional_tests.base_functional_test import BaseFunctionalTest
 from functional_tests import functional_testing_utilities
+from selenium.webdriver.common.by import By
 
 from unittest import skip
 
@@ -14,7 +15,7 @@ class AdPageTests(BaseFunctionalTest):
 
         functional_testing_utilities.wait_for_element_to_load_by_id(self, 'pythonabot-google-ad-example')
         # ensure the ad link is correct
-        self.assertIn('/pythonabot?ad_cd=E0y04nClr68pywMIyUxn', self.browser.find_element_by_id('pythonabot-google-ad-example').get_attribute('href'))
+        self.assertIn('/pythonabot?ad_cd=E0y04nClr68pywMIyUxn', self.browser.find_element(By.ID, 'pythonabot-google-ad-example').get_attribute('href'))
         # ensure that the add image is visible
-        self.assertNotIn('hide', self.browser.find_element_by_id('pythonabot-google-ad-example-img').get_attribute('class'))
+        self.assertNotIn('hide', self.browser.find_element(By.ID, 'pythonabot-google-ad-example-img').get_attribute('class'))
 
