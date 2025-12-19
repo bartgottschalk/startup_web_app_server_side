@@ -193,7 +193,7 @@ class EmailAdmin(admin.ModelAdmin):
                         subject=email.subject,
                         body=formatted_body_text,
                         from_email=email.from_address,
-                        to=['contact@startupwebapp.com'],
+                        to=['bart+startupwebapp@mosaicmeshai.com'],
                         bcc=[email.bcc_address],
                         reply_to=[email.from_address],
                     )

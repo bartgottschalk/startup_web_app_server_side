@@ -204,7 +204,7 @@ class CreateCheckoutSessionEndpointTest(PostgreSQLTestCase):
     @patch('order.utilities.order_utils.look_up_cart')
     @patch('stripe.checkout.Session.create')
     def test_create_checkout_session_success_without_email(self, mock_stripe_session, mock_look_up_cart):
-        """Test successful checkout session creation when no user email available"""
+        """Test successful checkout session creation when no email provided (truly anonymous)"""
         # Mock Stripe response
         mock_session = MagicMock()
         mock_session.id = 'cs_test_789'
@@ -218,7 +218,7 @@ class CreateCheckoutSessionEndpointTest(PostgreSQLTestCase):
         # Mock cart lookup to return anonymous cart
         mock_look_up_cart.return_value = anon_cart
 
-        # Don't log in - anonymous request
+        # Don't log in - anonymous request with NO email
         response = self.client.post('/order/create-checkout-session', {})
 
         unittest_utilities.validate_response_is_OK_and_JSON(self, response)
@@ -231,9 +231,44 @@ class CreateCheckoutSessionEndpointTest(PostgreSQLTestCase):
         mock_stripe_session.assert_called_once()
         call_args = mock_stripe_session.call_args
 
-        # For users without email, customer_email should not be in params
+        # When no email provided, customer_email should not be in params
         # (Stripe will collect it during checkout)
         self.assertNotIn('customer_email', call_args.kwargs)
+
+    @patch('order.utilities.order_utils.look_up_cart')
+    @patch('stripe.checkout.Session.create')
+    def test_create_checkout_session_with_anonymous_email(self, mock_stripe_session, mock_look_up_cart):
+        """Test checkout session pre-fills email for anonymous users who entered email"""
+        # Mock Stripe response
+        mock_session = MagicMock()
+        mock_session.id = 'cs_test_anonymous'
+        mock_session.url = 'https://checkout.stripe.com/c/pay/cs_test_anonymous'
+        mock_stripe_session.return_value = mock_session
+
+        # Create anonymous cart (no member)
+        anon_cart = Cart.objects.create()
+        Cartsku.objects.create(cart=anon_cart, sku=self.sku, quantity=1)
+
+        # Mock cart lookup to return anonymous cart
+        mock_look_up_cart.return_value = anon_cart
+
+        # Anonymous request WITH email (from checkout form)
+        response = self.client.post('/order/create-checkout-session', {
+            'anonymous_email_address': 'anon@test.com'
+        })
+
+        unittest_utilities.validate_response_is_OK_and_JSON(self, response)
+
+        data = json.loads(response.content.decode('utf8'))
+        self.assertEqual(data['create_checkout_session'], 'success')
+
+        # Verify Stripe was called with the anonymous email
+        mock_stripe_session.assert_called_once()
+        call_args = mock_stripe_session.call_args
+
+        # Email should be pre-filled for Stripe checkout
+        self.assertIn('customer_email', call_args.kwargs)
+        self.assertEqual(call_args.kwargs['customer_email'], 'anon@test.com')
 
     @patch('stripe.checkout.Session.create')
     def test_create_checkout_session_handles_stripe_error(self, mock_stripe_session):

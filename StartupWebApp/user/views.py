@@ -429,26 +429,25 @@ def create_account(request):
                 'If you did NOT register for an account at '
                 + settings.ENVIRONMENT_DOMAIN
                 + ' using this email address, do not click on the link. Instead, please forward '
-                'this notification to contact@startupwebapp.com and let us know that you did not '
+                'this notification to bart+startupwebapp@mosaicmeshai.com and let us know that you did not '
                 'request this account and we\'ll dig in further to figure out what is going on.'
             )
             welcome_email_content += '\r\n\r\n'
             welcome_email_content += (
                 'If you have questions or would like to reach us for any reason you can reply to '
-                'this email or call us toll-free at 1-844-473-3744.'
+                'this email or call us toll-free at 1-800-123-4567.'
             )
             welcome_email_content += '\r\n\r\n'
             welcome_email_content += 'We\'re excited to have you as a member!'
             welcome_email_content += '\r\n'
-            welcome_email_content += 'StartUpWebApp.com'
+            welcome_email_content += 'StartUpWebApp'
 
             email = EmailMessage(
                 subject='Welcome to ' + settings.ENVIRONMENT_DOMAIN,
                 body=welcome_email_content,
-                from_email='contact@startupwebapp.com',
+                from_email='StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>',
                 to=[request.user.email],
-                bcc=['contact@startupwebapp.com'],
-                reply_to=['contact@startupwebapp.com'],
+                reply_to=['StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>'],
             )
             try:
                 email.send(fail_silently=False)
@@ -512,26 +511,25 @@ def verify_email_address(request):
         verification_email_content += '\r\n\r\n'
         verification_email_content += (
             'If you did NOT request to verify this email address, do not click on the link. If '
-            'you are concerned, please forward this notification to contact@startupwebapp.com and '
+            'you are concerned, please forward this notification to bart+startupwebapp@mosaicmeshai.com and '
             'let us know that you did not request the verification.'
         )
         verification_email_content += '\r\n\r\n'
         verification_email_content += (
             'If you have questions or would like to reach us for any reason you can reply to this '
-            'email or call us toll-free at 1-844-473-3744.'
+            'email or call us toll-free at 1-800-123-4567.'
         )
         verification_email_content += '\r\n\r\n'
         verification_email_content += 'Sincerely,'
         verification_email_content += '\r\n'
-        verification_email_content += 'StartUpWebApp.com'
+        verification_email_content += 'StartUpWebApp'
 
         email = EmailMessage(
             subject='Email Verification Request for ' + settings.ENVIRONMENT_DOMAIN,
             body=verification_email_content,
-            from_email='contact@startupwebapp.com',
+            from_email='StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>',
             to=[request.user.email],
-            bcc=['contact@startupwebapp.com'],
-            reply_to=['contact@startupwebapp.com'],
+            reply_to=['StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>'],
         )
         try:
             email.send(fail_silently=False)
@@ -622,26 +620,25 @@ def reset_password(request):
             reset_password_content += '\r\n\r\n'
             reset_password_content += (
                 'If you did NOT request to reset your password, do not click on the link. If you are '
-                'concerned, please forward this notification to contact@startupwebapp.com and let us '
+                'concerned, please forward this notification to bart+startupwebapp@mosaicmeshai.com and let us '
                 'know that you did not request the password reset.'
             )
             reset_password_content += '\r\n\r\n'
             reset_password_content += (
                 'If you have questions or would like to reach us for any reason you can reply to this '
-                'email or call us toll-free at 1-844-473-3744.'
+                'email or call us toll-free at 1-800-123-4567.'
             )
             reset_password_content += '\r\n\r\n'
             reset_password_content += 'Sincerely,'
             reset_password_content += '\r\n'
-            reset_password_content += 'StartupWebApp.com'
+            reset_password_content += 'StartUpWebApp'
 
             email = EmailMessage(
                 subject='Password Reset Request for ' + settings.ENVIRONMENT_DOMAIN,
                 body=reset_password_content,
-                from_email='contact@startupwebapp.com',
+                from_email='StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>',
                 to=[user.email],
-                bcc=['contact@startupwebapp.com'],
-                reply_to=['contact@startupwebapp.com'],
+                reply_to=['StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>'],
             )
             try:
                 email.send(fail_silently=False)
@@ -688,26 +685,25 @@ def set_new_password(request):
                     set_new_password_confirmation_content += '\r\n\r\n'
                     set_new_password_confirmation_content += (
                         'If you did NOT make this change, please forward this notification to '
-                        'contact@startupwebapp.com and let us know that you did not request the password '
+                        'bart+startupwebapp@mosaicmeshai.com and let us know that you did not request the password '
                         'change.'
                     )
                     set_new_password_confirmation_content += '\r\n\r\n'
                     set_new_password_confirmation_content += (
                         'If you have questions or would like to reach us for any reason you can reply to '
-                        'this email or call us toll-free at 1-844-473-3744.'
+                        'this email or call us toll-free at 1-800-123-4567.'
                     )
                     set_new_password_confirmation_content += '\r\n\r\n'
                     set_new_password_confirmation_content += 'Sincerely,'
                     set_new_password_confirmation_content += '\r\n'
-                    set_new_password_confirmation_content += 'StartupWebApp.com'
+                    set_new_password_confirmation_content += 'StartUpWebApp'
 
                     email = EmailMessage(
                         subject='Password Changed on ' + settings.ENVIRONMENT_DOMAIN,
                         body=set_new_password_confirmation_content,
-                        from_email='contact@startupwebapp.com',
+                        from_email='StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>',
                         to=[user.email],
-                        bcc=['contact@startupwebapp.com'],
-                        reply_to=['contact@startupwebapp.com'],
+                        reply_to=['StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>'],
                     )
                     try:
                         email.send(fail_silently=False)
@@ -778,26 +774,25 @@ def forgot_username(request):
             forgot_username_content += '\r\n\r\n'
             forgot_username_content += (
                 'If you did NOT submit a request for this username reminder do not click on the link. '
-                'If you are concerned, please forward this notification to contact@startupwebapp.com and '
+                'If you are concerned, please forward this notification to bart+startupwebapp@mosaicmeshai.com and '
                 'let us know that you did not request this username reminder.'
             )
             forgot_username_content += '\r\n\r\n'
             forgot_username_content += (
                 'If you have questions or would like to reach us for any reason you can reply to this '
-                'email or call us toll-free at 1-844-473-3744.'
+                'email or call us toll-free at 1-800-123-4567.'
             )
             forgot_username_content += '\r\n\r\n'
             forgot_username_content += 'Sincerely,'
             forgot_username_content += '\r\n'
-            forgot_username_content += 'StartupWebApp.com'
+            forgot_username_content += 'StartUpWebApp'
 
             email = EmailMessage(
                 subject='Forgot Username Request for ' + settings.ENVIRONMENT_DOMAIN,
                 body=forgot_username_content,
-                from_email='contact@startupwebapp.com',
+                from_email='StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>',
                 to=[user.email],
-                bcc=['contact@startupwebapp.com'],
-                reply_to=['contact@startupwebapp.com'],
+                reply_to=['StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>'],
             )
             try:
                 email.send(fail_silently=False)
@@ -877,26 +872,25 @@ def update_my_information(request):
                 'If you did NOT make this request to change your email address for your account at '
                 + settings.ENVIRONMENT_DOMAIN
                 + ' , do not click on the link. Instead, please forward this notification to '
-                'contact@startupwebapp.com and let us know that you did not request this email address '
+                'bart+startupwebapp@mosaicmeshai.com and let us know that you did not request this email address '
                 'change and we\'ll dig in further to figure out what is going on.'
             )
             edit_my_information_email_content += '\r\n\r\n'
             edit_my_information_email_content += (
                 'If you have questions or would like to reach us for any reason you can reply to this '
-                'email or call us toll-free at 1-844-473-3744.'
+                'email or call us toll-free at 1-800-123-4567.'
             )
             edit_my_information_email_content += '\r\n\r\n'
             edit_my_information_email_content += 'Sincerely,'
             edit_my_information_email_content += '\r\n'
-            edit_my_information_email_content += 'StartupWebApp.com'
+            edit_my_information_email_content += 'StartUpWebApp'
 
             email = EmailMessage(
                 subject='Email Address Changed on ' + settings.ENVIRONMENT_DOMAIN,
                 body=edit_my_information_email_content,
-                from_email='contact@startupwebapp.com',
+                from_email='StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>',
                 to=[request.user.email, old_email_address],
-                bcc=['contact@startupwebapp.com'],
-                reply_to=['contact@startupwebapp.com'],
+                reply_to=['StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>'],
             )
             try:
                 email.send(fail_silently=False)
@@ -1052,26 +1046,25 @@ def change_my_password(request):
                 change_password_confirmation_content += '\r\n\r\n'
                 change_password_confirmation_content += (
                     'If you did NOT make this change, please forward this notification to '
-                    'contact@startupwebapp.com and let us know that you did not request the password '
+                    'bart+startupwebapp@mosaicmeshai.com and let us know that you did not request the password '
                     'change.'
                 )
                 change_password_confirmation_content += '\r\n\r\n'
                 change_password_confirmation_content += (
                     'If you have questions or would like to reach us for any reason you can reply to this '
-                    'email or call us toll-free at 1-844-473-3744.'
+                    'email or call us toll-free at 1-800-123-4567.'
                 )
                 change_password_confirmation_content += '\r\n\r\n'
                 change_password_confirmation_content += 'Sincerely,'
                 change_password_confirmation_content += '\r\n'
-                change_password_confirmation_content += 'StartupWebApp.com'
+                change_password_confirmation_content += 'StartUpWebApp'
 
                 email = EmailMessage(
                     subject='Password Changed on ' + settings.ENVIRONMENT_DOMAIN,
                     body=change_password_confirmation_content,
-                    from_email='contact@startupwebapp.com',
+                    from_email='StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>',
                     to=[user.email],
-                    bcc=['contact@startupwebapp.com'],
-                    reply_to=['contact@startupwebapp.com'],
+                    reply_to=['StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>'],
                 )
                 try:
                     email.send(fail_silently=False)
@@ -1503,14 +1496,14 @@ def put_chat_message(request):
         chat_message_content += '\r\n\r\n'
         chat_message_content += 'Check it out!'
         chat_message_content += '\r\n'
-        chat_message_content += 'StartupWebApp.com'
+        chat_message_content += 'StartUpWebApp'
 
         email = EmailMessage(
             subject='New Chat Message @ ' + settings.ENVIRONMENT_DOMAIN,
             body=chat_message_content,
-            from_email='contact@startupwebapp.com',
-            to=['contact@startupwebapp.com'],
-            reply_to=['contact@startupwebapp.com'],
+            from_email='StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>',
+            to=['bart+startupwebapp@mosaicmeshai.com'],
+            reply_to=['StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>'],
         )
         try:
             # raise ValueError('A very specific bad thing happened.')

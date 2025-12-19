@@ -937,6 +937,11 @@ def create_checkout_session(request):
         customer_email = None
         if request.user.is_authenticated:
             customer_email = request.user.email
+        else:
+            # For anonymous users, use email from checkout form (pre-fills Stripe)
+            # User can still change it at Stripe checkout page if needed
+            if request.method == 'POST' and 'anonymous_email_address' in request.POST:
+                customer_email = request.POST.get('anonymous_email_address')
 
         # Build success and cancel URLs
         success_url = f"{frontend_domain}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}"
