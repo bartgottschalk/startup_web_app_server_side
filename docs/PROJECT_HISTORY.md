@@ -1625,6 +1625,66 @@ See [Technical Note](technical-notes/2025-11-26-phase-5-15-production-deployment
 
 ---
 
+### **Phase 5.16 - Session 9: Stripe Webhook Production Configuration** ✅ (December 19, 2025)
+
+**Branch**: `feature/stripe-webhook-production` (merged to master via PR #55)
+**Duration**: ~3 hours (including troubleshooting)
+
+**Milestone**: Activated Stripe webhook infrastructure in production for reliable payment processing
+
+**What Was Accomplished:**
+
+**Stripe Webhook Configuration:**
+- ✅ Created webhook destination in Stripe TEST mode dashboard
+  - URL: `https://startupwebapp-api.mosaicmeshai.com/order/stripe-webhook`
+  - Events: `checkout.session.completed`, `checkout.session.expired`
+  - Destination ID: `we_1Sg7IY1L9oz9ETFuPSIFcsem`
+- ✅ Configured webhook signing secret in AWS Secrets Manager
+  - Secret: `rds/startupwebapp/multi-tenant/master`
+  - Key: `stripe_webhook_secret`
+- ✅ Webhook delivery tested and verified working in production
+
+**Critical Bug Fix:**
+- ✅ Fixed Docker health check issue blocking deployment
+  - Problem: ECS task definition used curl-based health check
+  - Production image: curl not installed
+  - Solution: Added curl to Dockerfile production stage (5 lines)
+  - Deployment time: 20+ minutes stuck → 10 minutes successful
+
+**Production Testing:**
+- ✅ Completed test checkout with Stripe test card (4242...)
+- ✅ Webhook received and processed successfully
+- ✅ Order created via webhook: `qWUrhAgvtU`
+- ✅ Idempotency verified (webhook + success handler both handled same session)
+- ✅ Stripe Dashboard shows 200 OK webhook responses
+- ✅ CloudWatch logs confirm successful order creation
+
+**Reliability Benefits:**
+- **Before**: Order only created if user completes redirect to success page
+- **After**: Stripe webhook creates order even if browser closed
+- Backup mechanism ensures no lost orders
+- Production-grade payment reliability
+
+**Test Results:**
+- All 724 tests passing (692 unit + 32 functional)
+- Zero linting errors
+- Webhook signature verification working (secret from AWS Secrets Manager)
+- Confirmation emails sending successfully
+
+**Why This Matters:**
+- Completes core payment infrastructure from Sessions 5-9
+- Provides production reliability for checkout flow
+- Webhook + success handler create dual safety net
+- Ready for real customer transactions (in forks with live Stripe keys)
+
+**Documentation:**
+- Created: `docs/technical-notes/2025-12-19-session-9-stripe-webhook-production.md`
+- Comprehensive troubleshooting guide for deployment issues
+
+**See**: `docs/technical-notes/2025-12-19-session-9-stripe-webhook-production.md`
+
+---
+
 #### Phase 5.17: Production Hardening (Future)
 - AWS WAF for security
 - Enhanced CloudWatch monitoring
