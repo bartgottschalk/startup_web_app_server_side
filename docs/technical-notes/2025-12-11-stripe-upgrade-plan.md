@@ -410,15 +410,16 @@ discovered during Session 6 review.
 
 ---
 
-### Session 8.5: Functional Test Development (2-3 hours) - FUTURE
+### Session 11: Functional Test Development (2-3 hours)
 **Branch:** `feature/functional-test-checkout-flow`
 
 **Goal:** Add comprehensive functional tests for checkout flow
 
 **Context:**
 Session 8 added 1 simple functional test but identified that comprehensive checkout
-flow testing requires more investigation of frontend structure. This session will
-complete the functional test coverage.
+flow testing requires more investigation of frontend structure. Deferred until after
+core payment infrastructure complete (Sessions 9-10). This session will complete
+the functional test coverage and address automation debt.
 
 **Prerequisites:**
 - Read `docs/technical-notes/2025-12-18-session-8-dead-code-cleanup-selenium-upgrade.md`
@@ -545,7 +546,7 @@ Session 1 included email address updates that were never merged. After Stripe is
 
 ---
 
-### Session 11: Final Documentation & Cleanup (1-2 hours)
+### Session 12: Final Documentation & Cleanup (1-2 hours)
 **Branch:** `feature/stripe-final-docs`
 
 **Tasks:**
@@ -621,8 +622,9 @@ Session 1 included email address updates that were never merged. After Stripe is
 
 ## Current Session Status
 
-**Session:** Session 9 Complete - Stripe Webhook Production Configuration
+**Session:** Session 9 Complete - Stripe Webhook Production Configuration + Frontend Bugfix
 **Date:** December 19, 2025
+**Next:** Session 10 - Email Updates from Session 1
 
 **Session 1 (Complete - SUPERSEDED, NOT TO BE MERGED):**
 - ✅ Email address changes in code (7 email types updated)

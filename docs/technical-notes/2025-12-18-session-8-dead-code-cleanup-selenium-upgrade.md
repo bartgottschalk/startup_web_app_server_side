@@ -180,7 +180,7 @@ Successfully removed 847 lines of deprecated Stripe v2 code and 2,193 lines of o
 
 ### Recommendations for Future Sessions
 
-**For Session 8.5 (Functional Test Development):**
+**For Session 11 (Functional Test Development):**
 
 1. **Inspect frontend HTML/JS first** before writing tests
    - Check actual element IDs in source files
@@ -243,7 +243,7 @@ Successfully removed 847 lines of deprecated Stripe v2 code and 2,193 lines of o
 
 ## Next Steps
 
-**Session 8.5 (Future): Complete Functional Test Coverage**
+**Session 11 (Future): Complete Functional Test Coverage**
 
 **Goal**: Add comprehensive functional tests for checkout flow
 
