@@ -36,16 +36,11 @@ urlpatterns = [
     path('confirm-shipping-method', views.confirm_shipping_method, name='confirm_shipping_method'),
     path('confirm-discount-codes', views.confirm_discount_codes, name='confirm_discount_codes'),
     path('confirm-totals', views.confirm_totals, name='confirm_totals'),
-    path('confirm-payment-data', views.confirm_payment_data, name='confirm_payment_data'),
-    path('confirm-place-order', views.confirm_place_order, name='confirm_place_order'),
 
     path('create-checkout-session', views.create_checkout_session, name='create_checkout_session'),
     path('checkout-session-success', views.checkout_session_success, name='checkout_session_success'),
     path('stripe-webhook', views.stripe_webhook, name='stripe_webhook'),
 
-    path('process-stripe-payment-token',
-         views.process_stripe_payment_token,
-         name='process_stripe_payment_token'),
     path('anonymous-email-address-payment-lookup',
          views.anonymous_email_address_payment_lookup,
          name='anonymous_email_address_payment_lookup'),

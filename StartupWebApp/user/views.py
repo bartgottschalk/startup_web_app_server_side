@@ -13,7 +13,6 @@ from django.db.models import Max
 from smtplib import SMTPDataError
 from django.core.signing import TimestampSigner, Signer, SignatureExpired, BadSignature
 from user.models import (
-    Defaultshippingaddress,
     Member,
     Emailunsubscribereasons,
     Termsofuse,
@@ -26,7 +25,6 @@ from StartupWebApp.form import validator
 from StartupWebApp.utilities import random, identifier, email_helpers
 from clientevent.models import Configuration as ClientEventConfiguration
 from django.utils import timezone
-import json
 from order.utilities import order_utils
 import stripe
 import logging
@@ -268,29 +266,12 @@ def account_content(request):
             orders_data[order_order_counter]['sales_tax_amt'] = order.sales_tax_amt
             orders_data[order_order_counter]['order_total'] = order.order_total
             order_order_counter += 1
-        stripe_publishable_key = settings.STRIPE_PUBLISHABLE_SECRET_KEY
-
-        shipping_billing_addresses_and_payment_dict = {}
-        if request.user.member.use_default_shipping_and_payment_info:
-            if (
-                request.user.member.default_shipping_address is not None
-                and request.user.member.stripe_customer_token is not None
-            ):
-                shipping_address_dict = order_utils.load_address_dict(request.user.member.default_shipping_address)
-                stripe_customer_token = request.user.member.stripe_customer_token
-                customer = order_utils.retrieve_stripe_customer(stripe_customer_token)
-                if customer is not None:
-                    shipping_billing_addresses_and_payment_dict = order_utils.get_stripe_customer_payment_data(
-                        customer, shipping_address_dict, None
-                    )
 
         response_data = {
             "authenticated": "true",
             "personal_data": personal_data,
             "email_data": email_data,
             "orders_data": orders_data,
-            "shipping_billing_addresses_and_payment_data": shipping_billing_addresses_and_payment_dict,
-            'stripe_publishable_key': stripe_publishable_key,
         }
     else:
         # print ('not_authenticated')
@@ -1445,106 +1426,6 @@ def terms_of_use_agree(request):
         error_dict = {"error": 'version-required'}
         response = JsonResponse(
             {'terms_of_use_agree': 'error', 'errors': error_dict, 'user-api-version': user_api_version}, safe=False
-        )
-    return response
-
-
-def process_stripe_payment_token(request):
-    # raise ValueError('A very specific bad thing happened.')
-    stripe_token = None
-    if request.method == 'POST' and 'stripe_token' in request.POST:
-        stripe_token = request.POST['stripe_token']
-
-    email = None
-    if request.method == 'POST' and 'email' in request.POST:
-        email = request.POST['email']
-
-    stripe_payment_args = None
-    if request.method == 'POST' and 'stripe_payment_args' in request.POST:
-        stripe_payment_args = request.POST['stripe_payment_args']
-    stripe_payment_args = json.loads(stripe_payment_args)
-
-    if stripe_token is not None:
-        try:
-            if request.user.member.stripe_customer_token is None:
-                customer = order_utils.create_stripe_customer(
-                    stripe_token, email, 'member_username', request.user.username
-                )
-                request.user.member.stripe_customer_token = customer.id
-                request.user.member.use_default_shipping_and_payment_info = True
-                request.user.member.save()
-            else:
-                card = order_utils.stripe_customer_add_card(request.user.member.stripe_customer_token, stripe_token)
-                order_utils.stripe_customer_change_default_payemnt(request.user.member.stripe_customer_token, card.id)
-                request.user.member.use_default_shipping_and_payment_info = True
-                request.user.member.save()
-
-            if 'shipping_address_state' in stripe_payment_args:
-                shipping_address_state = stripe_payment_args['shipping_address_state']
-            else:
-                shipping_address_state = ''
-            if request.user.member.default_shipping_address is None:
-                # create Default Shipping Address object
-                default_shipping_address = Defaultshippingaddress.objects.create(
-                    name=stripe_payment_args['shipping_name'],
-                    address_line1=stripe_payment_args['shipping_address_line1'],
-                    city=stripe_payment_args['shipping_address_city'],
-                    state=shipping_address_state,
-                    zip=stripe_payment_args['shipping_address_zip'],
-                    country=stripe_payment_args['shipping_address_country'],
-                    country_code=stripe_payment_args['shipping_address_country_code'],
-                )
-                request.user.member.default_shipping_address = default_shipping_address
-                request.user.member.save()
-            else:
-                # update existing member default shipping address
-                default_shipping_address = request.user.member.default_shipping_address
-                default_shipping_address.name = stripe_payment_args['shipping_name']
-                default_shipping_address.address_line1 = stripe_payment_args['shipping_address_line1']
-                default_shipping_address.city = stripe_payment_args['shipping_address_city']
-                default_shipping_address.state = shipping_address_state
-                default_shipping_address.zip = stripe_payment_args['shipping_address_zip']
-                default_shipping_address.country = stripe_payment_args['shipping_address_country']
-                default_shipping_address.country_code = stripe_payment_args['shipping_address_country_code']
-                default_shipping_address.save()
-
-            response = JsonResponse(
-                {'process_stripe_payment_token': 'success', 'user-api-version': user_api_version}, safe=False
-            )
-        except (
-            stripe.error.CardError,
-            stripe.error.RateLimitError,
-            stripe.error.InvalidRequestError,
-            stripe.error.AuthenticationError,
-            stripe.error.APIConnectionError,
-            stripe.error.StripeError,
-        ) as e:
-            # Since it's a decline, stripe.error.CardError will be caught
-            body = e.json_body
-            err = body.get('error', {})
-
-            logger.error(
-                f"Stripe CardError - Status: {
-                    e.http_status}, Type: {
-                    err.get('type')}, Code: {
-                    err.get('code')}, Param: {
-                    err.get('param')}, Message: {
-                        err.get('message')}"
-            )
-
-            error_dict = {
-                "error": 'error-creating-stripe-customer',
-                'description': 'An error occurred while processing your request.',
-            }
-            response = JsonResponse(
-                {'process_stripe_payment_token': 'error', 'errors': error_dict, 'user-api-version': user_api_version},
-                safe=False,
-            )
-    else:
-        error_dict = {"error": 'stripe-token-required', 'description': 'Stripe token is required'}
-        response = JsonResponse(
-            {'process_stripe_payment_token': 'error', 'errors': error_dict, 'user-api-version': user_api_version},
-            safe=False,
         )
     return response
 

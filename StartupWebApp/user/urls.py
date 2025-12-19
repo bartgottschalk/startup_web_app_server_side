@@ -25,7 +25,6 @@ urlpatterns = [
     path('terms-of-use-agree-check', views.terms_of_use_agree_check, name='terms_of_use_agree_check'),
     path('terms-of-use-agree', views.terms_of_use_agree, name='terms_of_use_agree'),
     path('put-chat-message', views.put_chat_message, name='put_chat_message'),
-    path('process-stripe-payment-token', views.process_stripe_payment_token, name='process_stripe_payment_token'),
     path('pythonabot-notify-me', views.pythonabot_notify_me, name='pythonabot_notify_me'),
 
 ]

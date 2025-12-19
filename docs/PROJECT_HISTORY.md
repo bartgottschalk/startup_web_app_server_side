@@ -1564,11 +1564,64 @@ See [Technical Note](technical-notes/2025-11-26-phase-5-15-production-deployment
 - **Developer Confidence**: PRs can merge knowing tests passed
 - **Future Growth**: Easy to add more tests as coverage expands
 
-**Next Session**: Session 7 - Frontend account payment history page
+**See**: `docs/technical-notes/2025-12-11-stripe-upgrade-plan.md` for full multi-session plan
 
-**Note**: Frontend repository now has same quality gates as backend. Future frontend PRs will automatically run all tests.
+---
 
-**See**: `docs/technical-notes/2025-12-11-stripe-upgrade-plan.md` for full 10-session plan
+### **Phase 5.16 - Session 8: Dead Code Cleanup + Selenium Upgrade** ✅ (December 18, 2025)
+
+**Branch**: `feature/stripe-cleanup-dead-code` (merged to master via PR #54)
+**Duration**: ~4 hours
+
+**Milestone**: Removed all deprecated Stripe v2 code and modernized functional testing infrastructure
+
+**What Was Accomplished:**
+
+**Dead Code Cleanup:**
+- ✅ Removed 847 lines of deprecated Stripe v2 code from backend
+  - 3 deprecated view functions in `order/views.py` (609 lines)
+  - 1 deprecated view function in `user/views.py` (100 lines)
+  - Payment data cleanup in `user/views.py account_content()` (23 lines)
+  - 6 deprecated utility functions in `order_utils.py` (115 lines)
+- ✅ Removed 4 deprecated URL patterns
+- ✅ Removed ~2,193 lines of obsolete tests
+  - Deleted entire file: `test_process_stripe_payment_token.py`
+  - Deleted 4 test classes from 3 files
+  - Removed/updated 5 individual tests
+- ✅ Fixed unused imports and linting issues
+
+**Selenium 4 Upgrade (Bonus Work):**
+- ✅ Upgraded `selenium==3.141.0` → `selenium==4.27.1`
+- ✅ Updated `geckodriver` 0.33.0 → 0.35.0 in Dockerfile
+- ✅ Migrated all 31 functional tests to Selenium 4 syntax
+- ✅ Added `from selenium.webdriver.common.by import By` to test files
+- ✅ Updated syntax: `find_element_by_id()` → `find_element(By.ID, ...)`
+- ✅ Fixed `switch_to_window()` → `switch_to.window()`
+- ✅ Added explicit geckodriver/Firefox paths for ARM64 compatibility
+
+**New Functional Test:**
+- ✅ Added `functional_tests/checkout/test_checkout_flow.py`
+  - 1 working test: checkout success page error handling
+  - 2 TODO tests for future session (cart & checkout page structure)
+
+**Test Results:**
+- Unit tests: 737 → 692 (-45 obsolete tests)
+- Functional tests: 31 → 32 (+1 new test)
+- **Total: 768 → 724 tests**
+- ✅ All tests passing
+- ✅ Zero linting errors
+
+**Why This Matters:**
+- Removes technical debt from deprecated Stripe v2 integration
+- Modernizes testing infrastructure with Selenium 4
+- Smaller, cleaner codebase (3,040 lines removed)
+- Better foundation for future functional test development
+
+**Documentation:**
+- Created: `docs/technical-notes/2025-12-18-session-8-dead-code-cleanup-selenium-upgrade.md`
+- Comprehensive learnings about frontend/backend architecture for future test development
+
+**See**: `docs/technical-notes/2025-12-18-session-8-dead-code-cleanup-selenium-upgrade.md`
 
 ---
 
@@ -1578,9 +1631,9 @@ See [Technical Note](technical-notes/2025-11-26-phase-5-15-production-deployment
 - Load testing and performance optimization
 - Automated disaster recovery testing
 
-#### Other Library Upgrades (Future)
-- **Stripe**: ✅ Library upgraded to 14.0.1 (Phase 5.16) - Checkout Sessions implementation in progress
-- **Selenium**: Currently 3.141.0 → Selenium 4.x (modern API)
+#### Other Library Upgrades
+- **Stripe**: ✅ Library upgraded to 14.0.1 (Phase 5.16) - Checkout Sessions complete
+- **Selenium**: ✅ Upgraded to 4.27.1 (December 2025) - Modern API with all tests migrated
 
 ## Documentation Structure
 
