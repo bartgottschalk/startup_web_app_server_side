@@ -226,3 +226,44 @@ class CheckoutFlowFunctionalTests(BaseFunctionalTest):
         page_source = self.browser.page_source
         self.assertIn('Paper Clips', page_source)
         self.assertIn('$3.50', page_source)
+
+
+# ==============================================================================
+# POST-STRIPE Functional Tests - Not Implemented
+# ==============================================================================
+#
+# POST-STRIPE functional tests are intentionally NOT implemented because:
+#
+# 1. **Already covered by unit tests**: test_checkout_session_success.py has
+#    comprehensive unit tests for POST-STRIPE backend logic with mocked Stripe sessions
+#
+# 2. **Functional tests would require complex setup**:
+#    - Either actual Stripe test mode integration (external dependency)
+#    - Or backend mocking in functional tests (breaks "functional" nature)
+#    - Or creating fake database state (doesn't test actual flow)
+#
+# 3. **Limited value-add**: Functional tests would mostly test:
+#    - Selenium can navigate to a page (already tested in PRE-STRIPE tests)
+#    - Backend processes Stripe webhooks correctly (tested in unit tests)
+#    - Not testing actual payment processing (that's Stripe's responsibility)
+#
+# 4. **Test Around Stripe strategy**: We thoroughly test our code before and
+#    after Stripe interaction, without testing Stripe's external services
+#
+# **What we DO test**:
+# - ✅ PRE-STRIPE: Cart, product-to-cart, checkout/confirm pages (functional tests above)
+# - ✅ POST-STRIPE: Backend processing of Stripe sessions (unit tests)
+# - ✅ Success page error handling for missing session_id (test_checkout_flow_navigation)
+#
+# **What we DON'T test functionally**:
+# - ❌ Success page with valid session_id (would require Stripe test mode or complex mocking)
+# - ❌ Clicking "Continue to Payment" button (would redirect to external Stripe page)
+# - ❌ Anonymous email entry flow (buttons hidden for empty cart, same as other empty cart tests)
+#
+# **If POST-STRIPE functional tests are needed in the future**:
+# 1. Set up Stripe test mode in functional test environment
+# 2. Use Stripe test card numbers (4242 4242 4242 4242)
+# 3. Test full end-to-end flow through actual Stripe hosted checkout
+# 4. Estimate: 4-6 hours for proper setup and implementation
+#
+# ==============================================================================
