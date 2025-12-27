@@ -14,7 +14,7 @@ from django.contrib.auth.models import User, Group
 
 from clientevent.models import Configuration as ClientEventConfiguration
 from user.models import Member, Termsofuse, Emailtype, Emailstatus, Adtype, Adstatus
-from order.models import Orderconfiguration, Cart, Cartsku, Skutype, Skuinventory, Product, Sku, Skuprice, Productsku, Status, Orderstatus, Shippingmethod, Discounttype, Discountcode
+from order.models import Orderconfiguration, Cart, Cartsku, Skutype, Skuinventory, Product, Sku, Skuprice, Productsku, Productimage, Status, Orderstatus, Shippingmethod, Discounttype, Discountcode
 
 class BaseFunctionalTest(LiveServerTestCase):
 	# class variables
@@ -100,6 +100,7 @@ class BaseFunctionalTest(LiveServerTestCase):
 
 		Orderconfiguration.objects.create(key='an_ct_values_allowed_to_checkout', string_value='*')  # Allow all anonymous carts
 		Orderconfiguration.objects.create(key='usernames_allowed_to_checkout', string_value='*')  # Allow all usernames
+		Orderconfiguration.objects.create(key='default_shipping_method', string_value='USPSPriorityMail2Day')  # Default shipping method
 
 		Skutype.objects.create(id=1, title='product')
 		Skuinventory.objects.create(id=1, title='In Stock', identifier='in-stock', description='In Stock items are available to purchase.')
@@ -107,6 +108,7 @@ class BaseFunctionalTest(LiveServerTestCase):
 		Skuinventory.objects.create(id=3, title='Out of Stock', identifier='out-of-stock', description='Out of Stock items are not available to purchase.')
 
 		Product.objects.create(id=1, title='Paper Clips', title_url='PaperClips', identifier='bSusp6dBHm', headline='Paper clips can hold up to 20 pieces of paper together!', description_part_1='Made out of high quality metal and folded to exact specifications.', description_part_2='Use paperclips for all your paper binding needs!')
+		Productimage.objects.create(id=1, product_id=1, image_url='/img/products/paperclips.jpg', main_image=True, caption='Paper Clips')
 		Sku.objects.create(id=1, color='Silver', size='Medium', sku_type_id=1, description='Left Sided Paperclip', sku_inventory_id=1)
 		Skuprice.objects.create(id=1, price=3.5, created_date_time=timezone.now(), sku_id=1)
 		Productsku.objects.create(id=1, product_id=1, sku_id=1)
