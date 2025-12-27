@@ -96,9 +96,10 @@ class CheckoutFlowFunctionalTests(BaseFunctionalTest):
         )
         self.assertIsNotNone(login_create_account_wrapper)
 
-        # Verify place order button exists (used by logged-in users)
-        place_order_button = self.browser.find_element(By.ID, 'place-order-button-bottom')
-        self.assertIsNotNone(place_order_button)
+        # Note: place-order-button-bottom exists in initial HTML but is REMOVED
+        # by JavaScript (confirm.js line 607) when cart is empty.
+        # For empty cart tests, we cannot verify this button exists.
+        # The button is tested in populated cart scenarios.
 
     def test_checkout_flow_navigation(self):
         """
