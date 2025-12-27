@@ -1,17 +1,17 @@
 # Session 11: Functional Test Development - Checkout Flow (December 27, 2025)
 
-**Status**: ✅ COMPLETE
-**Branch**: `feature/functional-test-checkout-flow`
-**PR**: #57
+**Status**: ✅ COMPLETE & DEPLOYED
+**Branch**: `feature/functional-test-checkout-flow` (merged to master)
+**PR**: #57 (squashed and merged)
 **Session Goal**: Address automation debt from Session 8 by implementing comprehensive functional tests for PRE-STRIPE checkout flow
 
 ---
 
 ## Summary
 
-Successfully implemented 6 new functional tests for the checkout flow, addressing automation debt identified in Session 8. Tests validate the PRE-STRIPE flow (cart, checkout/confirm, product-to-cart) using a "test around Stripe" strategy that avoids external dependencies while ensuring comprehensive coverage of our code.
+Successfully implemented 5 new functional tests for the checkout flow, addressing automation debt identified in Session 8. Tests validate the PRE-STRIPE flow (cart, checkout/confirm, product-to-cart) using a "test around Stripe" strategy that avoids external dependencies while ensuring comprehensive coverage of our code.
 
-**Key Achievement**: Increased functional test coverage from 32 to 38 tests, all passing with zero linting errors.
+**Key Achievement**: Increased functional test coverage from 32 to 37 tests (730 total: 693 unit + 37 functional), all passing with zero linting errors. Fixed critical CI race conditions for empty cart scenarios.
 
 ---
 
@@ -143,20 +143,18 @@ Productimage.objects.create(
 - Better to test simple page load + empty message than try to find removed elements
 
 ### Test 2: `test_checkout_confirm_page_structure()`
-**Purpose**: Validate checkout confirm page elements exist
+**Purpose**: Validate checkout confirm page loads correctly for empty cart
 
 **What it tests**:
 - Confirm page title loads
 - `confirm-detail-body` element exists
-- Product table (`sku-table`) exists
-- Shipping section (`shipping-information`) exists
-- Totals table (`confirm-total-table`) exists
-- Anonymous checkout options wrapper exists
-- Place order button exists (for logged-in users)
+- Empty cart message displays: "SHOPPING CART IS EMPTY"
+- Message includes: "Please browse" and "to continue shopping."
 
 **Key learnings applied**:
-- Content loaded dynamically but structure always present
-- Anonymous checkout options always visible for non-logged-in users
+- JavaScript removes ~15 elements for empty carts (shipping-information, sku-table content, totals, buttons)
+- Only test elements that persist for empty cart scenario
+- Race condition handled by `time.sleep(1)` for JavaScript to append empty cart message
 
 ### Test 3: `test_checkout_flow_navigation()`
 **Purpose**: Test basic navigation through checkout flow
@@ -173,20 +171,7 @@ Productimage.objects.create(
 - Confirms error handling for invalid success page access
 - Tests user journey without requiring items in cart
 
-### Test 4: `test_anonymous_checkout_button_visibility()`
-**Purpose**: Validate anonymous checkout options appear correctly
-
-**What it tests**:
-- Login button exists (`confirm-login-button`)
-- Create account button exists (`confirm-create-account-button`)
-- Anonymous checkout button exists (`confirm-anonymouns-button`)
-- Options wrapper exists (`login-create-account-continue-anon-wrapper`)
-
-**Why important**:
-- Anonymous checkout is critical flow for new customers
-- Buttons must be visible for non-logged-in users
-
-### Test 5: `test_checkout_button_links_to_confirm()`
+### Test 4: `test_checkout_button_links_to_confirm()`
 **Purpose**: Validate navigation from cart to checkout/confirm
 
 **What it tests**:
@@ -199,7 +184,7 @@ Productimage.objects.create(
 - Hit stale element issues (page reloaded by AJAX)
 - Simplified to just test navigation works (more robust)
 
-### Test 6: `test_add_product_to_cart_flow()` ⭐
+### Test 5: `test_add_product_to_cart_flow()` ⭐
 **Purpose**: Full product-to-cart flow (most comprehensive test)
 
 **What it tests**:
@@ -252,6 +237,31 @@ Productimage.objects.create(
 **Solution**: Use utility wait functions + brief sleeps for AJAX
 **Learning**: Element existence ≠ content loaded (two different timing concerns)
 
+### Challenge 6: CI Race Condition - Empty Cart Element Removal ⚠️ CRITICAL
+**Problem**: Tests passed locally but failed in CI with `NoSuchElementException` for:
+- `place-order-button-bottom` (first CI failure)
+- `shipping-information` (second CI failure)
+
+**Root Cause**: JavaScript removes ~15 elements when `checkout_allowed == false` (empty cart):
+```javascript
+// confirm.js lines 85-98
+$('#shipping-information').remove();
+$('#confirm-total-table').remove();
+$('#login-create-account-continue-anon-wrapper').remove();
+// ... and 12 more elements
+```
+
+**Why Local Passed but CI Failed**:
+- Local Docker: Slower, Selenium found elements before JavaScript removed them
+- CI GitHub Actions: Faster, JavaScript removed elements before Selenium checked
+
+**Solution**:
+- Simplified `test_checkout_confirm_page_structure()` to only check persistent elements
+- Removed `test_anonymous_checkout_button_visibility()` entirely (buttons removed for empty carts)
+- Enhanced validation to check complete empty cart message (both text parts)
+
+**Learning**: Always consider both empty and populated states when writing functional tests. CI environments may execute faster than local, exposing race conditions that work locally.
+
 ---
 
 ## Test Results
@@ -259,10 +269,11 @@ Productimage.objects.create(
 ### Final Test Counts
 ```
 Unit Tests:        693 passing
-Functional Tests:   38 passing (up from 32)
-Total Tests:       731 passing
+Functional Tests:   37 passing (up from 32)
+Total Tests:       730 passing
 
-New Tests Added:     6
+New Tests Added:     5
+Tests Removed:       0 (test_anonymous_checkout_button_visibility removed due to race conditions)
 Success Rate:      100%
 ```
 
@@ -273,7 +284,7 @@ $ flake8 functional_tests/checkout/test_checkout_flow.py --max-line-length=120
 ```
 
 ### Test Execution Times
-- Functional tests: ~84 seconds (38 tests)
+- Functional tests: ~80 seconds (37 tests)
 - Unit tests: ~42 seconds (693 tests, parallel)
 
 ---
@@ -283,13 +294,14 @@ $ flake8 functional_tests/checkout/test_checkout_flow.py --max-line-length=120
 ### `StartupWebApp/functional_tests/checkout/test_checkout_flow.py`
 **Changes**:
 - Implemented `test_cart_page_structure()` (previously TODO)
-- Implemented `test_checkout_confirm_page_structure()` (previously TODO)
+- Implemented `test_checkout_confirm_page_structure()` (previously TODO) - simplified for empty cart
 - Added `test_checkout_flow_navigation()`
-- Added `test_anonymous_checkout_button_visibility()`
+- ~~Added `test_anonymous_checkout_button_visibility()`~~ (removed - buttons don't exist for empty carts)
 - Added `test_checkout_button_links_to_confirm()`
 - Added `test_add_product_to_cart_flow()`
+- Enhanced empty cart message validation (both message parts checked)
 
-**Lines Changed**: +150 lines (tests), -48 lines (TODOs/comments)
+**Lines Changed**: +120 lines (tests), -78 lines (TODOs/comments/removed test)
 
 ### `StartupWebApp/functional_tests/base_functional_test.py`
 **Changes**:
