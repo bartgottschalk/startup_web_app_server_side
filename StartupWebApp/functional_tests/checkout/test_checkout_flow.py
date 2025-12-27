@@ -55,17 +55,21 @@ class CheckoutFlowFunctionalTests(BaseFunctionalTest):
         cart_detail_body = self.browser.find_element(By.ID, 'cart-detail-body')
         self.assertIsNotNone(cart_detail_body)
 
-        # For empty cart, verify empty cart message appears
+        # For empty cart, verify empty cart message appears (added by JavaScript)
         page_source = self.browser.page_source
         self.assertIn('SHOPPING CART IS EMPTY', page_source)
+        self.assertIn('Please browse', page_source)
+        self.assertIn('to continue shopping.', page_source)
 
     def test_checkout_confirm_page_structure(self):
         """
-        Test checkout confirm page loads with all required elements.
+        Test checkout confirm page loads correctly for empty cart.
         PRE-STRIPE: This is the final page before redirecting to Stripe.
 
-        Note: Content is loaded dynamically via JavaScript. This test verifies
-        the page structure exists for anonymous users (empty cart scenario).
+        Note: Content is loaded dynamically via JavaScript. For empty carts,
+        JavaScript removes most elements (shipping-information, sku-table content,
+        confirm-total-table, login buttons, etc.) per confirm.js lines 85-98.
+        This test verifies only elements that persist for empty carts.
         """
         # Navigate to checkout confirm page
         self.browser.get(self.static_home_page_url + 'checkout/confirm')
@@ -74,32 +78,28 @@ class CheckoutFlowFunctionalTests(BaseFunctionalTest):
         # Verify page loaded
         self.assertEqual('Confirm Order', self.browser.title)
 
-        # Verify critical static elements exist (present in initial HTML)
+        # Wait for AJAX to complete (cart will be empty, elements will be removed)
+        import time
+        time.sleep(1)
+
+        # Verify main container exists (persists even for empty cart)
         confirm_detail_body = self.browser.find_element(By.ID, 'confirm-detail-body')
         self.assertIsNotNone(confirm_detail_body)
 
-        # Verify product table exists (populated dynamically)
-        sku_table = self.browser.find_element(By.ID, 'sku-table')
-        self.assertIsNotNone(sku_table)
+        # For empty cart, verify empty cart message appears (added by JavaScript)
+        page_source = self.browser.page_source
+        self.assertIn('SHOPPING CART IS EMPTY', page_source)
+        self.assertIn('Please browse', page_source)
+        self.assertIn('to continue shopping.', page_source)
 
-        # Verify shipping section exists
-        shipping_information = self.browser.find_element(By.ID, 'shipping-information')
-        self.assertIsNotNone(shipping_information)
-
-        # Verify totals table exists
-        confirm_total_table = self.browser.find_element(By.ID, 'confirm-total-table')
-        self.assertIsNotNone(confirm_total_table)
-
-        # Verify anonymous checkout options exist (for non-logged-in users)
-        login_create_account_wrapper = self.browser.find_element(
-            By.ID, 'login-create-account-continue-anon-wrapper'
-        )
-        self.assertIsNotNone(login_create_account_wrapper)
-
-        # Note: place-order-button-bottom exists in initial HTML but is REMOVED
-        # by JavaScript (confirm.js line 607) when cart is empty.
-        # For empty cart tests, we cannot verify this button exists.
-        # The button is tested in populated cart scenarios.
+        # Note: The following elements are REMOVED by JavaScript (confirm.js lines 85-98)
+        # for empty carts and cannot be reliably tested in this scenario:
+        # - shipping-information (line 88)
+        # - sku-table content (rows removed, headers may remain)
+        # - confirm-total-table (line 92)
+        # - login-create-account-continue-anon-wrapper (line 97)
+        # - place-order-button-bottom (line 607)
+        # These elements are tested in populated cart scenarios (test_add_product_to_cart_flow).
 
     def test_checkout_flow_navigation(self):
         """
@@ -127,36 +127,6 @@ class CheckoutFlowFunctionalTests(BaseFunctionalTest):
         # Verify error message for missing session_id
         page_source = self.browser.page_source
         self.assertIn('Missing session ID', page_source)
-
-    def test_anonymous_checkout_button_visibility(self):
-        """
-        Test anonymous checkout options are visible on confirm page.
-        PRE-STRIPE: Validates the login/create-account/anonymous buttons.
-
-        For non-logged-in users, the confirm page should show three options:
-        - Login
-        - Create Account
-        - Checkout Anonymous
-        """
-        # Navigate to checkout confirm page
-        self.browser.get(self.static_home_page_url + 'checkout/confirm')
-        functional_testing_utilities.wait_for_page_title(self, 'Confirm Order')
-
-        # Verify anonymous checkout options container exists
-        login_wrapper = self.browser.find_element(By.ID, 'login-create-account-continue-anon-wrapper')
-        self.assertIsNotNone(login_wrapper)
-
-        # Verify login button exists
-        login_button = self.browser.find_element(By.ID, 'confirm-login-button')
-        self.assertIsNotNone(login_button)
-
-        # Verify create account button exists
-        create_account_button = self.browser.find_element(By.ID, 'confirm-create-account-button')
-        self.assertIsNotNone(create_account_button)
-
-        # Verify anonymous checkout button exists
-        anonymous_button = self.browser.find_element(By.ID, 'confirm-anonymouns-button')
-        self.assertIsNotNone(anonymous_button)
 
     def test_checkout_button_links_to_confirm(self):
         """
