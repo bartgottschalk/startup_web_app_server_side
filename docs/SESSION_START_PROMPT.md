@@ -21,20 +21,22 @@ Hi Claude. I want to continue working on these two repositories together:
 - **Backend**: Django 4.2.16 (4.2 LTS), Python 3.12.12, PostgreSQL 16-alpine (multi-tenant), Stripe integration
 - **Frontend**: jQuery 3.7.1, nginx:alpine
 - **Infrastructure**: Docker Compose with custom bridge network "startupwebapp"
-- **Testing**: Selenium 4.27.1 with Firefox ESR (headless mode), 724/724 tests passing (692 unit + 32 functional)
-- **Code Quality**: Zero linting errors (pylint, flake8, ESLint)
+- **Testing**: Selenium 4.27.1 with Firefox ESR (headless mode), 731/731 tests passing (693 unit + 38 functional)
+- **Code Quality**: Zero linting errors (flake8, ESLint)
 - **AWS Production**: RDS PostgreSQL 16, VPC, Secrets Manager, CloudWatch monitoring, ECS Fargate, ECR
 
 ## Current State
 
-**Project Status:** ✅ Phase 5.16 Session 10 Complete - Email System Updated
+**Project Status:** ✅ Phase 5.16 Session 11 Complete - Functional Test Development
 
-**Latest Milestone (December 19, 2025):**
-- ✅ All 13 email types updated with new addresses and professional display name
-- ✅ Order confirmation emails tested end-to-end in production
-- ✅ Anonymous checkout email pre-fill bug fixed
-- ✅ Payment info removed from order emails (cleaner presentation)
-- 📍 **Next**: Session 11 - Functional Test Development (automation debt)
+**Latest Milestone (December 27, 2025):**
+- ✅ 6 new PRE-STRIPE functional tests implemented (32 → 38 functional tests)
+- ✅ All automation debt from Session 8 addressed
+- ✅ Fixed all pre-existing linting errors in base_functional_test.py (124 errors → 0)
+- ✅ Fixed CI race condition in test_checkout_confirm_page_structure()
+- ✅ Documented POST-STRIPE functional test decision (not implemented - see technical notes)
+- ✅ 731 total tests passing (693 unit + 38 functional)
+- 📍 **Next**: TBD - Phase 5.16 Stripe upgrade work or other priorities
 
 ### Phase 5.15 Completion (December 4, 2025)
 
@@ -119,6 +121,11 @@ curl https://startupwebapp-api.mosaicmeshai.com/user/logged-in
 - **PR #52**: Stripe webhook handler (Session 5) - December 13, 2025
 - **Client PR #12**: Frontend Stripe Checkout Sessions migration (Session 6) - December 15, 2025
 - **PR #53**: Stripe checkout bugfixes (image URLs, shipping, API changes) (Session 6) - December 15, 2025
+- **PR #54**: Stripe webhook production configuration (Session 9) - December 19, 2025
+- **PR #55**: Frontend checkout login race condition fix (Session 9) - December 19, 2025
+- **PR #56**: Email address updates (Session 10) - December 19, 2025
+- **Client PR #17**: Email address updates (Session 10) - December 19, 2025
+- **PR #57**: Functional test development + linting cleanup (Session 11) - December 27, 2025
 
 ### Current Branch
 
@@ -132,7 +139,7 @@ curl https://startupwebapp-api.mosaicmeshai.com/user/logged-in
 
 - **Merging to `master` automatically deploys to production**
 - **ALL work MUST be done in feature/bugfix branches** - NEVER commit directly to master
-- **All 768 tests MUST pass** before merging to master
+- **All 731 tests MUST pass** before merging to master
 - **Breaking production = test failure** - If something breaks in production, the tests need improvement
 - **This is intentional** - Continuous deployment enforces a high bar for test quality
 - **PR review is your last checkpoint** - Review code and test results carefully before merging
@@ -140,7 +147,7 @@ curl https://startupwebapp-api.mosaicmeshai.com/user/logged-in
 **Branch Strategy (MANDATORY):**
 1. Create feature branch: `git checkout -b feature/descriptive-name`
 2. Make changes, commit, push: `git push -u origin feature/descriptive-name`
-3. Create PR and verify all 768 tests pass in GitHub Actions
+3. Create PR and verify all 731 tests pass in GitHub Actions
 4. Review code and test results carefully
 5. Merge to master → **automatic deployment to production**
 
@@ -161,7 +168,7 @@ Before starting work:
 
 - **NEVER commit directly to master** - Merging to master triggers automatic deployment to production
 - Branch naming: `feature/descriptive-name` or `bugfix/descriptive-name`
-- Run full test suite (all 768 tests) before committing
+- Run full test suite (all 731 tests) before committing
 - Verify zero linting errors before committing
 - Create PR after pushing, verify all tests pass in GitHub Actions
 - Review code carefully - PR approval is the last checkpoint before production
@@ -171,14 +178,16 @@ Before starting work:
 
 **Unit Tests (PostgreSQL):**
 ```bash
-docker-compose exec backend python manage.py test order.tests user.tests clientevent.tests StartupWebApp.tests --parallel=4
+docker-compose exec backend python manage.py test order.tests user.tests clientevent.tests StartupWebApp.tests --parallel=4 --keepdb
 ```
 
 **Functional Tests (MUST run hosts setup first):**
 ```bash
 docker-compose exec backend bash /app/setup_docker_test_hosts.sh
-docker-compose exec -e HEADLESS=TRUE backend python manage.py test functional_tests
+docker-compose exec -e HEADLESS=TRUE backend python manage.py test functional_tests --keepdb
 ```
+
+**Note**: Use `--keepdb` flag to reuse test database (faster). Django will automatically handle test database creation/cleanup.
 
 **Code Quality (run before committing):**
 ```bash
