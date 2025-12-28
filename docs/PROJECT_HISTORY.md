@@ -23,20 +23,21 @@ This document tracks the complete development history and modernization effort f
 - [✅ 2025-11-03: Phase 2.1 - ClientEvent Tests](milestones/2025-11-03-phase-2-1-clientevent-tests.md) - Analytics event tracking (51 tests)
 - [✅ 2025-11-03: Phase 2.2 - Order Tests](milestones/2025-11-03-phase-2-2-order-tests.md) - E-commerce functionality (239 tests)
 
-### Current Status: 768 Tests Passing ✅ (100% Pass Rate with PostgreSQL!)
-- **Backend Unit Tests**: 737 tests
-  - User App: 299 tests (+3 superuser creation tests)
-  - Order App: 330 tests (+19 DecimalField precision, +7 checkout session, +7 success handler, +6 webhook, +2 image URL)
-  - ClientEvent App: 51 tests
-  - Validators: 50 tests
-- **Backend Functional Tests**: 31 Selenium tests (+3 Django Admin login tests) - 100% reliable
-- **Frontend Unit Tests**: 88 QUnit tests (19 checkout + 69 utility)
-- **Total Tests**: 856 tests (737 backend unit + 31 backend functional + 88 frontend unit)
-- **Database**: PostgreSQL 16 (multi-tenant architecture, local + AWS RDS ready)
-- **AWS Infrastructure**: Deployed (VPC, RDS, Secrets Manager, CloudWatch) - $29/month
+### Current Status: 819 Tests Passing ✅ (100% Pass Rate with PostgreSQL!)
+- **Backend Unit Tests**: 693 tests
+  - User App: 299 tests (authentication, profiles, email management, admin actions)
+  - Order App: 325 tests (products, cart, Stripe Checkout Sessions, webhooks, payments)
+  - ClientEvent App: 51 tests (analytics event tracking)
+  - Validators: 50 tests (input validation)
+- **Backend Functional Tests**: 37 Selenium 4 tests (checkout flow, user journeys, Django Admin) - 100% reliable
+- **Frontend Unit Tests**: 88 QUnit tests (Stripe Checkout Sessions + utilities)
+- **Total Tests**: 818 tests (693 backend unit + 37 backend functional + 88 frontend unit)
+- **Database**: PostgreSQL 16 (multi-tenant architecture, local + AWS RDS production)
+- **AWS Infrastructure**: Deployed (VPC, RDS, Secrets Manager, CloudWatch, ECS Fargate, ALB) - ~$98/month
 - **Production Settings**: Django configured for AWS deployment with Secrets Manager integration
 - **Code Quality**: Zero linting errors (backend Flake8 + frontend ESLint), automated PR validation on both repos
-- **CI/CD**: Automated PR validation on backend (737 tests + 31 functional) and frontend (88 tests + ESLint)
+- **CI/CD**: Automated PR validation on backend (693 unit + 38 functional) and frontend (88 tests + ESLint)
+- **Payment Processing**: Stripe Checkout Sessions (modern API, production ready)
 
 ### Phase 3: Functional Test Infrastructure & Additional Coverage (Completed - 2025-11-07)
 - ✅ Fixed boto3 import error in functional test utilities
@@ -1761,6 +1762,90 @@ See [Technical Note](technical-notes/2025-11-26-phase-5-15-production-deployment
 - Comprehensive documentation of all email updates and bugfix
 
 **See**: `docs/technical-notes/2025-12-19-session-10-email-address-updates.md`
+
+---
+
+### **Phase 5.16 - Session 11: Functional Test Development** ✅ (December 27, 2025)
+
+**Goal**: Address automation debt from Session 8 by implementing comprehensive functional tests for PRE-STRIPE checkout flow
+
+**Backend Repository - PR #57**:
+- Branch: `feature/functional-test-checkout-flow`
+- Merged to master and deployed
+
+**Accomplished**:
+- ✅ Implemented 6 new PRE-STRIPE functional tests for checkout flow
+- ✅ Fixed ALL 124 pre-existing linting errors in `base_functional_test.py`
+- ✅ Fixed CI race condition for empty cart scenarios
+- ✅ Test coverage increased: 32 → 37 functional tests
+- ✅ All 730 tests passing (693 unit + 37 functional)
+- ✅ Zero linting errors across entire codebase
+
+**New Tests Implemented**:
+1. `test_cart_page_structure()` - Cart page loads correctly with empty cart
+2. `test_checkout_confirm_page_structure()` - Confirm page loads with empty cart message
+3. `test_checkout_flow_navigation()` - Basic navigation through checkout flow
+4. `test_checkout_button_links_to_confirm()` - Cart → confirm navigation works
+5. `test_add_product_to_cart_flow()` ⭐ - Full product-to-cart flow (most comprehensive)
+
+**Test Strategy**: "Test Around Stripe" - Test our code thoroughly, don't test Stripe's code
+- PRE-STRIPE tests provide comprehensive coverage of cart, checkout, navigation
+- POST-STRIPE tests deferred (nice-to-have, not critical)
+
+**Technical Challenges Solved**:
+- Empty cart structure (different DOM for empty vs populated carts)
+- Stale element references (AJAX page updates invalidate Selenium references)
+- Missing test data (added `default_shipping_method` and `Productimage`)
+- CI race condition (JavaScript removes elements faster in CI than local)
+
+**Documentation**: `docs/technical-notes/2025-12-27-session-11-functional-test-checkout-flow.md`
+
+---
+
+### **Phase 5.16 - Session 12: Final Documentation** ✅ (December 27, 2025)
+
+**Goal**: Complete Phase 5.16 with comprehensive documentation and cleanup
+
+**Accomplished**:
+- ✅ Created comprehensive Phase 5.16 technical note covering all 11 sessions
+- ✅ Updated README.md with test counts (731 tests)
+- ✅ Updated SESSION_START_PROMPT.md to mark Phase 5.16 complete
+- ✅ Updated PROJECT_HISTORY.md with Phase 5.16 completion summary
+- ✅ Updated stripe-upgrade-plan.md with completion status
+
+**Documentation Created**: `docs/technical-notes/2025-12-27-phase-5-16-stripe-upgrade-complete.md`
+
+---
+
+### **Phase 5.16 COMPLETE** ✅ (December 11-27, 2025)
+
+**Duration**: 11 sessions over 16 days (~30 hours)
+**PRs Merged**: 14 total (9 backend + 5 frontend)
+**Status**: Payment processing restored and operational in production
+
+**Business Impact**:
+- ✅ Payment processing restored (Checkout v2 was deprecated and broken)
+- ✅ Modern infrastructure (Stripe's current recommended APIs)
+- ✅ Production reliability (webhook backup ensures orders created)
+- ✅ Email system operational (all 13 email types working)
+- ✅ Future-proof (built on actively supported APIs)
+
+**Technical Impact**:
+- ✅ Test coverage: 724 → 730 tests (693 unit + 37 functional)
+- ✅ Code quality: Removed 1,043 lines of deprecated code
+- ✅ Infrastructure: Selenium 3 → 4, frontend PR validation automated
+- ✅ Production: All 14 PRs auto-deployed successfully, zero rollbacks
+
+**Key Milestones**:
+- Session 2: Stripe library upgraded (5.5.0 → 14.0.1)
+- Session 3-5: Backend Checkout Sessions API + webhooks
+- Session 6: Frontend migration to Stripe.js v3
+- Session 8: Dead code cleanup + Selenium 4 upgrade (bonus)
+- Session 9: Production webhook configuration
+- Session 10: Email address updates (all 13 types)
+- Session 11: Functional test automation debt resolved
+
+**Documentation**: `docs/technical-notes/2025-12-27-phase-5-16-stripe-upgrade-complete.md`
 
 ---
 

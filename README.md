@@ -8,13 +8,14 @@ A Django REST API backend for an e-commerce startup, featuring comprehensive tes
 ## Current Status (December 2025)
 
 ✅ **Production Live** - Full-stack deployed to AWS (ECS Fargate + S3/CloudFront)
-✅ **753 Tests Passing** - Comprehensive test coverage (722 unit + 31 functional) with PostgreSQL
+✅ **730 Tests Passing** - Comprehensive test coverage (693 unit + 37 functional) with PostgreSQL
 ✅ **CI/CD Pipeline** - Auto-deploy on merge to master with PR validation
 ✅ **PostgreSQL 16** - Production-ready database with multi-tenant architecture
 ✅ **Python 3.12 Compatible** - Fully modernized for latest Python
 ✅ **Docker Containerized** - Easy setup with Docker Compose
 ✅ **Django 4.2.16 LTS** - Modern Django with security support until April 2026
 ✅ **Code Quality Tools** - Zero linting errors (backend + frontend)
+✅ **Stripe Checkout Sessions** - Modern payment processing (upgraded December 2025)
 
 **Production URLs:**
 - Backend API: `https://startupwebapp-api.mosaicmeshai.com`
@@ -22,10 +23,10 @@ A Django REST API backend for an e-commerce startup, featuring comprehensive tes
 
 ### Test Coverage Breakdown
 - **User App**: 299 tests (authentication, profiles, email management, Stripe error handling, admin actions)
-- **Order App**: 322 tests (products, cart, checkout, payments via Stripe, Checkout Sessions)
+- **Order App**: 325 tests (products, cart, checkout, Stripe Checkout Sessions, webhooks, payments)
 - **ClientEvent App**: 51 tests (analytics event tracking)
 - **Validators**: 50 tests (input validation)
-- **Functional Tests**: 31 Selenium tests (full user journey testing, Django Admin)
+- **Functional Tests**: 37 Selenium tests (checkout flow, user journeys, Django Admin)
 
 ### Code Quality
 - **Backend**: pylint 4.0.2, flake8 7.3.0 (runs in Docker)
@@ -150,14 +151,14 @@ See [Seed Data & Data Migrations](#seed-data--data-migrations) section for detai
 
 ### Run Tests
 
-**Run all unit tests** (722 tests with PostgreSQL):
+**Run all unit tests** (693 tests with PostgreSQL):
 ```bash
 docker-compose exec backend python manage.py test order.tests user.tests clientevent.tests StartupWebApp.tests --parallel=4
 ```
 
 **Note**: Tests use PostgreSQLTestCase (TransactionTestCase with `reset_sequences=True`) to handle PostgreSQL's sequence management correctly.
 
-**Run functional tests** (31 tests):
+**Run functional tests** (37 tests):
 ```bash
 # IMPORTANT: Setup hosts file first (required after each container restart)
 docker-compose exec backend bash /app/setup_docker_test_hosts.sh
