@@ -16,6 +16,7 @@ A Django REST API backend for an e-commerce startup, featuring comprehensive tes
 ✅ **Django 4.2.16 LTS** - Modern Django with security support until April 2026
 ✅ **Code Quality Tools** - Zero linting errors (backend + frontend)
 ✅ **Stripe Checkout Sessions** - Modern payment processing (upgraded December 2025)
+✅ **Disaster Recovery** - Comprehensive runbook with RTO: 4 hours, RPO: 24 hours
 
 **Production URLs:**
 - Backend API: `https://startupwebapp-api.mosaicmeshai.com`
@@ -35,6 +36,7 @@ A Django REST API backend for an e-commerce startup, featuring comprehensive tes
 - See `docs/technical-notes/2025-11-09-code-linting-analysis.md` for details
 
 📚 **See [docs/PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md) for detailed project timeline and completed phases.**
+🆘 **See [docs/DISASTER_RECOVERY.md](docs/DISASTER_RECOVERY.md) for disaster recovery procedures and runbook.**
 
 ## ⚠️ Important: Demo Project - TEST Mode Only
 

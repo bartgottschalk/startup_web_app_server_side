@@ -31,13 +31,13 @@ Hi Claude. I want to continue working on these two repositories together:
 
 **Latest Milestone (December 27, 2025):**
 - ✅ **Phase 5.16 COMPLETE** - Stripe upgrade from deprecated v2 to modern Checkout Sessions
+- ✅ **Phase 5 COMPLETE** - Production deployment preparation finished (Phases 5.1-5.16)
 - ✅ Session 12 COMPLETE - Final documentation and cleanup
-- ✅ All 11 sessions complete (14 PRs merged)
-- ✅ Payment processing restored and operational in production
+- ✅ Disaster Recovery Runbook created (794 lines, comprehensive procedures)
+- ✅ Phase 5.17 evaluated and DEFERRED (focus on Django 5.2 LTS instead)
 - ✅ 730 total tests passing (693 unit + 37 functional)
 - ✅ Zero linting errors across entire codebase
-- ✅ Comprehensive documentation created
-- 📍 **Next**: Plan Phase 5.17 or Django 5.2 LTS upgrade (Q1 2026)
+- 📍 **Next**: Django 5.2 LTS Upgrade (Q1 2026) - HIGH PRIORITY
 
 ### Phase 5.15 Completion (December 4, 2025)
 
@@ -524,11 +524,14 @@ open https://startupwebapp.mosaicmeshai.com
 - **Skip**: Django 6.0 (not LTS, released December 2025)
 - **Priority**: High - security patches end April 2026
 
-**Phase 5.17: Production Hardening** (Optional)
-- AWS WAF for security
-- Enhanced CloudWatch monitoring
-- Load testing and performance optimization
-- Automated disaster recovery testing
+**Phase 5.17: Production Hardening** ⏭️ DEFERRED (December 27, 2025)
+- **Status**: Evaluated and deferred - not critical for demo project
+- **Decision**: Focus on Django 5.2 LTS upgrade instead
+- **Cost**: Would add $25-60/month (25-60% increase) - not justified at current scale
+- **Implemented**: Disaster Recovery Runbook only (see `docs/DISASTER_RECOVERY.md`)
+- **Deferred Items**: AWS WAF, enhanced monitoring, load testing, DR automation
+- **Revisit**: Q3 2026 after Django upgrade + 6 months production data
+- **Evaluation**: See `docs/technical-notes/2025-12-27-phase-5-17-evaluation.md`
 
 **Other Library Upgrades:**
 - ✅ Stripe library upgrade complete (5.5.0 → 14.0.1, Phase 5.16)
@@ -540,7 +543,9 @@ open https://startupwebapp.mosaicmeshai.com
 ## Key Documentation
 
 - **Project History**: `docs/PROJECT_HISTORY.md`
-- **Phase 5.16 (Complete)**: `docs/technical-notes/2025-12-27-phase-5-16-stripe-upgrade-complete.md` - Stripe upgrade (NEW!)
+- **Disaster Recovery**: `docs/DISASTER_RECOVERY.md` ⭐ **NEW!** (RDS restore, rollback procedures)
+- **Phase 5.17 Evaluation**: `docs/technical-notes/2025-12-27-phase-5-17-evaluation.md` ⭐ **NEW!**
+- **Phase 5.16 (Complete)**: `docs/technical-notes/2025-12-27-phase-5-16-stripe-upgrade-complete.md`
 - **Phase 5.15 (Complete)**: `docs/technical-notes/2025-11-26-phase-5-15-production-deployment.md`
 - **Phase 5.14 (Complete)**: `docs/technical-notes/2025-11-23-phase-5-14-ecs-cicd-migrations.md`
 - **Production Admin Commands**: `docs/technical-notes/2025-12-04-production-admin-commands.md`
