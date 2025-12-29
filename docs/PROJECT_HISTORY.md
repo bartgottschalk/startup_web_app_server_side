@@ -23,7 +23,8 @@ This document tracks the complete development history and modernization effort f
 - [✅ 2025-11-03: Phase 2.1 - ClientEvent Tests](milestones/2025-11-03-phase-2-1-clientevent-tests.md) - Analytics event tracking (51 tests)
 - [✅ 2025-11-03: Phase 2.2 - Order Tests](milestones/2025-11-03-phase-2-2-order-tests.md) - E-commerce functionality (239 tests)
 
-### Current Status: 819 Tests Passing ✅ (100% Pass Rate with PostgreSQL!)
+### Current Status: 818 Tests Passing ✅ (100% Pass Rate with Django 5.2 LTS!)
+- **Django Version**: 5.2.9 LTS (security support until April 2028) - Upgraded December 28, 2025
 - **Backend Unit Tests**: 693 tests
   - User App: 299 tests (authentication, profiles, email management, admin actions)
   - Order App: 325 tests (products, cart, Stripe Checkout Sessions, webhooks, payments)
@@ -36,7 +37,7 @@ This document tracks the complete development history and modernization effort f
 - **AWS Infrastructure**: Deployed (VPC, RDS, Secrets Manager, CloudWatch, ECS Fargate, ALB) - ~$98/month
 - **Production Settings**: Django configured for AWS deployment with Secrets Manager integration
 - **Code Quality**: Zero linting errors (backend Flake8 + frontend ESLint), automated PR validation on both repos
-- **CI/CD**: Automated PR validation on backend (693 unit + 38 functional) and frontend (88 tests + ESLint)
+- **CI/CD**: Automated PR validation on backend (693 unit + 37 functional) and frontend (88 tests + ESLint)
 - **Payment Processing**: Stripe Checkout Sessions (modern API, production ready)
 
 ### Phase 3: Functional Test Infrastructure & Additional Coverage (Completed - 2025-11-07)
@@ -1891,6 +1892,60 @@ See [Technical Note](technical-notes/2025-11-26-phase-5-15-production-deployment
 - ✅ Tests: 730 backend tests + 88 frontend tests, all passing
 
 **Next Phase**: Phase 6 - Django 5.2 LTS Upgrade (Q1 2026)
+
+---
+
+### **Phase 6.1: Django 5.2 LTS Upgrade** ✅ (December 28, 2025)
+
+**Goal**: Upgrade from Django 4.2.16 LTS (EOL April 2026) to Django 5.2.9 LTS (support until April 2028)
+
+**Branch**: `feature/django-5.2-lts-upgrade`
+**Duration**: ~2 hours (1 session)
+**Strategy**: Direct upgrade (4.2 → 5.2) vs incremental
+
+**Accomplishments**:
+- ✅ Upgraded Django: 4.2.16 → 5.2.9 LTS
+- ✅ Upgraded django-cors-headers: 4.4.0 → 4.7.0
+- ✅ Upgraded django-import-export: 4.0.0 → 4.3.14
+- ✅ Added .flake8 configuration file (required by flake8 7.3.0)
+- ✅ All 730 backend tests passing (693 unit + 37 functional)
+- ✅ All 88 frontend tests passing
+- ✅ Zero linting errors (backend + frontend)
+- ✅ Zero code changes required (backward compatible upgrade)
+
+**Breaking Changes Reviewed**:
+- Django 5.0: Python 3.10+ required (✅ using 3.12.12)
+- Django 5.1: PostgreSQL 13+ required (✅ using 16)
+- Django 5.2: PostgreSQL 14+ required (✅ using 16)
+- USE_TZ=True already set (Django 5.0 default)
+- EmailMultiAlternatives usage compatible (constructor pattern)
+- No deprecated features in codebase
+
+**Why Direct Upgrade**:
+1. Minimal breaking changes for PostgreSQL users
+2. Modern Django 4.2 codebase (no deprecated features)
+3. Comprehensive test coverage (730 tests) provides safety net
+4. Time efficient vs 4.2 → 5.0 → 5.1 → 5.2
+
+**Configuration Changes**:
+- Created `StartupWebApp/.flake8` (flake8 7.3.0 requirement)
+- Excludes migrations, max-line-length=120, statistics enabled
+
+**Testing Results**:
+```
+Backend Unit Tests:  693/693 passed ✅
+Functional Tests:     37/37 passed ✅
+Frontend Tests:       88/88 passed ✅
+Linting Errors:       0 ✅
+```
+
+**Documentation**: `docs/technical-notes/2025-12-28-django-5-2-lts-upgrade.md`
+
+**Security Support**:
+- Previous: Django 4.2 LTS until April 2026 (~4 months remaining)
+- Current: Django 5.2 LTS until April 2028 (3+ years)
+
+**Next LTS Upgrade**: Django 6.2 LTS (expected Q1 2028)
 
 ---
 
