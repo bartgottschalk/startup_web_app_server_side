@@ -25,6 +25,46 @@ Hi Claude. I want to continue working on these two repositories together:
 - **Code Quality**: Zero linting errors (flake8, ESLint)
 - **AWS Production**: RDS PostgreSQL 16, VPC, Secrets Manager, CloudWatch monitoring, ECS Fargate, ECR
 
+---
+
+## 🔴 URGENT: Session 14 Context (December 28, 2025)
+
+**PR #58 FAILING - Django 5.2 Upgrade Incomplete!**
+
+**What We Did:**
+- ✅ Upgraded Django 5.2.9 LTS locally (requirements.txt)
+- ✅ All 730 tests passing locally
+- ✅ Created 2026 roadmap documentation
+- ✅ Archived outdated docs
+
+**What We MISSED:**
+- ❌ GitHub Actions CI workflow update (likely still using Django 4.2.16)
+- ❌ Production deployment (still on Django 4.2.16 - master branch)
+
+**PR Check Failure:**
+- Test: `functional_tests.global.test_global_elements.AnonymousGlobalFunctionalTests.test_chat`
+- Expected: "Thank you. We got your message."
+- Actual: "So sorry, but we're unavailable to chat at this time."
+- This is NOT the old flaky CSRF test (fixed November 2025)
+
+**Root Cause Hypothesis:**
+CI environment likely running Django 4.2.16 while testing Django 5.2-compatible code.
+
+**NEXT AGENT TASK:**
+1. Check `.github/workflows/lint-and-test.yml` - does it pin Django version?
+2. Verify CI uses `requirements.txt` from PR branch (not master)
+3. Identify why test_chat specifically fails (CSRF? Django 5.2 breaking change?)
+4. Fix and merge PR #58 to complete Django 5.2 upgrade
+5. Verify production deployment works after merge
+
+**Branch Status:**
+- `feature/django-5.2-lts-upgrade`: 7 commits ahead of master
+- Local: Django 5.2.9, all tests passing
+- CI: Failing (1 test)
+- Production: Django 4.2.16 (master)
+
+---
+
 ## Current State
 
 **Project Status:** ✅ Phase 5.16 COMPLETE - Stripe Upgrade Finished
