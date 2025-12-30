@@ -80,14 +80,11 @@ RUN apt-get update && apt-get install -y \
 # Copy only necessary files (no tests, no development tools)
 COPY StartupWebApp/ /app/
 
-# Set production settings BEFORE running collectstatic
-# This ensures collectstatic uses settings_production.py which has proper fallbacks
-ENV DJANGO_SETTINGS_MODULE=StartupWebApp.settings_production
-
 # Collect static files for WhiteNoise to serve
-# Provide DJANGO_SECRET_KEY for build time (settings_production.py fallback mechanism)
-# At runtime, the real key comes from AWS Secrets Manager
+# Use base settings.py for collectstatic (doesn't need AWS Secrets Manager)
+# Runtime will use settings_production.py (set in docker-entrypoint.sh)
 RUN DJANGO_SECRET_KEY='build-time-secret-key-for-collectstatic-only' \
+    DJANGO_SETTINGS_MODULE=StartupWebApp.settings \
     python manage.py collectstatic --noinput --clear
 
 # Health check for ECS
