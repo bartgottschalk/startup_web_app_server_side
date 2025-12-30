@@ -23,8 +23,6 @@ from import_export.admin import ImportExportModelAdmin
 
 logger = logging.getLogger(__name__)
 
-email_unsubscribe_signer = Signer(salt='email_unsubscribe')
-
 # Define an inline admin descriptor for Member model
 # which acts a bit like a singleton
 
@@ -83,7 +81,9 @@ class ProspectAdmin(ImportExportModelAdmin):
                         prospect.email}, setting new string")
                 new_email_unsubscribe_string = identifier.getNewProspectEmailUnsubscribeString()
                 prospect.email_unsubscribe_string = new_email_unsubscribe_string
-                signed_string = email_unsubscribe_signer.sign(new_email_unsubscribe_string)
+                # Lazy instantiation: create Signer when needed (not at module import)
+                signer = Signer(salt='email_unsubscribe')
+                signed_string = signer.sign(new_email_unsubscribe_string)
                 prospect.email_unsubscribe_string_signed = signed_string.rsplit(':', 1)[1]
             else:
                 logger.debug(
