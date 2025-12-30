@@ -159,14 +159,53 @@ else
 fi
 echo ""
 
-# CloudWatch Monitoring
-echo -e "${GREEN}CloudWatch Monitoring:${NC}"
+# CloudWatch Monitoring (RDS)
+echo -e "${GREEN}CloudWatch Monitoring (RDS):${NC}"
 if [ -n "${SNS_TOPIC_ARN:-}" ]; then
     echo -e "  ${GREEN}✓${NC} SNS Topic:            ${SNS_TOPIC_ARN}"
     echo -e "  ${GREEN}✓${NC} Dashboard:            ${CLOUDWATCH_DASHBOARD_NAME}"
     echo -e "  ${GREEN}✓${NC} Alarms:               4 alarms configured"
 else
     echo -e "  ${YELLOW}⚠${NC} Monitoring not configured (run: ./scripts/infra/create-monitoring.sh <email>)"
+fi
+echo ""
+
+# CloudWatch Monitoring (Order Email Failures - HIGH-004)
+echo -e "${GREEN}CloudWatch Monitoring (Order Email Failures - HIGH-004):${NC}"
+if [ -n "${SNS_TOPIC_ORDER_EMAIL_FAILURES:-}" ]; then
+    # Verify SNS topic exists
+    TOPIC_EXISTS=$(aws sns get-topic-attributes \
+        --topic-arn "${SNS_TOPIC_ORDER_EMAIL_FAILURES}" \
+        --region "${AWS_REGION}" \
+        --query 'Attributes.TopicArn' \
+        --output text 2>/dev/null || echo "")
+
+    if [ -n "$TOPIC_EXISTS" ]; then
+        echo -e "  ${GREEN}✓${NC} SNS Topic:            ${SNS_TOPIC_ORDER_EMAIL_FAILURES}"
+
+        # Check for alarm
+        if [ -n "${CLOUDWATCH_ALARM_ORDER_EMAIL_FAILURES:-}" ]; then
+            ALARM_STATE=$(aws cloudwatch describe-alarms \
+                --alarm-names "${CLOUDWATCH_ALARM_ORDER_EMAIL_FAILURES}" \
+                --region "${AWS_REGION}" \
+                --query 'MetricAlarms[0].StateValue' \
+                --output text 2>/dev/null || echo "NOT_FOUND")
+
+            if [ "$ALARM_STATE" != "NOT_FOUND" ]; then
+                echo -e "  ${GREEN}✓${NC} Alarm:                ${CLOUDWATCH_ALARM_ORDER_EMAIL_FAILURES}"
+                echo -e "  ${GREEN}✓${NC} Alarm State:          ${ALARM_STATE}"
+            else
+                echo -e "  ${YELLOW}⚠${NC} Alarm:                Not created (run: ./scripts/infra/create-order-email-failure-alarm.sh)"
+            fi
+        else
+            echo -e "  ${YELLOW}⚠${NC} Alarm:                Not created (run: ./scripts/infra/create-order-email-failure-alarm.sh)"
+        fi
+    else
+        echo -e "  ${YELLOW}⚠${NC} SNS topic in env but not found in AWS"
+        echo -e "  ${YELLOW}⚠${NC} Run: ./scripts/infra/create-order-email-failures-sns-topic.sh <email>"
+    fi
+else
+    echo -e "  ${YELLOW}⚠${NC} Not configured (run: ./scripts/infra/create-order-email-failures-sns-topic.sh <email>)"
 fi
 echo ""
 

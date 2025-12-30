@@ -259,6 +259,64 @@ else
 fi
 echo ""
 
+# Additional Monitoring: Order Email Failure Alerts (HIGH-004)
+echo -e "${CYAN}════════════════════════════════════════${NC}"
+echo -e "${CYAN}Application Monitoring: Order Email Failures (HIGH-004)${NC}"
+echo -e "${CYAN}════════════════════════════════════════${NC}"
+echo ""
+echo -e "${CYAN}Order Email Failure Alerts${NC}"
+if [ -n "${SNS_TOPIC_ORDER_EMAIL_FAILURES:-}" ]; then
+    # Check if SNS topic exists
+    TOPIC_EXISTS=$(aws sns get-topic-attributes \
+        --topic-arn "${SNS_TOPIC_ORDER_EMAIL_FAILURES}" \
+        --region "${AWS_REGION}" \
+        --query 'Attributes.TopicArn' \
+        --output text 2>/dev/null || echo "")
+
+    if [ -n "$TOPIC_EXISTS" ]; then
+        echo -e "  ${GREEN}✓ COMPLETED${NC} - SNS topic created"
+        echo ""
+        echo -e "  SNS Topic:           ${SNS_TOPIC_ORDER_EMAIL_FAILURES}"
+
+        # Check for CloudWatch alarm
+        if [ -n "${CLOUDWATCH_ALARM_ORDER_EMAIL_FAILURES:-}" ]; then
+            ALARM_STATE=$(aws cloudwatch describe-alarms \
+                --alarm-names "${CLOUDWATCH_ALARM_ORDER_EMAIL_FAILURES}" \
+                --region "${AWS_REGION}" \
+                --query 'MetricAlarms[0].StateValue' \
+                --output text 2>/dev/null || echo "NOT_FOUND")
+
+            if [ "$ALARM_STATE" != "NOT_FOUND" ]; then
+                echo -e "  ${GREEN}✓${NC} Alarm:               ${CLOUDWATCH_ALARM_ORDER_EMAIL_FAILURES}"
+                echo -e "  ${GREEN}✓${NC} Alarm State:         ${ALARM_STATE}"
+                echo ""
+                echo -e "  ${GREEN}✓ HIGH-004 Monitoring: Fully configured${NC}"
+            else
+                echo -e "  ${YELLOW}⚠${NC} Alarm:               Not found in AWS"
+                echo -e "  ${YELLOW}→ Create: ./scripts/infra/create-order-email-failure-alarm.sh${NC}"
+            fi
+        else
+            echo -e "  ${YELLOW}⚠${NC} Alarm:               Not created"
+            echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-order-email-failure-alarm.sh${NC}"
+        fi
+    else
+        echo -e "  ${YELLOW}⚠ SNS topic in env but not found in AWS${NC}"
+        echo -e "  ${YELLOW}→ Recreate: ./scripts/infra/create-order-email-failures-sns-topic.sh <email>${NC}"
+    fi
+elif [ -n "${ECS_SERVICE_LOG_GROUP:-}" ]; then
+    echo -e "  ${RED}✗ NOT STARTED${NC}"
+    echo ""
+    echo -e "  ${YELLOW}Purpose: Alert support team when order emails fail to send${NC}"
+    echo -e "  ${YELLOW}Deployed with: HIGH-004 (Transaction Protection)${NC}"
+    echo ""
+    echo -e "  ${YELLOW}→ Next: ./scripts/infra/create-order-email-failures-sns-topic.sh <email>${NC}"
+    echo -e "  ${YELLOW}   Time: ~5 minutes${NC}"
+    echo -e "  ${YELLOW}   Cost: ~\$0.60/month (SNS + CloudWatch alarm)${NC}"
+else
+    echo -e "  ${RED}✗ BLOCKED${NC} - Requires ECS service with CloudWatch logging"
+fi
+echo ""
+
 # Additional Infrastructure: ECR Repository (Phase 5.14 - ECS/CI/CD)
 echo -e "${CYAN}════════════════════════════════════════${NC}"
 echo -e "${CYAN}Phase 5.14: ECS/CI/CD Infrastructure${NC}"
