@@ -4,6 +4,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.template import loader
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ObjectDoesNotExist
@@ -217,65 +218,64 @@ def client_logout(request):
 
 def account_content(request):
     # raise ValueError('A very specific bad thing happened.')
-    # response_html = {}
-    if request.user.is_authenticated:
-        # print ('is_authenticated')
-        # response_data = "user IS logged in"
-
-        verification_request_sent_within_24_hours = False
-        if request.user.member.email_verification_string_signed is not None and not request.user.member.email_verified:
-            try:
-                email_verification_signer.unsign(
-                    request.user.member.email_verification_string_signed, max_age=86400
-                )  # 86400 seconds is one day
-                verification_request_sent_within_24_hours = True
-            except (BadSignature, SignatureExpired):
-                verification_request_sent_within_24_hours = False
-
-        email_data = {
-            "email_address": request.user.email,
-            "email_verified": request.user.member.email_verified,
-            "verification_request_sent_within_24_hours": verification_request_sent_within_24_hours,
-        }
-        if Membertermsofuseversionagreed.objects.filter(member=request.user.member).exists():
-            agreed_date_time = (
-                Membertermsofuseversionagreed.objects.filter(member=request.user.member)
-                .latest('agreed_date_time')
-                .agreed_date_time
-            )
-        else:
-            agreed_date_time = None
-        personal_data = {
-            "username": request.user.username,
-            "first_name": request.user.first_name,
-            "last_name": request.user.last_name,
-            "newsletter_subscriber": request.user.member.newsletter_subscriber,
-            "email_unsubscribed": request.user.member.email_unsubscribed,
-            "joined_date_time": request.user.date_joined,
-            "last_login_date_time": request.user.last_login,
-            "terms_of_use_agreed_date_time": agreed_date_time,
-        }
-        orders_data = {}
-        members_orders = Order.objects.filter(member=request.user.member).order_by('-order_date_time')
-        order_order_counter = 1
-        for order in members_orders:
-            orders_data[order_order_counter] = {}
-            orders_data[order_order_counter]['order_id'] = order.id
-            orders_data[order_order_counter]['identifier'] = order.identifier
-            orders_data[order_order_counter]['order_date_time'] = order.order_date_time
-            orders_data[order_order_counter]['sales_tax_amt'] = order.sales_tax_amt
-            orders_data[order_order_counter]['order_total'] = order.order_total
-            order_order_counter += 1
-
-        response_data = {
-            "authenticated": "true",
-            "personal_data": personal_data,
-            "email_data": email_data,
-            "orders_data": orders_data,
-        }
-    else:
-        # print ('not_authenticated')
+    # NOTE: This endpoint intentionally supports both authenticated and anonymous users
+    # Frontend expects JSON response with authenticated: true/false, NOT a redirect
+    # See: js/account-0.0.1.js line 35, test_unauthenticated_user_receives_minimal_response
+    if not request.user.is_authenticated:
         response_data = {"authenticated": "false"}
+        return JsonResponse({'account_content': response_data, 'user-api-version': user_api_version}, safe=False)
+
+    verification_request_sent_within_24_hours = False
+    if request.user.member.email_verification_string_signed is not None and not request.user.member.email_verified:
+        try:
+            email_verification_signer.unsign(
+                request.user.member.email_verification_string_signed, max_age=86400
+            )  # 86400 seconds is one day
+            verification_request_sent_within_24_hours = True
+        except (BadSignature, SignatureExpired):
+            verification_request_sent_within_24_hours = False
+
+    email_data = {
+        "email_address": request.user.email,
+        "email_verified": request.user.member.email_verified,
+        "verification_request_sent_within_24_hours": verification_request_sent_within_24_hours,
+    }
+    if Membertermsofuseversionagreed.objects.filter(member=request.user.member).exists():
+        agreed_date_time = (
+            Membertermsofuseversionagreed.objects.filter(member=request.user.member)
+            .latest('agreed_date_time')
+            .agreed_date_time
+        )
+    else:
+        agreed_date_time = None
+    personal_data = {
+        "username": request.user.username,
+        "first_name": request.user.first_name,
+        "last_name": request.user.last_name,
+        "newsletter_subscriber": request.user.member.newsletter_subscriber,
+        "email_unsubscribed": request.user.member.email_unsubscribed,
+        "joined_date_time": request.user.date_joined,
+        "last_login_date_time": request.user.last_login,
+        "terms_of_use_agreed_date_time": agreed_date_time,
+    }
+    orders_data = {}
+    members_orders = Order.objects.filter(member=request.user.member).order_by('-order_date_time')
+    order_order_counter = 1
+    for order in members_orders:
+        orders_data[order_order_counter] = {}
+        orders_data[order_order_counter]['order_id'] = order.id
+        orders_data[order_order_counter]['identifier'] = order.identifier
+        orders_data[order_order_counter]['order_date_time'] = order.order_date_time
+        orders_data[order_order_counter]['sales_tax_amt'] = order.sales_tax_amt
+        orders_data[order_order_counter]['order_total'] = order.order_total
+        order_order_counter += 1
+
+    response_data = {
+        "authenticated": "true",
+        "personal_data": personal_data,
+        "email_data": email_data,
+        "orders_data": orders_data,
+    }
     return JsonResponse({'account_content': response_data, 'user-api-version': user_api_version}, safe=False)
 
 
@@ -482,68 +482,61 @@ def verify_email_address(request):
             {'verify_email_address': 'user_not_authenticated', 'user-api-version': user_api_version}, safe=False
         )
 
-    if request.user.is_authenticated:
+    random_str = random.getRandomString(20, 20)
+    request.user.member.email_verification_string = random_str
+    signed_string = email_verification_signer.sign(random_str)
+    request.user.member.email_verification_string_signed = signed_string
+    request.user.member.save()
 
-        random_str = random.getRandomString(20, 20)
-        request.user.member.email_verification_string = random_str
-        signed_string = email_verification_signer.sign(random_str)
-        request.user.member.email_verification_string_signed = signed_string
-        request.user.member.save()
+    verification_email_content = request.user.first_name + ' ' + request.user.last_name + ','
+    verification_email_content += '\r\n\r\n'
+    verification_email_content += (
+        'We have received a request to verify this email address for the username "'
+        + request.user.username
+        + '"" at '
+        + settings.ENVIRONMENT_DOMAIN
+        + '. If you requested this verification, please go to the following URL to confirm '
+        'that you are authorized to use this email address:'
+    )
+    verification_email_content += '\r\n\r\n'
+    verification_email_content += settings.ENVIRONMENT_DOMAIN + '/account/?email_verification_code=' + signed_string
+    verification_email_content += '\r\n\r\n'
+    verification_email_content += (
+        'Your request to verify this email address will not be processed unless you confirm '
+        'the address using this URL. This link expires 24 hours after your original '
+        'verification request.'
+    )
+    verification_email_content += '\r\n\r\n'
+    verification_email_content += (
+        'If you did NOT request to verify this email address, do not click on the link. If '
+        'you are concerned, please forward this notification to bart+startupwebapp@mosaicmeshai.com and '
+        'let us know that you did not request the verification.'
+    )
+    verification_email_content += '\r\n\r\n'
+    verification_email_content += (
+        'If you have questions or would like to reach us for any reason you can reply to this '
+        'email or call us toll-free at 1-800-123-4567.'
+    )
+    verification_email_content += '\r\n\r\n'
+    verification_email_content += 'Sincerely,'
+    verification_email_content += '\r\n'
+    verification_email_content += 'StartUpWebApp'
 
-        verification_email_content = request.user.first_name + ' ' + request.user.last_name + ','
-        verification_email_content += '\r\n\r\n'
-        verification_email_content += (
-            'We have received a request to verify this email address for the username "'
-            + request.user.username
-            + '"" at '
-            + settings.ENVIRONMENT_DOMAIN
-            + '. If you requested this verification, please go to the following URL to confirm '
-            'that you are authorized to use this email address:'
-        )
-        verification_email_content += '\r\n\r\n'
-        verification_email_content += settings.ENVIRONMENT_DOMAIN + '/account/?email_verification_code=' + signed_string
-        verification_email_content += '\r\n\r\n'
-        verification_email_content += (
-            'Your request to verify this email address will not be processed unless you confirm '
-            'the address using this URL. This link expires 24 hours after your original '
-            'verification request.'
-        )
-        verification_email_content += '\r\n\r\n'
-        verification_email_content += (
-            'If you did NOT request to verify this email address, do not click on the link. If '
-            'you are concerned, please forward this notification to bart+startupwebapp@mosaicmeshai.com and '
-            'let us know that you did not request the verification.'
-        )
-        verification_email_content += '\r\n\r\n'
-        verification_email_content += (
-            'If you have questions or would like to reach us for any reason you can reply to this '
-            'email or call us toll-free at 1-800-123-4567.'
-        )
-        verification_email_content += '\r\n\r\n'
-        verification_email_content += 'Sincerely,'
-        verification_email_content += '\r\n'
-        verification_email_content += 'StartUpWebApp'
-
-        email = EmailMessage(
-            subject='Email Verification Request for ' + settings.ENVIRONMENT_DOMAIN,
-            body=verification_email_content,
-            from_email='StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>',
-            to=[request.user.email],
-            reply_to=['StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>'],
-        )
-        try:
-            email.send(fail_silently=False)
-            return JsonResponse(
-                {'verify_email_address': 'verification_email_sent', 'user-api-version': user_api_version}, safe=False
-            )
-        except SMTPDataError:
-            return JsonResponse(
-                {'verify_email_address': 'email_failed', 'user-api-version': user_api_version}, safe=False
-            )
-
-    else:
+    email = EmailMessage(
+        subject='Email Verification Request for ' + settings.ENVIRONMENT_DOMAIN,
+        body=verification_email_content,
+        from_email='StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>',
+        to=[request.user.email],
+        reply_to=['StartUpWebApp <bart+startupwebapp@mosaicmeshai.com>'],
+    )
+    try:
+        email.send(fail_silently=False)
         return JsonResponse(
-            {'verify_email_address': 'user_not_authenticated', 'user-api-version': user_api_version}, safe=False
+            {'verify_email_address': 'verification_email_sent', 'user-api-version': user_api_version}, safe=False
+        )
+    except SMTPDataError:
+        return JsonResponse(
+            {'verify_email_address': 'email_failed', 'user-api-version': user_api_version}, safe=False
         )
 
 
@@ -810,7 +803,7 @@ def update_my_information(request):
         return JsonResponse(
             {'update_my_information': 'user_not_authenticated', 'user-api-version': user_api_version}, safe=False
         )
-    # raise ValueError('A very specific bad thing happened.')
+
     firstname = request.POST['firstname']
     firstname_valid = validator.isNameValid(firstname, 30)
 
@@ -917,6 +910,7 @@ def update_communication_preferences(request):
             {'update_communication_preferences': 'user_not_authenticated', 'user-api-version': user_api_version},
             safe=False,
         )
+
     if request.method == 'POST' and 'newsletter' in request.POST and 'email_unsubscribe' in request.POST:
         newsletter = request.POST['newsletter']
         email_unsubscribe = request.POST['email_unsubscribe']
@@ -1327,6 +1321,7 @@ def email_unsubscribe_why(request):
     return response
 
 
+@login_required
 def terms_of_use_agree_check(request):
     # raise ValueError('A very specific bad thing happened.')
     most_recent_terms_of_use_version = Termsofuse.objects.all().aggregate(Max('version'))
@@ -1360,6 +1355,7 @@ def terms_of_use_agree(request):
         return JsonResponse(
             {'terms_of_use_agree': 'user_not_authenticated', 'user-api-version': user_api_version}, safe=False
         )
+
     version = None
     if request.method == 'POST' and 'version' in request.POST:
         version = request.POST['version']

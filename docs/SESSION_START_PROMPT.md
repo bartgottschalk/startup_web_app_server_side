@@ -27,66 +27,77 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ---
 
-## 🔴 URGENT: Session 15 Context (December 29, 2025)
+## ✅ Session 16 COMPLETE (December 29, 2025) - CRITICAL Security Fixes
 
-**PRE-FORK SECURITY AUDIT COMPLETE - CRITICAL ISSUES FOUND**
+**ALL CRITICAL SECURITY ISSUES FIXED**
+- ✅ Fixed ALL XSS vulnerabilities (8 JavaScript files)
+- ✅ Removed 8 active console.log statements
+- ✅ Cleaned up hardcoded API URLs
+- ✅ Investigated CSRF retry logic - **FALSE POSITIVE**
+- ✅ Investigated credential exposure - **FALSE ALARM**
 
-**What We Did:**
-- ✅ Comprehensive audit of server-side Django codebase
-- ✅ Comprehensive audit of client-side jQuery codebase
-- ✅ Verified production is healthy and operational
-- ✅ Confirmed all 730 tests passing
-- ✅ Created multi-session fix plan
-
-**CRITICAL FINDINGS - BLOCKS FORK:**
-1. 🟡 **Credentials in local settings_secret.py** (NOT in git, but should move to env vars)
-   - AWS SES credentials were in early git history (commits 1f5d15e, 91b1cd1) but from closed AWS account
-   - Current Gmail credentials are LOCAL ONLY (never committed, protected by .gitignore since Nov 1, 2025)
-   - Still need to move all secrets to environment variables for production best practices
-2. 🔴 **XSS vulnerabilities** - Unescaped user input in 7+ JavaScript files
-   - Affects checkout, account, payment flows
-   - OWASP Top 10 vulnerability
-3. 🔴 **Active console.log statements** - Exposing data in production
-4. 🔴 **Hardcoded production API URLs** - Infrastructure exposure
-5. 🔴 **CSRF retry logic race condition** - Authentication bypass potential
-
-**HIGH PRIORITY FINDINGS:**
-- Stripe test keys in code (move to env vars)
-- No transaction protection on order creation
-- Missing @login_required decorators
-- No rate limiting
-- Weak password validation
-
-**GOOD NEWS:**
-- Infrastructure is solid (ECS, RDS, CloudFront all operational)
-- Test coverage is excellent (730 tests)
-- Architecture is well-designed for forks
-- Issues are fixable code-level problems
-
-**NEXT STEPS:**
-1. Review `docs/PRE_FORK_SECURITY_FIXES.md` for detailed session plan
-2. Start Session 1: Credential Rotation & Secret Management
-3. Work through 5-7 sessions to fix all critical/high issues
-4. Target fork-ready date: January 15-22, 2026
-
-**Key Documentation:**
-- `docs/PRE_FORK_SECURITY_FIXES.md` - Multi-session fix plan
-- `docs/FORK_READINESS_CHECKLIST.md` - Quick reference checklist
+**Branches:** `feature/critical-security-fixes` (client), `master` (server docs)
 
 ---
 
-## Current State
+## ✅ Session 17 COMPLETE (December 30, 2025) - HIGH-002 & HIGH-003
 
-**Project Status:** ✅ Phase 6.1 COMPLETE - Django 5.2 LTS Upgrade Finished
+**HIGH-002: Database Password Fallback - FIXED**
+- Removed insecure fallback in `settings_production.py`
+- App now fails fast if Secrets Manager unavailable (better than silent insecurity)
+- No empty password or 'insecure-fallback-key-change-me' ever used
 
-**Latest Milestone (December 28, 2025):**
-- ✅ **Phase 6.1 COMPLETE** - Django 5.2.9 LTS upgrade (Django 4.2.16 → 5.2.9)
-- ✅ **PR #58 MERGED** - Zero code changes required, fully backward compatible
-- ✅ Production deployed and verified (static file hashes confirm Django 5.2.9)
-- ✅ Extended security support: April 2026 → April 2028 (2 years added)
-- ✅ All 730 tests passing (local + CI + production)
-- ✅ Zero linting errors across entire codebase
-- 📍 **Next**: Disaster Recovery Testing (Q1 2026)
+**HIGH-003: Missing @login_required Decorators - FIXED**
+- Found CRITICAL BUG: `terms_of_use_agree_check` had NO auth check (would crash with AttributeError)
+- Added `@login_required` to `terms_of_use_agree_check`
+- Analyzed 7 other endpoints - kept manual checks (AJAX contract requires JSON, not HTTP 302)
+- Updated test to expect redirect instead of crash
+
+**Branch:** `feature/high-002-remove-password-fallback`
+**Testing:** ✅ 730/730 tests passing, zero linting errors
+
+---
+
+## 🔴 Session 18 IN PROGRESS (December 30, 2025) - HIGH-004
+
+**HIGH-004: Transaction Protection on Order Creation - ANALYSIS COMPLETE**
+
+**Status:** Design finalized, implementation pending next session
+
+**Problem:** Order creation in 2 functions creates 9+ database objects. If any write fails mid-process, customer has paid but order is incomplete.
+
+**Functions Requiring Fix:**
+1. `checkout_session_success` (order/views.py:1016)
+2. `handle_checkout_session_completed` (order/views.py:1416)
+
+**Transaction Boundary Decision:**
+- ✅ **INSIDE transaction**: All 9 DB object creations (Payment, Addresses, Order, OrderSKUs, etc.)
+- ❌ **OUTSIDE transaction**: Stripe API call, email sending, cart deletion (see PRE_FORK_SECURITY_FIXES.md for full rationale)
+
+**Next Session Tasks:**
+1. Create branch: `feature/high-004-transaction-protection`
+2. Add `from django.db import transaction`
+3. Refactor both functions with `with transaction.atomic():` blocks
+4. Write rollback tests
+5. Run all 730 tests + new tests
+
+**Full implementation plan documented in:** `docs/PRE_FORK_SECURITY_FIXES.md` Session 18 section
+
+---
+
+## Next Priority Work
+
+**HIGH Priority Security Items (6 remaining):**
+- 🔴 **HIGH-004**: Transaction protection (analysis done, implementation next)
+- HIGH-005: Rate limiting
+- HIGH-006: Server-side price validation
+- HIGH-007: Password validation strengthening
+- HIGH-008: Login status race condition
+- HIGH-009: Error handling improvements
+
+**Current Branch:** `feature/high-002-remove-password-fallback` (HIGH-002 & HIGH-003 fixes, ready to commit)
+
+See `docs/PRE_FORK_SECURITY_FIXES.md` for complete plan and Session 18 implementation details.
 
 ### Phase 6.1 Completion (December 28, 2025)
 
