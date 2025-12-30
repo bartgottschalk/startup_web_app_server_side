@@ -460,3 +460,43 @@ class Ordershippingmethod(models.Model):
         else:
             return 'Undefined'
     order_identifier.short_description = 'Order Identifier'
+
+
+class Orderemailfailure(models.Model):
+    FAILURE_TYPE_CHOICES = [
+        ('template_lookup', 'Email template not found'),
+        ('formatting', 'Email body formatting failed'),
+        ('smtp_send', 'SMTP email sending failed'),
+        ('emailsent_log', 'Emailsent record creation failed'),
+        ('cart_delete', 'Cart deletion failed'),
+    ]
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    failure_type = models.CharField(max_length=50, choices=FAILURE_TYPE_CHOICES)
+    error_message = models.TextField()
+    customer_email = models.EmailField()
+    is_member_order = models.BooleanField(default=False)
+    phase = models.CharField(max_length=20, blank=True, null=True)
+    created_date_time = models.DateTimeField(auto_now_add=True)
+    resolved = models.BooleanField(default=False)
+    resolved_date_time = models.DateTimeField(blank=True, null=True)
+    resolved_by = models.CharField(max_length=200, blank=True, null=True)
+    resolution_notes = models.TextField(blank=True, null=True)
+
+    class Meta:
+        db_table = 'order_order_email_failure'
+        indexes = [
+            models.Index(fields=['resolved', 'created_date_time'], name='idx_resolved_created'),
+            models.Index(fields=['order'], name='idx_order'),
+            models.Index(fields=['customer_email'], name='idx_customer_email'),
+        ]
+
+    def __str__(self):
+        return f"{self.order.identifier}: {self.failure_type} - {self.customer_email}"
+
+    def order_identifier(self):
+        if self.order is not None:
+            return self.order.identifier
+        else:
+            return 'Undefined'
+    order_identifier.short_description = 'Order Identifier'
