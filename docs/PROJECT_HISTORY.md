@@ -1967,6 +1967,69 @@ Production Deployment:
 
 ---
 
+### **Phase 6.2: Pre-Fork Security Audit** ✅ (December 29, 2025)
+
+**Goal**: Comprehensive security audit of both server-side (Django) and client-side (jQuery) codebases to identify all issues that must be fixed before forking SWA for first business experiment.
+
+**Session**: #15
+**Duration**: ~3 hours (audit only, fixes deferred to future sessions)
+**Audit Scope**:
+- Server-side: ~20 critical files, 5,500+ lines of Django/Python code
+- Client-side: All JavaScript files in `/js/` directory
+
+**Findings**:
+
+**Critical Issues (4) - BLOCKS FORK**:
+1. 🔴 XSS vulnerabilities - Unescaped user input in 7+ JavaScript files
+   - Affects checkout, account, payment flows
+   - OWASP Top 10 vulnerability
+2. 🔴 Active console.log statements exposing data in production
+3. 🔴 Hardcoded production API URLs in JavaScript
+4. 🔴 CSRF token retry logic race condition
+
+**Credentials Assessment**:
+- ✅ Current Gmail/Stripe credentials: LOCAL ONLY (never committed, protected by .gitignore since Nov 1, 2025)
+- 🟢 Old AWS SES credentials in early git commits (1f5d15e, 91b1cd1): From closed AWS account, no longer valid
+- 🟡 Recommendation: Still move all secrets to environment variables for production best practices
+
+**High Priority Issues (9)**:
+- Stripe test keys in code (move to env vars)
+- Database password fallback (remove weak defaults)
+- Missing @login_required decorators on protected views
+- No transaction protection on order creation
+- No rate limiting (vulnerable to DoS)
+- No server-side price validation confirmation
+- Weak password validation (8 chars, limited special chars)
+- Login status race condition
+- Insufficient error handling
+
+**Positive Findings**:
+- ✅ Infrastructure solid (ECS, RDS, CloudFront all operational)
+- ✅ Test coverage excellent (730 tests passing)
+- ✅ Django 5.2 LTS up-to-date
+- ✅ Zero linting errors
+- ✅ Multi-tenant database design ideal for forks
+- ✅ No SQL injection vulnerabilities
+- ✅ Stripe webhook signature verification properly implemented
+- ✅ HTTPS enforcement and security headers configured
+- ✅ Production uses AWS Secrets Manager
+
+**Decision**: 🟠 **SHOULD FIX BEFORE FORK** - 4 critical security issues (XSS, console.log, hardcoded URLs, CSRF race condition) should be addressed before production use
+
+**Documentation Created**:
+- `docs/PRE_FORK_SECURITY_FIXES.md` - Multi-session fix plan (7 sessions)
+- `docs/FORK_READINESS_CHECKLIST.md` - Quick reference checklist
+- `docs/technical-notes/2025-12-29-pre-fork-security-audit.md` - Full audit report
+- Updated: `docs/SESSION_START_PROMPT.md` - Session 15 context
+
+**Next Phase**: Phase 6.3 - Security Fixes (5-7 sessions estimated)
+**Target Fork-Ready Date**: January 15-22, 2026
+**Estimated Effort**: 40-60 hours (critical fixes), 104-161 hours (critical + high priority)
+
+**Key Insight**: Infrastructure and architecture are production-ready. Issues are fixable code-level security problems that must be addressed before exposing to real customers.
+
+---
+
 #### Phase 5.17: Production Hardening ⏭️ DEFERRED (December 27, 2025)
 - AWS WAF for security
 - Enhanced CloudWatch monitoring

@@ -27,41 +27,51 @@ Hi Claude. I want to continue working on these two repositories together:
 
 ---
 
-## 🔴 URGENT: Session 14 Context (December 28, 2025)
+## 🔴 URGENT: Session 15 Context (December 29, 2025)
 
-**PR #58 FAILING - Django 5.2 Upgrade Incomplete!**
+**PRE-FORK SECURITY AUDIT COMPLETE - CRITICAL ISSUES FOUND**
 
 **What We Did:**
-- ✅ Upgraded Django 5.2.9 LTS locally (requirements.txt)
-- ✅ All 730 tests passing locally
-- ✅ Created 2026 roadmap documentation
-- ✅ Archived outdated docs
+- ✅ Comprehensive audit of server-side Django codebase
+- ✅ Comprehensive audit of client-side jQuery codebase
+- ✅ Verified production is healthy and operational
+- ✅ Confirmed all 730 tests passing
+- ✅ Created multi-session fix plan
 
-**What We MISSED:**
-- ❌ GitHub Actions CI workflow update (likely still using Django 4.2.16)
-- ❌ Production deployment (still on Django 4.2.16 - master branch)
+**CRITICAL FINDINGS - BLOCKS FORK:**
+1. 🟡 **Credentials in local settings_secret.py** (NOT in git, but should move to env vars)
+   - AWS SES credentials were in early git history (commits 1f5d15e, 91b1cd1) but from closed AWS account
+   - Current Gmail credentials are LOCAL ONLY (never committed, protected by .gitignore since Nov 1, 2025)
+   - Still need to move all secrets to environment variables for production best practices
+2. 🔴 **XSS vulnerabilities** - Unescaped user input in 7+ JavaScript files
+   - Affects checkout, account, payment flows
+   - OWASP Top 10 vulnerability
+3. 🔴 **Active console.log statements** - Exposing data in production
+4. 🔴 **Hardcoded production API URLs** - Infrastructure exposure
+5. 🔴 **CSRF retry logic race condition** - Authentication bypass potential
 
-**PR Check Failure:**
-- Test: `functional_tests.global.test_global_elements.AnonymousGlobalFunctionalTests.test_chat`
-- Expected: "Thank you. We got your message."
-- Actual: "So sorry, but we're unavailable to chat at this time."
-- This is NOT the old flaky CSRF test (fixed November 2025)
+**HIGH PRIORITY FINDINGS:**
+- Stripe test keys in code (move to env vars)
+- No transaction protection on order creation
+- Missing @login_required decorators
+- No rate limiting
+- Weak password validation
 
-**Root Cause Hypothesis:**
-CI environment likely running Django 4.2.16 while testing Django 5.2-compatible code.
+**GOOD NEWS:**
+- Infrastructure is solid (ECS, RDS, CloudFront all operational)
+- Test coverage is excellent (730 tests)
+- Architecture is well-designed for forks
+- Issues are fixable code-level problems
 
-**NEXT AGENT TASK:**
-1. Check `.github/workflows/lint-and-test.yml` - does it pin Django version?
-2. Verify CI uses `requirements.txt` from PR branch (not master)
-3. Identify why test_chat specifically fails (CSRF? Django 5.2 breaking change?)
-4. Fix and merge PR #58 to complete Django 5.2 upgrade
-5. Verify production deployment works after merge
+**NEXT STEPS:**
+1. Review `docs/PRE_FORK_SECURITY_FIXES.md` for detailed session plan
+2. Start Session 1: Credential Rotation & Secret Management
+3. Work through 5-7 sessions to fix all critical/high issues
+4. Target fork-ready date: January 15-22, 2026
 
-**Branch Status:**
-- `feature/django-5.2-lts-upgrade`: 7 commits ahead of master
-- Local: Django 5.2.9, all tests passing
-- CI: Failing (1 test)
-- Production: Django 4.2.16 (master)
+**Key Documentation:**
+- `docs/PRE_FORK_SECURITY_FIXES.md` - Multi-session fix plan
+- `docs/FORK_READINESS_CHECKLIST.md` - Quick reference checklist
 
 ---
 
