@@ -124,11 +124,14 @@ class TermsOfUseAgreeCheckAPITest(PostgreSQLTestCase):
         # Logout to become anonymous
         self.client.post('/user/logout')
 
-        # This will cause an AttributeError since anonymous user has no .member attribute
-        # The endpoint doesn't handle this gracefully, so it raises an exception
-        with self.assertRaises(AttributeError) as context:
-            self.client.get('/user/terms-of-use-agree-check')
+        # SECURITY FIX (HIGH-003): Endpoint now requires authentication via @login_required
+        # Anonymous users get redirected to login page instead of crashing with AttributeError
+        response = self.client.get('/user/terms-of-use-agree-check')
 
-        # Verify it's the expected error
-        self.assertIn('AnonymousUser', str(context.exception),
-                      'Should be AnonymousUser attribute error')
+        # Verify redirect to login (HTTP 302)
+        self.assertEqual(response.status_code, 302,
+                         'Anonymous user should be redirected to login')
+        self.assertIn('/login', response.url,
+                      'Should redirect to login page')
+        self.assertIn('next=/user/terms-of-use-agree-check', response.url,
+                      'Should preserve next parameter')

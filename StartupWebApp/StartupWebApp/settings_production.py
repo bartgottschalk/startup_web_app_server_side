@@ -60,28 +60,22 @@ def get_secret(secret_name):
 
 
 # Retrieve ALL secrets from Secrets Manager
+# SECURITY: No fallback to environment variables - fail fast if Secrets Manager is unavailable
 secret_name = os.environ.get('DB_SECRET_NAME', 'rds/startupwebapp/multi-tenant/master')
-try:
-    secrets = get_secret(secret_name)
-    logger.info(f"Successfully retrieved secrets from {secret_name}")
-except Exception as e:
-    logger.error(f"Failed to retrieve secrets: {e}")
-    # For initial setup/testing, allow fallback to environment variables
-    secrets = {
-        'host': os.environ.get('DB_HOST', 'localhost'),
-        'port': int(os.environ.get('DB_PORT', '5432')),
-        'username': os.environ.get('DB_USER', 'django_app'),
-        'password': os.environ.get('DB_PASSWORD', ''),
-        'django_secret_key': os.environ.get('DJANGO_SECRET_KEY', 'insecure-fallback-key-change-me'),
-        'stripe_secret_key': os.environ.get('STRIPE_SECRET_KEY', ''),
-        'stripe_publishable_key': os.environ.get('STRIPE_PUBLISHABLE_KEY', ''),
-        'stripe_webhook_secret': os.environ.get('STRIPE_WEBHOOK_SECRET', ''),
-        'email_host': os.environ.get('EMAIL_HOST', ''),
-        'email_port': int(os.environ.get('EMAIL_PORT', '587')),
-        'email_user': os.environ.get('EMAIL_USER', ''),
-        'email_password': os.environ.get('EMAIL_PASSWORD', ''),
-    }
-    logger.warning("Using fallback credentials from environment variables")
+secrets = get_secret(secret_name)
+logger.info(f"Successfully retrieved secrets from {secret_name}")
+
+# Validate that all required secrets are present
+required_keys = [
+    'host', 'port', 'username', 'password', 'django_secret_key',
+    'stripe_secret_key', 'stripe_publishable_key', 'stripe_webhook_secret',
+    'email_host', 'email_port', 'email_user', 'email_password'
+]
+missing_keys = [key for key in required_keys if key not in secrets]
+if missing_keys:
+    error_msg = f"Missing required secrets in {secret_name}: {', '.join(missing_keys)}"
+    logger.error(error_msg)
+    raise ValueError(error_msg)
 
 # Import base settings AFTER retrieving secrets
 # This allows us to override SECRET_KEY before settings.py tries to use it
@@ -91,7 +85,8 @@ from .settings import *  # noqa: F403,F401,E402
 DEBUG = False
 
 # Django SECRET_KEY from Secrets Manager
-SECRET_KEY = secrets.get('django_secret_key', 'INSECURE-CHANGE-ME')  # noqa: F405
+# SECURITY: No fallback - will raise KeyError if missing (already validated above)
+SECRET_KEY = secrets['django_secret_key']  # noqa: F405
 
 # Environment domain for email links and user-facing messages
 ENVIRONMENT_DOMAIN = os.environ.get('ENVIRONMENT_DOMAIN', 'https://startupwebapp.mosaicmeshai.com')
@@ -144,14 +139,15 @@ if container_ip:
     logger.info(f"Added container IP to ALLOWED_HOSTS: {container_ip}")
 
 # Database configuration for AWS RDS PostgreSQL
+# SECURITY: No fallbacks - all values come from Secrets Manager (validated above)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get('DATABASE_NAME', 'startupwebapp_prod'),  # Fork-specific
-        'USER': secrets.get('username', 'django_app'),
-        'PASSWORD': secrets.get('password', ''),
-        'HOST': secrets.get('host', 'localhost'),
-        'PORT': secrets.get('port', 5432),
+        'USER': secrets['username'],
+        'PASSWORD': secrets['password'],
+        'HOST': secrets['host'],
+        'PORT': secrets['port'],
         'CONN_MAX_AGE': 600,  # Connection pooling (10 minutes)
         'OPTIONS': {
             'sslmode': 'require',  # Require SSL for security
@@ -161,17 +157,19 @@ DATABASES = {
 }
 
 # Stripe configuration from Secrets Manager
-STRIPE_SERVER_SECRET_KEY = secrets.get('stripe_secret_key', '')
-STRIPE_PUBLISHABLE_SECRET_KEY = secrets.get('stripe_publishable_key', '')
-STRIPE_WEBHOOK_SECRET = secrets.get('stripe_webhook_secret', '')
+# SECURITY: No fallbacks - all values come from Secrets Manager (validated above)
+STRIPE_SERVER_SECRET_KEY = secrets['stripe_secret_key']
+STRIPE_PUBLISHABLE_SECRET_KEY = secrets['stripe_publishable_key']
+STRIPE_WEBHOOK_SECRET = secrets['stripe_webhook_secret']
 STRIPE_LOG_LEVEL = 'info'  # Production: less verbose than 'debug'
 
 # Email configuration from Secrets Manager
-EMAIL_HOST = secrets.get('email_host', '')
-EMAIL_PORT = secrets.get('email_port', 587)
+# SECURITY: No fallbacks - all values come from Secrets Manager (validated above)
+EMAIL_HOST = secrets['email_host']
+EMAIL_PORT = secrets['email_port']
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = secrets.get('email_user', '')
-EMAIL_HOST_PASSWORD = secrets.get('email_password', '')
+EMAIL_HOST_USER = secrets['email_user']
+EMAIL_HOST_PASSWORD = secrets['email_password']
 
 # Production Security Settings (enforced when DEBUG=False)
 SECURE_SSL_REDIRECT = True
