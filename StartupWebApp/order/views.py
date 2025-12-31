@@ -8,6 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import EmailMultiAlternatives
 from smtplib import SMTPDataError
 from django.core.signing import Signer
+from django.db import transaction
 from user.models import Prospect, Email, Emailsent
 from order.utilities import order_utils
 from order.models import (
@@ -17,6 +18,7 @@ from order.models import (
     Order,
     Ordersku,
     Orderdiscount,
+    Orderemailfailure,
     Status,
     Orderstatus,
     Ordershippingmethod,
@@ -1476,114 +1478,160 @@ def handle_checkout_session_completed(event):
         # Create order identifier
         order_identifier = identifier.getNewOrderIdentifier()
 
-        # Create Payment object
-        payment = Orderpayment.objects.create(
-            email=customer_email,
-            payment_type='card',
-            card_name=customer_name,
-            stripe_payment_intent_id=payment_intent_id,
-        )
-
-        # Create Shipping Address object
-        shipping_address = Ordershippingaddress.objects.create(
-            name=shipping_details.name if shipping_details else customer_name,
-            address_line1=shipping_details.address.line1 if shipping_details and shipping_details.address else '',
-            city=shipping_details.address.city if shipping_details and shipping_details.address else '',
-            state=shipping_details.address.state if shipping_details and shipping_details.address else '',
-            zip=shipping_details.address.postal_code if shipping_details and shipping_details.address else '',
-            country=shipping_details.address.country if shipping_details and shipping_details.address else '',
-            country_code=shipping_details.address.country if shipping_details and shipping_details.address else '',
-        )
-
-        # Create Billing Address object
-        billing_address = Orderbillingaddress.objects.create(
-            name=customer_name,
-            address_line1=customer_details.address.line1 if customer_details and customer_details.address else '',
-            city=customer_details.address.city if customer_details and customer_details.address else '',
-            state=customer_details.address.state if customer_details and customer_details.address else '',
-            zip=customer_details.address.postal_code if customer_details and customer_details.address else '',
-            country=customer_details.address.country if customer_details and customer_details.address else '',
-            country_code=customer_details.address.country if customer_details and customer_details.address else '',
-        )
-
-        # Calculate order totals from cart
-        cart_totals_dict = order_utils.get_cart_totals(cart)
-
-        # Create Order object
-        now = timezone.now()
-
-        # Determine if member or prospect
-        member = None
-        prospect = None
-        if cart.member:
-            member = cart.member
-        else:
-            # Anonymous checkout - get or create prospect
-            prospect, created = Prospect.objects.get_or_create(
+        # CRITICAL: Wrap all database writes in atomic transaction
+        # If any write fails, ALL writes are rolled back (HIGH-004)
+        with transaction.atomic():
+            # Create Payment object
+            payment = Orderpayment.objects.create(
                 email=customer_email,
-                defaults={
-                    'pr_cd': identifier.getNewProspectCode(),
-                    'created_date_time': timezone.now()
-                }
+                payment_type='card',
+                card_name=customer_name,
+                stripe_payment_intent_id=payment_intent_id,
             )
 
-        order = Order.objects.create(
-            identifier=order_identifier,
-            member=member,
-            prospect=prospect,
-            payment=payment,
-            shipping_address=shipping_address,
-            billing_address=billing_address,
-            sales_tax_amt=0,
-            item_subtotal=cart_totals_dict['item_subtotal'],
-            item_discount_amt=cart_totals_dict['item_discount'],
-            shipping_amt=cart_totals_dict['shipping_subtotal'],
-            shipping_discount_amt=cart_totals_dict['shipping_discount'],
-            order_total=cart_totals_dict['cart_total'],
-            agreed_with_terms_of_sale=True,
-            order_date_time=now,
-        )
+            # Create Shipping Address object
+            shipping_address = Ordershippingaddress.objects.create(
+                name=shipping_details.name if shipping_details else customer_name,
+                address_line1=shipping_details.address.line1 if shipping_details and shipping_details.address else '',
+                city=shipping_details.address.city if shipping_details and shipping_details.address else '',
+                state=shipping_details.address.state if shipping_details and shipping_details.address else '',
+                zip=shipping_details.address.postal_code if shipping_details and shipping_details.address else '',
+                country=shipping_details.address.country if shipping_details and shipping_details.address else '',
+                country_code=shipping_details.address.country if shipping_details and shipping_details.address else '',
+            )
 
-        # Create Ordersku objects - need to construct proper cart_item_dict
-        cart_skus = Cartsku.objects.filter(cart=cart)
-        for cart_sku in cart_skus:
-            Ordersku.objects.create(
+            # Create Billing Address object
+            billing_address = Orderbillingaddress.objects.create(
+                name=customer_name,
+                address_line1=customer_details.address.line1 if customer_details and customer_details.address else '',
+                city=customer_details.address.city if customer_details and customer_details.address else '',
+                state=customer_details.address.state if customer_details and customer_details.address else '',
+                zip=customer_details.address.postal_code if customer_details and customer_details.address else '',
+                country=customer_details.address.country if customer_details and customer_details.address else '',
+                country_code=customer_details.address.country if customer_details and customer_details.address else '',
+            )
+
+            # Calculate order totals from cart
+            cart_totals_dict = order_utils.get_cart_totals(cart)
+
+            # Create Order object
+            now = timezone.now()
+
+            # Determine if member or prospect
+            member = None
+            prospect = None
+            if cart.member:
+                member = cart.member
+            else:
+                # Anonymous checkout - get or create prospect
+                prospect, created = Prospect.objects.get_or_create(
+                    email=customer_email,
+                    defaults={
+                        'pr_cd': identifier.getNewProspectCode(),
+                        'created_date_time': timezone.now()
+                    }
+                )
+
+            order = Order.objects.create(
+                identifier=order_identifier,
+                member=member,
+                prospect=prospect,
+                payment=payment,
+                shipping_address=shipping_address,
+                billing_address=billing_address,
+                sales_tax_amt=0,
+                item_subtotal=cart_totals_dict['item_subtotal'],
+                item_discount_amt=cart_totals_dict['item_discount'],
+                shipping_amt=cart_totals_dict['shipping_subtotal'],
+                shipping_discount_amt=cart_totals_dict['shipping_discount'],
+                order_total=cart_totals_dict['cart_total'],
+                agreed_with_terms_of_sale=True,
+                order_date_time=now,
+            )
+
+            # Create Ordersku objects - need to construct proper cart_item_dict
+            cart_skus = Cartsku.objects.filter(cart=cart)
+            for cart_sku in cart_skus:
+                Ordersku.objects.create(
+                    order=order,
+                    sku=cart_sku.sku,
+                    quantity=cart_sku.quantity,
+                    price_each=cart_sku.sku.skuprice_set.latest('created_date_time').price,
+                )
+
+            # Create Orderdiscount records
+            cart_discounts = Cartdiscount.objects.filter(cart=cart)
+            for cart_discount in cart_discounts:
+                Orderdiscount.objects.create(
+                    order=order,
+                    discountcode=cart_discount.discountcode,
+                    applied=True,  # If it's in the cart, it was applied
+                )
+
+            # Create Orderstatus record
+            Orderstatus.objects.create(
                 order=order,
-                sku=cart_sku.sku,
-                quantity=cart_sku.quantity,
-                price_each=cart_sku.sku.skuprice_set.latest('created_date_time').price,
+                status=Status.objects.get(
+                    identifier=Orderconfiguration.objects.get(key='initial_order_status').string_value
+                ),
+                created_date_time=now,
             )
 
-        # Create Orderdiscount records
-        cart_discounts = Cartdiscount.objects.filter(cart=cart)
-        for cart_discount in cart_discounts:
-            Orderdiscount.objects.create(
+            # Create Ordershippingmethod record
+            cart_shipping_method = Cartshippingmethod.objects.get(cart=cart)
+            Ordershippingmethod.objects.create(
                 order=order,
-                discountcode=cart_discount.discountcode,
-                applied=True,  # If it's in the cart, it was applied
+                shippingmethod=cart_shipping_method.shippingmethod
             )
 
-        # Create Orderstatus record
-        Orderstatus.objects.create(
-            order=order,
-            status=Status.objects.get(
-                identifier=Orderconfiguration.objects.get(key='initial_order_status').string_value
-            ),
-            created_date_time=now,
-        )
+        # Order created successfully - now attempt post-transaction operations
+        # Email sending and cart deletion are OUTSIDE the transaction (HIGH-004)
+        # If these fail, the order is still saved (customer has paid!)
 
-        # Create Ordershippingmethod record
-        cart_shipping_method = Cartshippingmethod.objects.get(cart=cart)
-        Ordershippingmethod.objects.create(
-            order=order,
-            shippingmethod=cart_shipping_method.shippingmethod
-        )
+        # Attempt to send order confirmation email
+        try:
+            send_order_confirmation_email(order, customer_name, customer_email, cart)
 
-        # Send order confirmation email
-        send_order_confirmation_email(order, customer_name, customer_email, cart)
+        except Exception as email_error:
+            # Email failed - log failure but order is still saved (HIGH-004)
+            logger.error(f'Order confirmation email failed for order {order_identifier}: {str(email_error)}')
 
-        # Delete the cart
-        cart.delete()
+            # Determine failure type
+            failure_type = 'formatting'
+            if 'DoesNotExist' in str(type(email_error)):
+                failure_type = 'template_lookup'
+            elif 'SMTP' in str(type(email_error)) or 'SMTPException' in str(type(email_error)):
+                failure_type = 'smtp_send'
+
+            # Create failure record
+            Orderemailfailure.objects.create(
+                order=order,
+                failure_type=failure_type,
+                error_message=str(email_error),
+                customer_email=customer_email,
+                is_member_order=(member is not None),
+                phase='email_send'
+            )
+
+            # Log for CloudWatch alarm
+            logger.error(f'[ORDER_EMAIL_FAILURE] type={failure_type} order={order_identifier} email={customer_email}')
+
+        # Delete cart regardless of email success/failure (consistent with existing checkout flow)
+        # Customer will see order confirmation page, can contact support if email not received
+        try:
+            cart.delete()
+        except Exception as cart_delete_error:
+            # Cart deletion failed - log it but don't fail the request
+            logger.error(f'Cart deletion failed for order {order_identifier}: {str(cart_delete_error)}')
+            Orderemailfailure.objects.create(
+                order=order,
+                failure_type='cart_delete',
+                error_message=str(cart_delete_error),
+                customer_email=customer_email,
+                is_member_order=(member is not None),
+                phase='post_email'
+            )
+            logger.error(f'[ORDER_EMAIL_FAILURE] type=cart_delete order={order_identifier} email={customer_email}')
 
         logger.info(f'Order created successfully via webhook: {order_identifier}')
 
@@ -1721,8 +1769,10 @@ def send_order_confirmation_email(order, customer_name, customer_email, cart):
 
     except SMTPDataError:
         logger.exception('SMTPDataError sending order confirmation email')
+        raise  # Re-raise so handle_checkout_session_completed can handle it (HIGH-004)
     except Exception as e:
         logger.exception(f'Error sending order confirmation email: {str(e)}')
+        raise  # Re-raise so handle_checkout_session_completed can handle it (HIGH-004)
 
 
 def anonymous_email_address_payment_lookup(request):
