@@ -1503,5 +1503,21 @@ If any session causes production issues:
 
 ---
 
-**Last Updated:** December 30, 2025
-**Next Session:** HIGH-004 - Transaction protection on order creation
+### SESSION 20 (FUTURE): HIGH-007 Test Coverage
+
+**TODO:** Add unit tests for Django password validators
+
+**Missing Test Coverage:**
+1. `test_create_account_password_similar_to_username` - Username: "testuser", Password: "Testuser123!" → reject
+2. `test_create_account_common_password_base` - Password: "password" → reject
+3. `test_set_new_password_similar_to_username` - Similar to #1 for reset flow
+4. `test_change_password_similar_to_username` - Similar to #1 for change flow
+
+**Rationale:** Django validators now enforced (Session 19) but not explicitly tested. Existing tests only cover custom validation (capital, special, length).
+
+**Estimated Time:** 30 minutes
+
+---
+
+**Last Updated:** December 31, 2025
+**Next Session:** HIGH-007 test coverage OR HIGH-004 Phase 2 transaction protection
