@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+import sys
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
@@ -273,3 +274,20 @@ LOGGING = {
         'level': 'INFO',
     },
 }
+
+# Cache Configuration
+# For development: uses local memory cache (simple, no dependencies)
+# For production: configure Redis via settings_production.py
+# Used by django-ratelimit for tracking request counts
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
+# Rate Limiting Configuration (django-ratelimit)
+# Protects against abuse on public endpoints
+# Disable during tests to avoid interference with existing test suite
+RATELIMIT_ENABLE = 'test' not in sys.argv  # Disable during tests
+RATELIMIT_FAIL_OPEN = True  # Allow requests if cache fails (availability > security)
