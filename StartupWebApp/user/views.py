@@ -5,6 +5,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.template import loader
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django_ratelimit.decorators import ratelimit
 from django.conf import settings
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ObjectDoesNotExist
@@ -120,6 +121,7 @@ def logged_in(request):
     return response
 
 
+@ratelimit(key='ip', rate='10/h', method='POST', block=True)
 def client_login(request):
     # raise ValueError('A very specific bad thing happened.')
     username = request.POST['username']
@@ -279,6 +281,7 @@ def account_content(request):
     return JsonResponse({'account_content': response_data, 'user-api-version': user_api_version}, safe=False)
 
 
+@ratelimit(key='ip', rate='5/h', method='POST', block=True)
 def create_account(request):
     # raise ValueError('A very specific bad thing happened.')
     firstname = request.POST['firstname']
@@ -576,6 +579,7 @@ def verify_email_address_response(request):
         )
 
 
+@ratelimit(key='post:username', rate='5/h', method='POST', block=True)
 def reset_password(request):
     # raise ValueError('A very specific bad thing happened.')
     # see if we can find a user who matches the requested values

@@ -8,6 +8,7 @@ Django==5.2.9  # Django 5.2 LTS (supported until April 2028)
 # Django Extensions
 django-cors-headers==4.7.0  # Compatible with Django 5.2
 django-import-export==4.3.14  # Compatible with Django 5.2
+django-ratelimit==4.1.0  # Rate limiting for abuse prevention
 
 # Utilities
 configparser==5.2.0
