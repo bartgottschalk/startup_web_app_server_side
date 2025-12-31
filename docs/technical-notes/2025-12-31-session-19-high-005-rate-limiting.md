@@ -160,22 +160,58 @@ This implementation uses a two-phase deployment strategy:
 
 ## Future Work
 
-### Phase 2: ElastiCache Redis (Next Priority)
-- ElastiCache Redis setup (~$12/month for cache.t4g.micro)
-- Security group configuration (ECS → Redis)
-- Add redis-py to requirements.txt
-- Update settings_production.py with Redis connection
-- CloudWatch alarms for rate limit violations
+### Phase 2: ElastiCache Redis (On-Demand - Deploy When Needed)
 
-### Additional Endpoints (HIGH-009)
+**Decision**: Phase 2 infrastructure is **NOT REQUIRED** for StartUpWebApp pre-fork work.
+
+**Rationale**:
+- SWA is a demo/template application, not a revenue-generating business
+- Current traffic is low (likely 1 container most of time = full rate limiting protection)
+- Cost: ~$12/month (~$144/year) with minimal ROI until abuse occurs
+- **Response Time**: 2-3 hours to deploy if needed (not weeks)
+- Better to defer until actual need vs pre-optimize for hypothetical scenarios
+
+**When to Deploy Phase 2**:
+
+✅ **Deploy Redis if you observe**:
+- Coordinated rate limit bypass attempts in CloudWatch logs
+- Regular multi-container scaling (sustained traffic growth)
+- Repeated abuse patterns (account spam, password reset bombing)
+- Fork becomes revenue-generating business (real users, real risk)
+- Cost becomes justified by traffic/revenue
+
+❌ **Skip Redis if**:
+- Low traffic (1 container most of time)
+- No abuse attempts observed in logs
+- Cost-sensitive validation phase
+- Planning to fork SWA soon anyway
+- Pre-fork hardening work (current context)
+
+**Implementation Plan (When Triggered)**:
+1. Create ElastiCache Redis cluster (cache.t4g.micro ~$12/month)
+2. Configure security group (ECS → Redis port 6379)
+3. Add redis-py to requirements.txt
+4. Update settings_production.py with Redis connection string
+5. Create CloudWatch alarms for rate limit violations
+6. Deploy (zero code changes, just configuration)
+7. **Estimated Time**: 2-3 hours
+
+**Fork Considerations**:
+- Each fork should evaluate their own needs (B2B vs B2C, traffic, budget)
+- Some forks may need Redis Day 1 (high-traffic B2C)
+- Others may never need it (low-traffic B2B, internal tools)
+- Phase 1 provides reasonable protection for most validation scenarios
+
+### Additional Endpoints (HIGH-009 - Future Session)
 - clientevent endpoints (pageview, ajaxerror, etc.)
 - user/pythonabot-notify-me
 - Custom error messages for rate-limited requests
 
-### AWS WAF (Optional - If Needed)
-- Triggers: Traffic >100 req/sec, DDoS attacks, high costs
-- Cost: ~$6-10/month additional
-- Defense in depth (edge blocking + Django rate limiting)
+### AWS WAF (Optional - Only If Under Attack)
+- **Triggers**: Sustained DDoS attacks, traffic >100 req/sec, CDN costs spike
+- **Cost**: ~$6-10/month additional
+- **Use Case**: Defense in depth (edge blocking + Django rate limiting)
+- **Decision**: Deploy only if experiencing actual attacks (not pre-fork work)
 
 ## Notes
 

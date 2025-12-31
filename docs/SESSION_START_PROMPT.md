@@ -159,7 +159,10 @@ Hi Claude. I want to continue working on these two repositories together:
 
 **Deployment Strategy:**
 - **Phase 1 (DEPLOYED):** Local-memory cache - full protection single-container, partial multi-container
-- **Phase 2 (FUTURE):** ElastiCache Redis - full multi-container protection (~2-3 hours infrastructure work)
+- **Phase 2 (ON-DEMAND):** ElastiCache Redis - deploy only if abuse observed (~2-3 hours when needed)
+  - Not required for pre-fork work
+  - Cost: ~$12/month with minimal ROI until abuse occurs
+  - Decision: Defer until actual need vs pre-optimize
 
 **Documentation:**
 - Technical note: `docs/technical-notes/2025-12-31-session-19-high-005-rate-limiting.md`
@@ -182,7 +185,9 @@ Hi Claude. I want to continue working on these two repositories together:
 **Next Session Options:**
 1. HIGH-004 Phase 2: TDD implementation (transaction protection)
 2. HIGH-006: Server-side price validation confirmation
-3. HIGH-005 Phase 2: ElastiCache Redis infrastructure (~2-3 hours)
+3. Continue with other HIGH priority items (HIGH-007, HIGH-008, HIGH-009)
+
+**Note**: HIGH-005 Phase 2 (ElastiCache Redis) deferred - deploy only if abuse observed
 
 See `docs/PRE_FORK_SECURITY_FIXES.md` for complete plan.
 

@@ -2165,12 +2165,12 @@ Frontend:
   - Example: 10/hour login limit becomes 40/hour with 4 containers
   - Still better than no limits (current state)
 
-*Phase 2 (FUTURE - Estimated 2-3 hours)*:
-- ElastiCache Redis cluster (cache.t4g.micro ~$12/month)
-- Security group configuration (ECS → Redis port 6379)
-- Add redis-py to requirements.txt
-- Update settings_production.py with Redis connection
-- CloudWatch alarms for rate limit violations
+*Phase 2 (ON-DEMAND - Deploy Only If Abuse Observed)*:
+- **Decision**: NOT required for pre-fork work
+- **Rationale**: SWA is demo/template, low traffic, cost (~$12/month) unjustified until abuse occurs
+- **Response Time**: 2-3 hours to deploy if needed
+- **Triggers**: Coordinated abuse, sustained multi-container scaling, fork becomes revenue-generating
+- **Implementation**: ElastiCache Redis cluster, security groups, redis-py, settings config, CloudWatch alarms
 - **Code Changes Required**: None (just configuration)
 
 **Security Impact**:
@@ -2220,7 +2220,9 @@ Production Deployment:
 **Next Session Options**:
 1. HIGH-004 Phase 2: TDD implementation (transaction protection)
 2. HIGH-006: Server-side price validation confirmation
-3. HIGH-005 Phase 2: ElastiCache Redis infrastructure (~2-3 hours)
+3. Continue with other HIGH priority items (HIGH-007, HIGH-008, HIGH-009)
+
+**Note**: HIGH-005 Phase 2 (ElastiCache Redis) deferred - deploy only if abuse observed
 
 ---
 
