@@ -1,7 +1,7 @@
 from django.contrib import admin
 from order.models import (
     Orderpayment, Ordershippingaddress, Orderbillingaddress, Order, Ordersku,
-    Orderdiscount, Status, Orderstatus, Ordershippingmethod
+    Orderdiscount, Status, Orderstatus, Ordershippingmethod, Orderemailfailure
 )
 from order.models import (
     Orderconfiguration, Cartshippingaddress, Cart, Cartsku, Sku, Skuprice,
@@ -214,6 +214,33 @@ class OrderstatusAdmin(admin.ModelAdmin):
 class OrdershippingmethodAdmin(admin.ModelAdmin):
     list_display = ('order_identifier', 'order', 'shippingmethod', 'tracking_number')
 
+# Define a new Orderemailfailure admin
+
+
+class OrderemailfailureAdmin(admin.ModelAdmin):
+    list_display = (
+        'order',
+        'customer_email',
+        'failure_type',
+        'error_message_short',
+        'created_date_time',
+        'resolved')
+    list_filter = ('failure_type', 'resolved', 'created_date_time')
+    search_fields = ('order__identifier', 'customer_email', 'error_message')
+    readonly_fields = (
+        'order',
+        'customer_email',
+        'failure_type',
+        'error_message',
+        'created_date_time')
+
+    def error_message_short(self, obj):
+        """Display first 100 characters of error message."""
+        if obj.error_message and len(obj.error_message) > 100:
+            return obj.error_message[:100] + '...'
+        return obj.error_message
+    error_message_short.short_description = 'Error Message'
+
 
 # Register your models here.
 admin.site.register(Orderpayment, OrderpaymentAdmin)
@@ -244,3 +271,4 @@ admin.site.register(Discountcode, DiscountcodeAdmin)
 admin.site.register(Cartdiscount, CartdiscountAdmin)
 admin.site.register(Shippingmethod, ShippingmethodAdmin)
 admin.site.register(Cartshippingmethod, CartshippingmethodAdmin)
+admin.site.register(Orderemailfailure, OrderemailfailureAdmin)

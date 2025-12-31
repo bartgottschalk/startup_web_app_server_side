@@ -3,7 +3,7 @@
 
 from django.db import migrations
 from django.utils import timezone
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 
 
 def create_order_seed_data(apps, schema_editor):
@@ -227,7 +227,7 @@ def create_order_seed_data(apps, schema_editor):
         id=1,
         defaults={
             'price': 3.5,
-            'created_date_time': datetime(2019, 4, 22, 0, 0, 0, tzinfo=timezone.utc),
+            'created_date_time': datetime(2019, 4, 22, 0, 0, 0, tzinfo=UTC),
             'sku': sku1
         }
     )
@@ -257,7 +257,7 @@ def create_order_seed_data(apps, schema_editor):
         id=2,
         defaults={
             'price': 3.5,
-            'created_date_time': datetime(2019, 4, 22, 0, 0, 0, tzinfo=timezone.utc),
+            'created_date_time': datetime(2019, 4, 22, 0, 0, 0, tzinfo=UTC),
             'sku': sku2
         }
     )
@@ -321,7 +321,7 @@ def create_order_seed_data(apps, schema_editor):
         id=4,
         defaults={
             'price': 5.99,
-            'created_date_time': datetime(2019, 4, 22, 0, 0, 0, tzinfo=timezone.utc),
+            'created_date_time': datetime(2019, 4, 22, 0, 0, 0, tzinfo=UTC),
             'sku': sku4
         }
     )
@@ -351,7 +351,7 @@ def create_order_seed_data(apps, schema_editor):
         id=5,
         defaults={
             'price': 4.99,
-            'created_date_time': datetime(2019, 4, 22, 0, 0, 0, tzinfo=timezone.utc),
+            'created_date_time': datetime(2019, 4, 22, 0, 0, 0, tzinfo=UTC),
             'sku': sku5
         }
     )
@@ -381,7 +381,7 @@ def create_order_seed_data(apps, schema_editor):
         id=6,
         defaults={
             'price': 3.99,
-            'created_date_time': datetime(2019, 4, 22, 0, 0, 0, tzinfo=timezone.utc),
+            'created_date_time': datetime(2019, 4, 22, 0, 0, 0, tzinfo=UTC),
             'sku': sku6
         }
     )
@@ -434,7 +434,7 @@ def create_order_seed_data(apps, schema_editor):
         id=7,
         defaults={
             'price': 10.99,
-            'created_date_time': datetime(2019, 4, 20, 0, 0, 0, tzinfo=timezone.utc),
+            'created_date_time': datetime(2019, 4, 20, 0, 0, 0, tzinfo=UTC),
             'sku': sku7
         }
     )
@@ -442,7 +442,7 @@ def create_order_seed_data(apps, schema_editor):
         id=8,
         defaults={
             'price': 14.99,
-            'created_date_time': datetime(2019, 4, 22, 0, 0, 0, tzinfo=timezone.utc),
+            'created_date_time': datetime(2019, 4, 22, 0, 0, 0, tzinfo=UTC),
             'sku': sku7
         }
     )
