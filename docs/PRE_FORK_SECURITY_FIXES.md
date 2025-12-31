@@ -1041,27 +1041,57 @@ File: `order/tests/test_prospect_handling.py` (NEW or add to existing)
 
 ### **PHASE 5: Manual Testing & Verification**
 
-**Status:** 🔴 IN PROGRESS - ISSUE DISCOVERED (2025-12-31)
-**Estimated Time:** 1 hour
+**Status:** ✅ COMPLETE (2025-12-31)
+**Actual Time:** 4 hours
 **Goal:** Verify end-to-end behavior in production environment
 
-**CURRENT STATUS:**
-- ✅ Deployed to production
+**COMPLETED:**
+- ✅ Deployed to production (PR #61)
 - ✅ Manual test: Anonymous user order completed
 - ✅ Manual test: Signed-in user order completed
-- ❌ **ISSUE:** No confirmation emails received for either order
-- ❌ **ISSUE:** No emails in bart@mosaicmeshai.com sent folder
-- ❓ `Orderemailfailure` model not visible in Django admin (need to register it)
+- ✅ Email issue identified: Gmail app password deleted during security rotation
+- ✅ Local testing: All email types working (account creation, signed-in order, anonymous order)
+- ✅ Django 5.2 migration bug fixed: `timezone.utc` → `datetime.UTC` (PR #62)
+- ✅ `Orderemailfailure` registered in Django admin (PR #62)
+- ✅ CloudWatch alarm verified: Triggers correctly on email failures
+- ✅ SNS notifications verified: Email alerts delivered successfully
+- ✅ Email monitoring fully operational
 
-**NEXT STEPS (for new session):**
-1. Investigate why emails not sending (test locally first)
-2. Register `Orderemailfailure` in Django admin
-3. Break email service in prod to verify:
-   - CloudWatch alarm triggers
-   - `Orderemailfailure` records created
-   - Can view failures in Django admin
-4. Fix email issue (hotfix or new branch depending on root cause)
-5. Re-test email sending in production
+**ISSUES DISCOVERED & RESOLVED:**
+
+1. **Email Failure (Root Cause: Deleted Gmail App Password)**
+   - Gmail app password was deleted during security rotation on Dec 30
+   - Both local and production emails failing with SMTP auth error
+   - **Resolution**: Generated new Gmail app password, updated AWS Secrets Manager and local config
+   - **Testing**: All email types verified working (local + production)
+
+2. **Django 5.2 Migration Compatibility Bug**
+   - Seed data migrations using deprecated `timezone.utc` (removed in Django 5.2)
+   - Blocked fresh database rebuilds (local dev, disaster recovery)
+   - **Resolution**: PR #62 - Replace `timezone.utc` with `datetime.UTC` in 2 migration files
+   - **Testing**: Fresh DB rebuild successful, all 702 tests passing
+
+3. **Missing Admin Registration**
+   - `Orderemailfailure` model not visible in Django admin
+   - **Resolution**: PR #62 - Added `OrderemailfailureAdmin` class with custom display
+   - **Features**: Filtering by type/status, search by order/email, truncated error messages
+
+**MONITORING VERIFICATION:**
+- ✅ CloudWatch metric filter: Correctly captures `[ORDER_EMAIL_FAILURE]` logs
+- ✅ CloudWatch alarm: Transitions OK → ALARM on email failures
+- ✅ SNS topic: Confirmed subscription, notifications delivered
+- ✅ Email alerts: Received within 1-5 minutes of alarm trigger
+- ✅ Structured logging: Format verified `[ORDER_EMAIL_FAILURE] type=X order=Y email=Z`
+
+**DEPLOYMENTS:**
+- **PR #61** (Dec 31): HIGH-004 Phase 2-3 transaction protection + email failure handling
+- **PR #62** (Dec 31): Django 5.2 migration fix + `Orderemailfailure` admin registration
+
+**LESSONS LEARNED:**
+- Gmail app password rotation requires coordinated updates (local + AWS Secrets Manager + ECS restart)
+- CloudWatch alarms only notify on state transitions (OK→ALARM), not while in ALARM
+- Manual alarm testing requires: reset to OK → trigger failure → verify notification
+- Django 5.2 deprecated `timezone.utc` - use `datetime.UTC` instead
 
 55. Start Docker environment: `docker-compose up -d`
 56. Start backend server: `docker-compose exec -d backend python manage.py runserver 0.0.0.0:8000`
