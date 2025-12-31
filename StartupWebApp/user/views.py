@@ -5,10 +5,11 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.template import loader
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.password_validation import validate_password
 from django_ratelimit.decorators import ratelimit
 from django.conf import settings
 from django.contrib.auth.models import User, Group
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db.utils import IntegrityError
 from django.core.mail import EmailMessage
 from django.db.models import Max
@@ -304,6 +305,25 @@ def create_account(request):
     remember_me = request.POST['remember_me']
 
     # Validators return True or error array - must use == True
+    if (
+        firstname_valid == True  # noqa: E712
+        and lastname_valid == True  # noqa: E712
+        and username_valid == True  # noqa: E712
+        and email_address_valid == True  # noqa: E712
+        and password_valid == True  # noqa: E712
+    ):
+        # Django password validation (AUTH_PASSWORD_VALIDATORS)
+        # Checks: common passwords, username similarity, numeric-only, minimum length
+        # Create temporary unsaved User object for username similarity check
+        temp_user = User(username=username, email=email_address, first_name=firstname, last_name=lastname)
+        try:
+            validate_password(password, user=temp_user)
+        except ValidationError as e:
+            # Convert Django validation errors to custom error format (frontend expects 'description' key)
+            password_valid = [{'type': 'django_validation', 'description': msg} for msg in e.messages]
+            logger.warning(f'Django password validation failed: {e.messages}')
+
+    # Re-check password_valid after Django validation
     if (
         firstname_valid == True  # noqa: E712
         and lastname_valid == True  # noqa: E712
@@ -664,6 +684,15 @@ def set_new_password(request):
                 password_valid = validator.isPasswordValid(password, confirm_password, 150)
                 # Validators return True or error array - must use == True
                 if password_valid == True:  # noqa: E712
+                    # Django password validation (AUTH_PASSWORD_VALIDATORS)
+                    try:
+                        validate_password(password, user=user)
+                    except ValidationError as e:
+                        password_valid = [{'type': 'django_validation', 'description': msg} for msg in e.messages]
+                        logger.warning(f'Django password validation failed for set_new_password: {e.messages}')
+
+                # Re-check password_valid after Django validation
+                if password_valid == True:  # noqa: E712
                     user.set_password(password)
                     user.save()
                     user.member.reset_password_string = None
@@ -1023,6 +1052,15 @@ def change_my_password(request):
     else:
         password_valid = validator.isPasswordValid(password, confirm_password, 150)
         # Validators return True or error array - must use == True
+        if password_valid == True and request.user.check_password(current_password) == True:  # noqa: E712
+            # Django password validation (AUTH_PASSWORD_VALIDATORS)
+            try:
+                validate_password(password, user=request.user)
+            except ValidationError as e:
+                password_valid = [{'type': 'django_validation', 'description': msg} for msg in e.messages]
+                logger.warning(f'Django password validation failed for change_password: {e.messages}')
+
+        # Re-check password_valid after Django validation
         if password_valid == True and request.user.check_password(current_password) == True:  # noqa: E712
             username = request.user.username
             request.user.set_password(password)
