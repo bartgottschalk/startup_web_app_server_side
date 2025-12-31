@@ -3,7 +3,7 @@
 
 from django.db import migrations
 from django.utils import timezone
-from datetime import datetime
+from datetime import datetime, UTC
 
 
 def create_user_seed_data(apps, schema_editor):
@@ -45,7 +45,7 @@ def create_user_seed_data(apps, schema_editor):
                 'and <a class="raw-link" href="/terms-of-sale">Terms of Sale</a>. '
                 'Modifications include...'
             ),
-            'publication_date_time': datetime(2019, 4, 20, 0, 0, 0, tzinfo=timezone.utc)
+            'publication_date_time': datetime(2019, 4, 20, 0, 0, 0, tzinfo=UTC)
         }
     )
 
