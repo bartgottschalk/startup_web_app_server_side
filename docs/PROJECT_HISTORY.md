@@ -2128,6 +2128,102 @@ Frontend:
 
 ---
 
+### **Session 19: HIGH-005 Rate Limiting Implementation** ✅ (December 31, 2025)
+
+**Goal**: Implement rate limiting on critical authentication endpoints to prevent abuse
+
+**Branch**: `feature/high-005-rate-limiting`
+**Duration**: ~2 hours (1 session)
+**Strategy**: Two-phase deployment (Phase 1: local-memory, Phase 2: ElastiCache Redis)
+
+**Phase 1 Accomplishments (THIS SESSION)**:
+- ✅ Installed django-ratelimit==4.1.0
+- ✅ Protected 3 critical endpoints:
+  - `user/login`: 10 requests/hour per IP → HTTP 403
+  - `user/create-account`: 5 requests/hour per IP → HTTP 403
+  - `user/reset-password`: 5 requests/hour per username → HTTP 403
+- ✅ Test isolation: Auto-disables during tests (`RATELIMIT_ENABLE = 'test' not in sys.argv`)
+- ✅ Created 10 comprehensive rate limiting tests
+- ✅ All 712 tests passing (702 existing + 10 new)
+- ✅ Zero linting errors
+- ✅ Deployed with local-memory cache (LocMemCache)
+
+**Technical Implementation**:
+- **Library**: django-ratelimit 4.1.0
+- **Cache Backend**: `LocMemCache` (Django built-in, no infrastructure changes)
+- **Fail Mode**: Fail-open (`RATELIMIT_FAIL_OPEN = True`) - availability > security
+- **Response**: HTTP 403 Forbidden on rate limit exceeded
+
+**Deployment Strategy**:
+
+*Phase 1 (DEPLOYED - December 31, 2025)*:
+- Cache: Local-memory per container
+- Protection: Full for single-container, partial for multi-container
+- Infrastructure: No changes required
+- Risk: Fail-open prevents service disruption
+- **Known Limitation**: Multi-container deployments (1-4 ECS tasks) each have separate rate limit counters
+  - Example: 10/hour login limit becomes 40/hour with 4 containers
+  - Still better than no limits (current state)
+
+*Phase 2 (FUTURE - Estimated 2-3 hours)*:
+- ElastiCache Redis cluster (cache.t4g.micro ~$12/month)
+- Security group configuration (ECS → Redis port 6379)
+- Add redis-py to requirements.txt
+- Update settings_production.py with Redis connection
+- CloudWatch alarms for rate limit violations
+- **Code Changes Required**: None (just configuration)
+
+**Security Impact**:
+
+Attack Vectors Mitigated:
+- ✅ Account creation spam (5/hour per container)
+- ✅ Password reset email bombing (5/hour per username per container)
+- ✅ Login brute force attacks (10/hour per IP per container)
+
+Known Limitations (Phase 1):
+- ⚠️ Multi-container bypass (rate limits multiplied by task count)
+- ⚠️ Not suitable for high-traffic scenarios without shared cache
+- ✅ Still provides protection (better than nothing)
+
+**Files Modified**:
+- `requirements.txt`: Added django-ratelimit==4.1.0
+- `StartupWebApp/StartupWebApp/settings.py`: Cache + rate limit configuration
+- `StartupWebApp/user/views.py`: Rate limit decorators on 3 endpoints
+- `StartupWebApp/user/tests/test_rate_limiting.py`: 10 comprehensive tests (NEW)
+- `docs/technical-notes/2025-12-31-session-19-high-005-rate-limiting.md` (NEW)
+- `docs/PRE_FORK_SECURITY_FIXES.md`: Marked HIGH-005 complete (4/9 HIGH items done)
+
+**Testing Results**:
+```
+Backend:
+  Unit Tests:       712/712 passed ✅ (702 existing + 10 new)
+  Functional Tests:  37/37 passed ✅
+  Linting (flake8):  0 errors ✅
+
+CI Tests (PR #63):
+  All 712 tests passed ✅
+
+Production Deployment:
+  Auto-deployed: December 31, 2025 ✅
+  Status: Fully operational ✅
+```
+
+**Pull Request**: [PR #63](https://github.com/bartgottschalk/startup_web_app_server_side/pull/63) - Merged December 31, 2025
+
+**Documentation**:
+- Technical Note: `docs/technical-notes/2025-12-31-session-19-high-005-rate-limiting.md`
+- Security Fixes Tracker: `docs/PRE_FORK_SECURITY_FIXES.md` (HIGH-005 marked complete)
+- Session Start Prompt: `docs/SESSION_START_PROMPT.md` (updated with Session 19 completion)
+
+**HIGH Priority Progress**: 4/9 complete (HIGH-001, HIGH-002, HIGH-003, HIGH-005)
+
+**Next Session Options**:
+1. HIGH-004 Phase 2: TDD implementation (transaction protection)
+2. HIGH-006: Server-side price validation confirmation
+3. HIGH-005 Phase 2: ElastiCache Redis infrastructure (~2-3 hours)
+
+---
+
 #### Phase 5.17: Production Hardening ⏭️ DEFERRED (December 27, 2025)
 - AWS WAF for security
 - Enhanced CloudWatch monitoring
