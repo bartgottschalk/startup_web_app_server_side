@@ -5,38 +5,12 @@ I no longer control the domain startupwebapp.com and am not responsible for the 
 
 A Django REST API backend for an e-commerce startup, featuring comprehensive test coverage, Docker containerization, and Python 3.12 compatibility.
 
-## Current Status (December 2025)
+## Overview
 
-✅ **Production Live** - Full-stack deployed to AWS (ECS Fargate + S3/CloudFront)
-✅ **730 Tests Passing** - Comprehensive test coverage (693 unit + 37 functional) with PostgreSQL
-✅ **CI/CD Pipeline** - Auto-deploy on merge to master with PR validation
-✅ **PostgreSQL 16** - Production-ready database with multi-tenant architecture
-✅ **Python 3.12 Compatible** - Fully modernized for latest Python
-✅ **Docker Containerized** - Easy setup with Docker Compose
-✅ **Django 4.2.16 LTS** - Modern Django with security support until April 2026
-✅ **Code Quality Tools** - Zero linting errors (backend + frontend)
-✅ **Stripe Checkout Sessions** - Modern payment processing (upgraded December 2025)
-✅ **Disaster Recovery** - Comprehensive runbook with RTO: 4 hours, RPO: 24 hours
+Production-ready Django e-commerce template with comprehensive test coverage (818 tests passing), Docker development environment, and AWS deployment infrastructure. Includes Django 5.2 LTS, PostgreSQL 16, Stripe Checkout Sessions, and CI/CD pipelines.
 
-**Production URLs:**
-- Backend API: `https://startupwebapp-api.mosaicmeshai.com`
-- Frontend: `https://startupwebapp.mosaicmeshai.com`
-
-### Test Coverage Breakdown
-- **User App**: 299 tests (authentication, profiles, email management, Stripe error handling, admin actions)
-- **Order App**: 325 tests (products, cart, checkout, Stripe Checkout Sessions, webhooks, payments)
-- **ClientEvent App**: 51 tests (analytics event tracking)
-- **Validators**: 50 tests (input validation)
-- **Functional Tests**: 37 Selenium tests (checkout flow, user journeys, Django Admin)
-
-### Code Quality
-- **Backend**: pylint 4.0.2, flake8 7.3.0 (runs in Docker)
-- **Frontend**: ESLint 9.39.1 with Node.js 25.1.0 (runs on host)
-- **Analysis**: 9,313 issues catalogued with prioritized recommendations
-- See `docs/technical-notes/2025-11-09-code-linting-analysis.md` for details
-
-📚 **See [docs/PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md) for detailed project timeline and completed phases.**
-🆘 **See [docs/DISASTER_RECOVERY.md](docs/DISASTER_RECOVERY.md) for disaster recovery procedures and runbook.**
+📚 **See [docs/FORK_SETUP_GUIDE.md](docs/FORK_SETUP_GUIDE.md) to customize this template for your business.**
+🆘 **See [docs/DISASTER_RECOVERY.md](docs/DISASTER_RECOVERY.md) for production disaster recovery procedures.**
 
 ## ⚠️ Important: Demo Project - TEST Mode Only
 
@@ -62,29 +36,9 @@ A Django REST API backend for an e-commerce startup, featuring comprehensive tes
 
 ## About This Project
 
-I'm co-founder of a startup which:
+I'm co-founder of a startup that produces customizable physical products with plans for a complementary digital product. This repository contains a simplified version of the e-commerce application I built to launch our startup.
 
-1. Produces and sells a relatively small quantity of a relatively high number of customizable physical products, and
-2. Has future plans to build a complementary digital product.
-
-Soon after jumping into this idea it was clear we would need a web application to support our product's discovery, selection, customization, purchase and interactive experiences. We looked at using existing marketplaces and web-site building platforms such as Squarespace or Wix. These didn't work for us for a couple of reasons:
-
-1. The customizable nature of our products
-2. The large number of individual skus we would be managing
-3. Our customers can create skus dynamically
-
-This made using "off-the-shelf" solutions unworkable, even for early prototyping and experimentation, and meant we needed to build a custom web application. Among our non-functional requirements were things like:
-
-1. The ability to iterate quickly
-2. Security
-3. Reliability
-4. Support growth and scalability (reasonably)
-5. Support future iterative exploration of our digital product
-6. Can't be so costly that it sinks the business
-
-As the only technical co-founder, it landed on me to "figure this out."
-
-This repository contains a simplified version of the server side application I built to launch our startup. To learn more about this project you can check out [slides from a talk I gave about the technical aspects of this project](https://docs.google.com/presentation/d/18Y_G3asKbeys7s5618N_VJkXCI0ePwJ0vKB_06c-P3w/edit#slide=id.g5820c97b01_0_114) or [slides from a talk I gave demoing use of the project for startup idea validation](https://docs.google.com/presentation/d/1O80AyN6jpFxfooDz8ILfYE1PyYlm917mP2EqYuMf5SE/edit#slide=id.g5820c97b01_0_90).
+**Learn More**: [Technical Overview Slides](https://docs.google.com/presentation/d/18Y_G3asKbeys7s5618N_VJkXCI0ePwJ0vKB_06c-P3w/edit#slide=id.g5820c97b01_0_114) | [Startup Validation Demo](https://docs.google.com/presentation/d/1O80AyN6jpFxfooDz8ILfYE1PyYlm917mP2EqYuMf5SE/edit#slide=id.g5820c97b01_0_90)
 
 ## Quick Start with Docker (Recommended)
 
