@@ -889,11 +889,25 @@ def create_checkout_session(request):
         # Use settings to get the frontend domain
         frontend_domain = getattr(settings, 'ENVIRONMENT_DOMAIN', 'http://localhost:8080')
 
-        # Build line items for Stripe
+        # Get cart totals from centralized discount calculator
+        cart_totals = order_utils.get_cart_totals(cart)
+        item_subtotal = float(cart_totals.get('item_subtotal', 0))
+        item_discount = float(cart_totals.get('item_discount', 0))
+        shipping_discount = float(cart_totals.get('shipping_discount', 0))
+
+        # Calculate discount ratio to apply proportionally to each item
+        # Example: $100 subtotal with $10 discount = 0.10 (10% off each item)
+        discount_ratio = item_discount / item_subtotal if item_subtotal > 0 else 0
+
+        # Build line items for Stripe with discounts applied proportionally
         line_items = []
         for item_key, item_data in cart_items['product_sku_data'].items():
-            # Convert price to cents (Stripe requires integer cents)
-            unit_amount_cents = int(float(item_data['price']) * 100)
+            # Apply proportional discount to this item's price
+            original_price = float(item_data['price'])
+            discounted_price = original_price * (1 - discount_ratio)
+
+            # Convert discounted price to cents (Stripe requires integer cents)
+            unit_amount_cents = int(discounted_price * 100)
 
             # Build absolute image URL (Stripe requires absolute URLs, not relative paths)
             sku_image_url = item_data['sku_image_url']
@@ -918,10 +932,10 @@ def create_checkout_session(request):
             }
             line_items.append(line_item)
 
-        # Add shipping as a separate line item
-        cart_totals = order_utils.get_cart_totals(cart)
+        # Add shipping as a separate line item (with shipping discount applied)
         shipping_cost = float(cart_totals.get('shipping_subtotal', 0))
         if shipping_cost > 0:
+            shipping_cost_after_discount = shipping_cost - shipping_discount
             shipping_line_item = {
                 'price_data': {
                     'currency': 'usd',
@@ -929,7 +943,7 @@ def create_checkout_session(request):
                         'name': 'Shipping',
                         'description': cart_totals.get('shipping_method_carrier', 'Standard Shipping'),
                     },
-                    'unit_amount': int(shipping_cost * 100),  # Convert to cents
+                    'unit_amount': int(shipping_cost_after_discount * 100),  # Convert to cents
                 },
                 'quantity': 1,
             }
