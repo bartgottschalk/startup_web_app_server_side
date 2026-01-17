@@ -156,9 +156,19 @@ def look_up_anonymous_cart(request):
 
 
 def get_cart_discount_codes(cart):
-    noncombinable_found = False
+    """
+    Get discount code data for a cart with discount_applied flag set based on new business rules:
+    - Only ONE item discount applies (first valid one meeting order minimum)
+    - Only ONE shipping discount applies (first valid one meeting order minimum)
+    - Item + shipping discounts CAN combine
+    """
     discount_code_dict = {}
+    item_discount_found = False
+    shipping_discount_found = False
+
     if cart is not None:
+        item_subtotal = calculate_item_subtotal(cart)
+
         for cartdiscount in Cartdiscount.objects.filter(cart=cart):
             discount_code_data = {}
             discount_code_data['discount_code_id'] = cartdiscount.discountcode.id
@@ -174,47 +184,47 @@ def get_cart_discount_codes(cart):
             discount_code_data['discounttype__applies_to'] = cartdiscount.discountcode.discounttype.applies_to
             discount_code_data['discounttype__action'] = cartdiscount.discountcode.discounttype.action
 
-            if cartdiscount.discountcode.combinable:
-                if calculate_item_subtotal(cart) >= cartdiscount.discountcode.order_minimum:
+            # Determine if this discount will be applied based on new business rules
+            applies_to = cartdiscount.discountcode.discounttype.applies_to
+
+            if applies_to == 'item_total':
+                # Only first valid item discount applies
+                if not item_discount_found and item_subtotal >= cartdiscount.discountcode.order_minimum:
                     discount_code_data['discount_applied'] = True
+                    item_discount_found = True
                 else:
                     discount_code_data['discount_applied'] = False
-            else:  # non-combinable discount
-                if noncombinable_found:
-                    discount_code_data['discount_applied'] = False
+
+            elif applies_to == 'shipping':
+                # Only first valid shipping discount applies (and cart must have USPS shipping)
+                has_valid_shipping = False
+                if Cartshippingmethod.objects.filter(cart=cart).exists():
+                    cart_shipping_method = Cartshippingmethod.objects.get(cart=cart)
+                    if cart_shipping_method.shippingmethod.identifier == 'USPSRetailGround':
+                        has_valid_shipping = True
+
+                if (not shipping_discount_found and
+                        item_subtotal >= cartdiscount.discountcode.order_minimum and
+                        has_valid_shipping):
+                    discount_code_data['discount_applied'] = True
+                    shipping_discount_found = True
                 else:
-                    noncombinable_found = True
-                    if calculate_item_subtotal(cart) >= cartdiscount.discountcode.order_minimum:
-                        discount_code_data['discount_applied'] = True
-                    else:
-                        discount_code_data['discount_applied'] = False
+                    discount_code_data['discount_applied'] = False
+            else:
+                # Subscription or other type - not currently affecting payment
+                discount_code_data['discount_applied'] = False
 
             discount_code_dict[cartdiscount.discountcode.id] = discount_code_data
     return discount_code_dict
 
 
 def get_cart_totals(cart):
-    cart_totals_dict = {}
-
-    item_subtotal = calculate_item_subtotal(cart)
-
-    if Cartshippingmethod.objects.filter(cart=cart).exists():
-        shipping_subtotal = Cartshippingmethod.objects.get(cart=cart).shippingmethod.shipping_cost
-    else:
-        shipping_subtotal = 0
-
-    item_discount = calculate_cart_item_discount(cart, item_subtotal)
-    shipping_discount = calculate_shipping_discount(cart, item_subtotal)
-    cart_total = item_subtotal - item_discount + shipping_subtotal - \
-        (shipping_discount if shipping_discount is not None else 0)
-
-    cart_totals_dict['item_subtotal'] = item_subtotal
-    cart_totals_dict['item_discount'] = item_discount
-    cart_totals_dict['shipping_subtotal'] = shipping_subtotal
-    cart_totals_dict['shipping_discount'] = shipping_discount
-    cart_totals_dict['cart_total'] = cart_total
-
-    return cart_totals_dict
+    """
+    Calculate cart totals using centralized discount calculator.
+    Delegates to discount_calculator module for consistent discount logic.
+    """
+    from order.utilities import discount_calculator
+    return discount_calculator.calculate_discounts(cart)
 
 
 def load_address_dict(address):
@@ -491,10 +501,6 @@ def get_confirmation_email_shipping_information_text_format(shipping_method):
 def get_confirmation_email_discount_code_text_format(discount_code_dict):
     discount_code_text = ''
     for discount_code_id in discount_code_dict:
-        combinable_str = 'No'
-        if discount_code_dict[discount_code_id]['combinable']:
-            combinable_str = 'Yes'
-
         value_str = discount_code_dict[discount_code_id]['description']
         value_str = value_str.replace(
             '{}', str(discount_code_dict[discount_code_id]['discount_amount']))
@@ -504,7 +510,7 @@ def get_confirmation_email_discount_code_text_format(discount_code_dict):
             wont_be_applied_str = ' [This code cannot be combined or does not qualify for your order.]'
 
         discount_code_text += 'Code: ' + discount_code_dict[discount_code_id]['code'] + \
-            wont_be_applied_str + ', ' + value_str + ', Combinable: ' + combinable_str
+            wont_be_applied_str + ', ' + value_str
         discount_code_text += '\r\n'
 
     if discount_code_text == '':

@@ -7,10 +7,11 @@ from datetime import timedelta
 from django.contrib.auth.models import User, Group
 
 from order.models import (
-    Cart, Cartdiscount, Cartshippingmethod, Shippingmethod,
-    Discountcode, Discounttype, Order,
-    Orderdiscount
+    Cart, Cartdiscount, Cartshippingmethod, Cartsku, Shippingmethod,
+    Discountcode, Discounttype, Order, Orderdiscount,
+    Sku, Skutype, Skuinventory, Skuprice
 )
+from decimal import Decimal
 from user.models import Member, Termsofuse
 
 from order.utilities import order_utils
@@ -428,6 +429,270 @@ class GetOrderDiscountCodesTest(PostgreSQLTestCase):
         self.assertEqual(discount_dict[discount_code2.id]['discount_applied'], False)
 
 
+class GetCartDiscountCodesTest(PostgreSQLTestCase):
+    """Test the get_cart_discount_codes utility function with new business rules"""
+
+    def setUp(self):
+        # Create user and member
+        Group.objects.create(name='Members')
+        Termsofuse.objects.create(
+            version='1',
+            version_note='Test',
+            publication_date_time=timezone.now()
+        )
+
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@test.com',
+            password='testpass123'
+        )
+        self.member = Member.objects.create(user=self.user, mb_cd='MEMBER123')
+
+        # Create cart
+        self.cart = Cart.objects.create(member=self.member)
+
+        # Create SKU type and inventory
+        self.sku_type = Skutype.objects.create(title='product')
+        self.sku_inventory = Skuinventory.objects.create(
+            title='In Stock',
+            identifier='in-stock'
+        )
+
+        # Create SKU with price
+        self.sku = Sku.objects.create(
+            sku_type=self.sku_type,
+            sku_inventory=self.sku_inventory,
+            color='Red',
+            size='Medium'
+        )
+        Skuprice.objects.create(
+            sku=self.sku,
+            price=Decimal('100.00'),
+            created_date_time=timezone.now()
+        )
+
+        # Add SKU to cart
+        Cartsku.objects.create(cart=self.cart, sku=self.sku, quantity=1)
+
+        # Create shipping method
+        self.shipping_method = Shippingmethod.objects.create(
+            identifier='USPSRetailGround',
+            carrier='USPS Retail Ground',
+            shipping_cost=Decimal('9.56'),
+            tracking_code_base_url='https://tools.usps.com/go/TrackConfirmAction?tLabels=',
+            active=True
+        )
+
+        # Create discount types
+        self.item_discount_type = Discounttype.objects.create(
+            title='Percent Off',
+            applies_to='item_total',
+            action='percent-off'
+        )
+        self.shipping_discount_type = Discounttype.objects.create(
+            title='Free Shipping',
+            applies_to='shipping',
+            action='free-usps-ground-shipping'
+        )
+
+    def test_multiple_item_discounts_only_first_applies(self):
+        """Test that only the first valid item discount has discount_applied=True"""
+        # Create two item discounts
+        discount1 = Discountcode.objects.create(
+            code='FIRST10',
+            description='10% off',
+            discounttype=self.item_discount_type,
+            discount_amount=Decimal('10'),
+            order_minimum=Decimal('0'),
+            combinable=True,  # Database flag doesn't matter anymore
+            start_date_time=timezone.now(),
+            end_date_time=timezone.now() + timedelta(days=30)
+        )
+        discount2 = Discountcode.objects.create(
+            code='SECOND20',
+            description='20% off',
+            discounttype=self.item_discount_type,
+            discount_amount=Decimal('20'),
+            order_minimum=Decimal('0'),
+            combinable=True,  # Database flag doesn't matter anymore
+            start_date_time=timezone.now(),
+            end_date_time=timezone.now() + timedelta(days=30)
+        )
+
+        # Add both to cart
+        Cartdiscount.objects.create(cart=self.cart, discountcode=discount1)
+        Cartdiscount.objects.create(cart=self.cart, discountcode=discount2)
+
+        result = order_utils.get_cart_discount_codes(self.cart)
+
+        # Only first discount should be applied
+        self.assertEqual(result[discount1.id]['discount_applied'], True)
+        self.assertEqual(result[discount2.id]['discount_applied'], False)
+
+    def test_multiple_shipping_discounts_only_first_applies(self):
+        """Test that only the first valid shipping discount has discount_applied=True"""
+        # Add shipping method to cart
+        Cartshippingmethod.objects.create(cart=self.cart, shippingmethod=self.shipping_method)
+
+        # Create two shipping discounts
+        discount1 = Discountcode.objects.create(
+            code='FREESHIP1',
+            description='Free shipping',
+            discounttype=self.shipping_discount_type,
+            discount_amount=Decimal('0'),
+            order_minimum=Decimal('0'),
+            combinable=False,  # Database flag doesn't matter anymore
+            start_date_time=timezone.now(),
+            end_date_time=timezone.now() + timedelta(days=30)
+        )
+        discount2 = Discountcode.objects.create(
+            code='FREESHIP2',
+            description='Also free shipping',
+            discounttype=self.shipping_discount_type,
+            discount_amount=Decimal('0'),
+            order_minimum=Decimal('0'),
+            combinable=False,  # Database flag doesn't matter anymore
+            start_date_time=timezone.now(),
+            end_date_time=timezone.now() + timedelta(days=30)
+        )
+
+        # Add both to cart
+        Cartdiscount.objects.create(cart=self.cart, discountcode=discount1)
+        Cartdiscount.objects.create(cart=self.cart, discountcode=discount2)
+
+        result = order_utils.get_cart_discount_codes(self.cart)
+
+        # Only first discount should be applied
+        self.assertEqual(result[discount1.id]['discount_applied'], True)
+        self.assertEqual(result[discount2.id]['discount_applied'], False)
+
+    def test_item_and_shipping_discounts_both_apply(self):
+        """Test that item + shipping discounts can combine"""
+        # Add shipping method to cart
+        Cartshippingmethod.objects.create(cart=self.cart, shippingmethod=self.shipping_method)
+
+        # Create item discount
+        item_discount = Discountcode.objects.create(
+            code='SAVE10',
+            description='10% off',
+            discounttype=self.item_discount_type,
+            discount_amount=Decimal('10'),
+            order_minimum=Decimal('0'),
+            combinable=False,  # Database flag doesn't matter anymore
+            start_date_time=timezone.now(),
+            end_date_time=timezone.now() + timedelta(days=30)
+        )
+
+        # Create shipping discount
+        shipping_discount = Discountcode.objects.create(
+            code='FREESHIP',
+            description='Free shipping',
+            discounttype=self.shipping_discount_type,
+            discount_amount=Decimal('0'),
+            order_minimum=Decimal('0'),
+            combinable=False,  # Database flag doesn't matter anymore
+            start_date_time=timezone.now(),
+            end_date_time=timezone.now() + timedelta(days=30)
+        )
+
+        # Add both to cart
+        Cartdiscount.objects.create(cart=self.cart, discountcode=item_discount)
+        Cartdiscount.objects.create(cart=self.cart, discountcode=shipping_discount)
+
+        result = order_utils.get_cart_discount_codes(self.cart)
+
+        # Both should be applied
+        self.assertEqual(result[item_discount.id]['discount_applied'], True)
+        self.assertEqual(result[shipping_discount.id]['discount_applied'], True)
+
+    def test_item_discount_not_applied_when_minimum_not_met(self):
+        """Test that discount with unmet order minimum has discount_applied=False"""
+        # Create discount with high minimum
+        discount = Discountcode.objects.create(
+            code='BIG100',
+            description='10% off orders over $200',
+            discounttype=self.item_discount_type,
+            discount_amount=Decimal('10'),
+            order_minimum=Decimal('200.00'),  # Cart only has $100
+            combinable=True,
+            start_date_time=timezone.now(),
+            end_date_time=timezone.now() + timedelta(days=30)
+        )
+
+        Cartdiscount.objects.create(cart=self.cart, discountcode=discount)
+
+        result = order_utils.get_cart_discount_codes(self.cart)
+
+        # Discount should not be applied
+        self.assertEqual(result[discount.id]['discount_applied'], False)
+
+    def test_shipping_discount_not_applied_without_usps_shipping(self):
+        """Test that shipping discount requires USPS Retail Ground shipping method"""
+        # Create non-USPS shipping method
+        fedex_shipping = Shippingmethod.objects.create(
+            identifier='FedExGround',
+            carrier='FedEx',
+            shipping_cost=Decimal('15.00'),
+            tracking_code_base_url='https://fedex.com',
+            active=True
+        )
+        Cartshippingmethod.objects.create(cart=self.cart, shippingmethod=fedex_shipping)
+
+        # Create shipping discount
+        discount = Discountcode.objects.create(
+            code='FREESHIP',
+            description='Free USPS shipping',
+            discounttype=self.shipping_discount_type,
+            discount_amount=Decimal('0'),
+            order_minimum=Decimal('0'),
+            combinable=True,
+            start_date_time=timezone.now(),
+            end_date_time=timezone.now() + timedelta(days=30)
+        )
+
+        Cartdiscount.objects.create(cart=self.cart, discountcode=discount)
+
+        result = order_utils.get_cart_discount_codes(self.cart)
+
+        # Discount should not be applied (wrong shipping method)
+        self.assertEqual(result[discount.id]['discount_applied'], False)
+
+    def test_first_discount_fails_minimum_second_applies(self):
+        """Test that if first discount fails minimum, second one can apply"""
+        # Create first discount with high minimum
+        discount1 = Discountcode.objects.create(
+            code='BIG200',
+            description='20% off orders over $200',
+            discounttype=self.item_discount_type,
+            discount_amount=Decimal('20'),
+            order_minimum=Decimal('200.00'),  # Will fail
+            combinable=True,
+            start_date_time=timezone.now(),
+            end_date_time=timezone.now() + timedelta(days=30)
+        )
+
+        # Create second discount with low minimum
+        discount2 = Discountcode.objects.create(
+            code='SMALL10',
+            description='10% off orders over $50',
+            discounttype=self.item_discount_type,
+            discount_amount=Decimal('10'),
+            order_minimum=Decimal('50.00'),  # Will pass
+            combinable=True,
+            start_date_time=timezone.now(),
+            end_date_time=timezone.now() + timedelta(days=30)
+        )
+
+        Cartdiscount.objects.create(cart=self.cart, discountcode=discount1)
+        Cartdiscount.objects.create(cart=self.cart, discountcode=discount2)
+
+        result = order_utils.get_cart_discount_codes(self.cart)
+
+        # First fails minimum, second should apply
+        self.assertEqual(result[discount1.id]['discount_applied'], False)
+        self.assertEqual(result[discount2.id]['discount_applied'], True)
+
+
 class GetConfirmationEmailDiscountCodeTextFormatTest(PostgreSQLTestCase):
     """Test the get_confirmation_email_discount_code_text_format utility function"""
 
@@ -452,7 +717,7 @@ class GetConfirmationEmailDiscountCodeTextFormatTest(PostgreSQLTestCase):
 
         self.assertIn('Code: SAVE20', result)
         self.assertIn('20.0% off items', result)
-        self.assertIn('Combinable: Yes', result)
+        # Note: "Combinable" field removed from email formatting per new business rules
         self.assertNotIn('[This code cannot be combined', result)
 
     def test_unapplied_discount_shows_warning(self):
@@ -471,7 +736,7 @@ class GetConfirmationEmailDiscountCodeTextFormatTest(PostgreSQLTestCase):
 
         self.assertIn('Code: INVALID', result)
         self.assertIn('[This code cannot be combined or does not qualify for your order.]', result)
-        self.assertIn('Combinable: No', result)
+        # Note: "Combinable" field removed from email formatting per new business rules
 
     def test_multiple_discounts_format_with_line_breaks(self):
         """Test that multiple discounts are separated by line breaks"""
