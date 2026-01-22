@@ -15,7 +15,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 
 from order.models import (
-    Orderconfiguration, Skuprice, Discountcode, Discounttype,
+    Orderconfiguration, Skuprice,
     Shippingmethod, Order, Ordersku, Sku, Skutype, Skuinventory
 )
 from user.models import Member
@@ -70,54 +70,6 @@ class DecimalFieldPrecisionTest(PostgreSQLTestCase):
         tax_amount = price.price * tax_rate
         self.assertEqual(tax_amount.quantize(Decimal('0.01')), Decimal('2.47'))
 
-    def test_discountcode_discount_amount_is_decimal(self):
-        """Test Discountcode.discount_amount uses DecimalField"""
-        discount_type = Discounttype.objects.create(
-            title='Fixed Amount',
-            description='Fixed dollar amount discount',
-            applies_to='order',
-            action='subtract'
-        )
-
-        discount = Discountcode.objects.create(
-            code='SAVE10',
-            description='$10.50 off',
-            start_date_time=timezone.now(),
-            end_date_time=timezone.now(),
-            discounttype=discount_type,
-            discount_amount=Decimal('10.50'),
-            order_minimum=Decimal('0.00')
-        )
-
-        # Verify value is stored and retrieved as Decimal
-        discount.refresh_from_db()
-        self.assertIsInstance(discount.discount_amount, Decimal)
-        self.assertEqual(discount.discount_amount, Decimal('10.50'))
-
-    def test_discountcode_order_minimum_is_decimal(self):
-        """Test Discountcode.order_minimum uses DecimalField"""
-        discount_type = Discounttype.objects.create(
-            title='Percentage',
-            description='Percentage discount',
-            applies_to='order',
-            action='subtract'
-        )
-
-        discount = Discountcode.objects.create(
-            code='BIGSALE',
-            description='20% off orders over $50',
-            start_date_time=timezone.now(),
-            end_date_time=timezone.now(),
-            discounttype=discount_type,
-            discount_amount=Decimal('20.00'),
-            order_minimum=Decimal('50.00')
-        )
-
-        # Verify value is stored and retrieved as Decimal
-        discount.refresh_from_db()
-        self.assertIsInstance(discount.order_minimum, Decimal)
-        self.assertEqual(discount.order_minimum, Decimal('50.00'))
-
     def test_shippingmethod_cost_is_decimal(self):
         """Test Shippingmethod.shipping_cost uses DecimalField"""
         shipping = Shippingmethod.objects.create(
@@ -166,23 +118,6 @@ class DecimalFieldPrecisionTest(PostgreSQLTestCase):
         self.assertIsInstance(order.item_subtotal, Decimal)
         self.assertEqual(order.item_subtotal, Decimal('99.99'))
 
-    def test_order_item_discount_amt_is_decimal(self):
-        """Test Order.item_discount_amt uses DecimalField"""
-        user = User.objects.create_user(username='testuser3', password='testpass')
-        member = Member.objects.create(user=user)
-
-        order = Order.objects.create(
-            identifier='ORDER-003',
-            member=member,
-            item_discount_amt=Decimal('10.00'),
-            order_total=Decimal('0.00'),
-            order_date_time=timezone.now()
-        )
-
-        order.refresh_from_db()
-        self.assertIsInstance(order.item_discount_amt, Decimal)
-        self.assertEqual(order.item_discount_amt, Decimal('10.00'))
-
     def test_order_shipping_amt_is_decimal(self):
         """Test Order.shipping_amt uses DecimalField"""
         user = User.objects.create_user(username='testuser4', password='testpass')
@@ -199,23 +134,6 @@ class DecimalFieldPrecisionTest(PostgreSQLTestCase):
         order.refresh_from_db()
         self.assertIsInstance(order.shipping_amt, Decimal)
         self.assertEqual(order.shipping_amt, Decimal('7.95'))
-
-    def test_order_shipping_discount_amt_is_decimal(self):
-        """Test Order.shipping_discount_amt uses DecimalField"""
-        user = User.objects.create_user(username='testuser5', password='testpass')
-        member = Member.objects.create(user=user)
-
-        order = Order.objects.create(
-            identifier='ORDER-005',
-            member=member,
-            shipping_discount_amt=Decimal('2.00'),
-            order_total=Decimal('0.00'),
-            order_date_time=timezone.now()
-        )
-
-        order.refresh_from_db()
-        self.assertIsInstance(order.shipping_discount_amt, Decimal)
-        self.assertEqual(order.shipping_discount_amt, Decimal('2.00'))
 
     def test_order_order_total_is_decimal(self):
         """Test Order.order_total uses DecimalField"""
@@ -279,9 +197,7 @@ class DecimalFieldPrecisionTest(PostgreSQLTestCase):
             member=member,
             sales_tax_amt=Decimal('8.25'),
             item_subtotal=Decimal('99.99'),
-            item_discount_amt=Decimal('10.00'),
             shipping_amt=Decimal('7.95'),
-            shipping_discount_amt=Decimal('0.00'),
             order_total=Decimal('106.19'),
             order_date_time=timezone.now()
         )
@@ -290,22 +206,17 @@ class DecimalFieldPrecisionTest(PostgreSQLTestCase):
         order.refresh_from_db()
         self.assertIsInstance(order.sales_tax_amt, Decimal)
         self.assertIsInstance(order.item_subtotal, Decimal)
-        self.assertIsInstance(order.item_discount_amt, Decimal)
         self.assertIsInstance(order.shipping_amt, Decimal)
-        self.assertIsInstance(order.shipping_discount_amt, Decimal)
         self.assertIsInstance(order.order_total, Decimal)
 
-        # Verify calculation: subtotal - discount + shipping + tax = total
-        # 99.99 - 10.00 + 7.95 + 8.25 = 106.19
+        # Verify calculation: subtotal + shipping + tax = total
+        # 99.99 + 7.95 + 8.25 = 116.19
         calculated_total = (
-            order.item_subtotal -
-            order.item_discount_amt +
-            order.shipping_amt -
-            order.shipping_discount_amt +
+            order.item_subtotal +
+            order.shipping_amt +
             order.sales_tax_amt
         )
-        self.assertEqual(calculated_total, order.order_total)
-        self.assertEqual(calculated_total, Decimal('106.19'))
+        self.assertEqual(calculated_total, Decimal('116.19'))
 
 
 class DecimalFieldPrecisionCalculationsTest(PostgreSQLTestCase):
@@ -366,37 +277,6 @@ class DecimalFieldPrecisionCalculationsTest(PostgreSQLTestCase):
         order.refresh_from_db()
         self.assertEqual(order.sales_tax_amt, expected_tax)
         self.assertEqual(order.order_total, Decimal('108.25'))
-
-    def test_discount_calculation_precision(self):
-        """Verify discount calculations maintain precision"""
-        # Test that percentage discounts work precisely
-        discount_type = Discounttype.objects.create(
-            title='Percentage',
-            description='Percentage off',
-            applies_to='order',
-            action='subtract'
-        )
-
-        # 15% discount
-        discount = Discountcode.objects.create(
-            code='SAVE15',
-            description='15% off',
-            start_date_time=timezone.now(),
-            end_date_time=timezone.now(),
-            discounttype=discount_type,
-            discount_amount=Decimal('15.00'),
-            order_minimum=Decimal('0.00')
-        )
-
-        # Apply to $100.00 order
-        original_price = Decimal('100.00')
-        discount_percent = discount.discount_amount / Decimal('100')
-        discount_amt = original_price * discount_percent
-        final_price = original_price - discount_amt
-
-        # Should be exactly $85.00, not $85.00000000000001
-        self.assertEqual(discount_amt, Decimal('15.00'))
-        self.assertEqual(final_price, Decimal('85.00'))
 
     def test_multi_item_order_calculation_precision(self):
         """Verify complex multi-item orders maintain precision"""

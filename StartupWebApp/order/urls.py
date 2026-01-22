@@ -10,19 +10,12 @@ urlpatterns = [
 
     path('cart-items', views.cart_items, name='cart_items'),
     path('cart-shipping-methods', views.cart_shipping_methods, name='cart_shipping_methods'),
-    path('cart-discount-codes', views.cart_discount_codes, name='cart_discount_codes'),
     path('cart-totals', views.cart_totals, name='cart_totals'),
 
     path('cart-update-sku-quantity',
          views.cart_update_sku_quantity,
          name='cart_update_sku_quantity'),
     path('cart-remove-sku', views.cart_remove_sku, name='cart_remove_sku'),
-    path('cart-apply-discount-code',
-         views.cart_apply_discount_code,
-         name='cart_apply_discount_code'),
-    path('cart-remove-discount-code',
-         views.cart_remove_discount_code,
-         name='cart_remove_discount_code'),
     path('cart-update-shipping-method',
          views.cart_update_shipping_method,
          name='cart_update_shipping_method'),
@@ -34,7 +27,6 @@ urlpatterns = [
 
     path('confirm-items', views.confirm_items, name='confirm_items'),
     path('confirm-shipping-method', views.confirm_shipping_method, name='confirm_shipping_method'),
-    path('confirm-discount-codes', views.confirm_discount_codes, name='confirm_discount_codes'),
     path('confirm-totals', views.confirm_totals, name='confirm_totals'),
 
     path('create-checkout-session', views.create_checkout_session, name='create_checkout_session'),

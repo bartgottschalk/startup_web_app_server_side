@@ -193,49 +193,6 @@ class Productsku(models.Model):
         return str(self.product) + ": " + str(self.sku)
 
 
-class Discounttype(models.Model):
-    title = models.CharField(max_length=100)
-    description = models.CharField(max_length=500)
-    applies_to = models.CharField(max_length=100)
-    action = models.CharField(max_length=100)
-
-    class Meta:
-        db_table = 'order_discount_type'
-
-    def __str__(self):
-        return str(self.title) + ': ' + str(self.description) + ': ' + str(self.applies_to)
-
-
-class Discountcode(models.Model):
-    code = models.CharField(max_length=100)
-    description = models.CharField(max_length=500)
-    start_date_time = models.DateTimeField()
-    end_date_time = models.DateTimeField()
-    combinable = models.BooleanField(default=False)
-    discounttype = models.ForeignKey(Discounttype, on_delete=models.CASCADE)
-    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    order_minimum = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-
-    class Meta:
-        db_table = 'order_discount_code'
-
-    def __str__(self):
-        return str(self.code) + ", start: " + str(self.start_date_time) + \
-            ", end: " + str(self.end_date_time)
-
-
-class Cartdiscount(models.Model):
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
-    discountcode = models.ForeignKey(Discountcode, on_delete=models.CASCADE)
-
-    class Meta:
-        db_table = 'order_cart_discount'
-        unique_together = (('cart', 'discountcode'),)
-
-    def __str__(self):
-        return str(self.cart) + ": " + str(self.discountcode)
-
-
 class Shippingmethod(models.Model):
     identifier = models.CharField(max_length=100)
     carrier = models.CharField(max_length=100)
@@ -354,9 +311,7 @@ class Order(models.Model):
         null=True)
     sales_tax_amt = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     item_subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    item_discount_amt = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     shipping_amt = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    shipping_discount_amt = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     order_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     agreed_with_terms_of_sale = models.BooleanField(default=False)
     order_date_time = models.DateTimeField()
@@ -381,26 +336,6 @@ class Ordersku(models.Model):
     def __str__(self):
         return str(self.order) + ":" + str(self.sku) + ":" + \
             str(self.quantity) + ":" + str(self.price_each)
-
-    def order_identifier(self):
-        if self.order is not None:
-            return self.order.identifier
-        else:
-            return 'Undefined'
-    order_identifier.short_description = 'Order Identifier'
-
-
-class Orderdiscount(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
-    discountcode = models.ForeignKey(Discountcode, on_delete=models.CASCADE)
-    applied = models.BooleanField(default=False)
-
-    class Meta:
-        db_table = 'order_order_discount'
-        unique_together = (('order', 'discountcode'),)
-
-    def __str__(self):
-        return str(self.order) + ":" + str(self.discountcode) + ":" + str(self.applied)
 
     def order_identifier(self):
         if self.order is not None:

@@ -1,13 +1,12 @@
 from django.contrib import admin
 from order.models import (
     Orderpayment, Ordershippingaddress, Orderbillingaddress, Order, Ordersku,
-    Orderdiscount, Status, Orderstatus, Ordershippingmethod, Orderemailfailure
+    Status, Orderstatus, Ordershippingmethod, Orderemailfailure
 )
 from order.models import (
     Orderconfiguration, Cartshippingaddress, Cart, Cartsku, Sku, Skuprice,
     Skuimage, Skutype, Skuinventory, Product, Productimage, Productvideo,
-    Productsku, Discounttype, Discountcode, Cartdiscount, Shippingmethod,
-    Cartshippingmethod
+    Productsku, Shippingmethod, Cartshippingmethod
 )
 
 
@@ -18,9 +17,7 @@ class OrderAdmin(admin.ModelAdmin):
         'agreed_with_terms_of_sale',
         'order_total',
         'item_subtotal',
-        'item_discount_amt',
         'shipping_amt',
-        'shipping_discount_amt',
         'sales_tax_amt',
         'order_date_time')
     actions = [
@@ -140,32 +137,6 @@ class SkuimageAdmin(admin.ModelAdmin):
 class CartskuAdmin(admin.ModelAdmin):
     list_display = ('cart', 'sku', 'quantity')
 
-# Define a new Discounttype admin
-
-
-class DiscounttypeAdmin(admin.ModelAdmin):
-    list_display = ('title', 'description', 'applies_to', 'action')
-
-# Define a new Discountcode admin
-
-
-class DiscountcodeAdmin(admin.ModelAdmin):
-    list_display = (
-        'code',
-        'description',
-        'start_date_time',
-        'end_date_time',
-        'combinable',
-        'discounttype',
-        'discount_amount',
-        'order_minimum')
-
-# Define a new Cartdiscount admin
-
-
-class CartdiscountAdmin(admin.ModelAdmin):
-    list_display = ('cart', 'discountcode')
-
 # Define a new Shippingmethod admin
 
 
@@ -189,12 +160,6 @@ class OrderconfigurationAdmin(admin.ModelAdmin):
 
 class OrderskuAdmin(admin.ModelAdmin):
     list_display = ('order_identifier', 'order', 'sku', 'quantity', 'price_each')
-
-# Define a new Orderdiscount admin
-
-
-class OrderdiscountAdmin(admin.ModelAdmin):
-    list_display = ('order_identifier', 'order', 'discountcode', 'applied')
 
 # Define a new Status admin
 
@@ -248,7 +213,6 @@ admin.site.register(Ordershippingaddress, OrdershippingaddressAdmin)
 admin.site.register(Orderbillingaddress, OrderbillingaddressAdmin)
 admin.site.register(Order, OrderAdmin)
 admin.site.register(Ordersku, OrderskuAdmin)
-admin.site.register(Orderdiscount, OrderdiscountAdmin)
 admin.site.register(Status, StatusAdmin)
 admin.site.register(Orderstatus, OrderstatusAdmin)
 admin.site.register(Ordershippingmethod, OrdershippingmethodAdmin)
@@ -266,9 +230,6 @@ admin.site.register(Product, ProductAdmin)
 admin.site.register(Productimage, ProductimageAdmin)
 admin.site.register(Productvideo, ProductvideoAdmin)
 admin.site.register(Productsku, ProductskuAdmin)
-admin.site.register(Discounttype, DiscounttypeAdmin)
-admin.site.register(Discountcode, DiscountcodeAdmin)
-admin.site.register(Cartdiscount, CartdiscountAdmin)
 admin.site.register(Shippingmethod, ShippingmethodAdmin)
 admin.site.register(Cartshippingmethod, CartshippingmethodAdmin)
 admin.site.register(Orderemailfailure, OrderemailfailureAdmin)

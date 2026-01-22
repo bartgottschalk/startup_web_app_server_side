@@ -497,9 +497,7 @@ class OrderDetailEndpointTest(PostgreSQLTestCase):
             billing_address=billing_address,
             sales_tax_amt=0,
             item_subtotal=10.00,
-            item_discount_amt=0,
             shipping_amt=5.00,
-            shipping_discount_amt=0,
             order_total=15.00,
             agreed_with_terms_of_sale=True,
             order_date_time=timezone.now()
@@ -559,9 +557,7 @@ class OrderDetailEndpointTest(PostgreSQLTestCase):
             billing_address=prospect_billing_address,
             sales_tax_amt=0,
             item_subtotal=20.00,
-            item_discount_amt=0,
             shipping_amt=5.00,
-            shipping_discount_amt=0,
             order_total=25.00,
             agreed_with_terms_of_sale=True,
             order_date_time=timezone.now()
