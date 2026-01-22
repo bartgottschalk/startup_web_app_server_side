@@ -7,7 +7,7 @@ from django.db import IntegrityError
 from order.models import (
     Orderconfiguration, Cart, Cartshippingaddress, Cartpayment, Skutype,
     Skuinventory, Sku, Skuprice, Skuimage, Product,
-    Productimage, Productvideo, Discounttype, Discountcode,
+    Productimage, Productvideo,
     Shippingmethod, Ordershippingmethod, Orderpayment, Ordershippingaddress,
     Orderbillingaddress, Order, Ordersku,
     Status, Orderstatus
@@ -480,128 +480,6 @@ class ProductvideoConstraintsTest(PostgreSQLTestCase):
             caption=long_caption
         )
         self.assertEqual(len(video.caption), 500)
-
-
-class DiscounttypeConstraintsTest(PostgreSQLTestCase):
-    """Test Discounttype model constraints"""
-
-    def test_discounttype_title_max_length(self):
-        """Test that title has 100 char limit"""
-        long_title = 't' * 100
-        dtype = Discounttype.objects.create(
-            title=long_title,
-            description='test',
-            applies_to='order',
-            action='percentage_off'
-        )
-        self.assertEqual(len(dtype.title), 100)
-
-    def test_discounttype_description_max_length(self):
-        """Test that description has 500 char limit"""
-        long_desc = 'd' * 500
-        dtype = Discounttype.objects.create(
-            title='test',
-            description=long_desc,
-            applies_to='order',
-            action='percentage_off'
-        )
-        self.assertEqual(len(dtype.description), 500)
-
-    def test_discounttype_applies_to_max_length(self):
-        """Test that applies_to has 100 char limit"""
-        long_applies = 'a' * 100
-        dtype = Discounttype.objects.create(
-            title='test',
-            description='test',
-            applies_to=long_applies,
-            action='percentage_off'
-        )
-        self.assertEqual(len(dtype.applies_to), 100)
-
-    def test_discounttype_action_max_length(self):
-        """Test that action has 100 char limit"""
-        long_action = 'a' * 100
-        dtype = Discounttype.objects.create(
-            title='test',
-            description='test',
-            applies_to='order',
-            action=long_action
-        )
-        self.assertEqual(len(dtype.action), 100)
-
-
-class DiscountcodeConstraintsTest(PostgreSQLTestCase):
-    """Test Discountcode model constraints"""
-
-    def setUp(self):
-        self.discounttype = Discounttype.objects.create(
-            title='Percentage Off',
-            description='test',
-            applies_to='order',
-            action='percentage_off'
-        )
-
-    def test_discountcode_code_max_length(self):
-        """Test that code has 100 char limit"""
-        long_code = 'C' * 100
-        now = timezone.now()
-        discount = Discountcode.objects.create(
-            code=long_code,
-            description='test',
-            start_date_time=now,
-            end_date_time=now + timezone.timedelta(days=30),
-            discounttype=self.discounttype
-        )
-        self.assertEqual(len(discount.code), 100)
-
-    def test_discountcode_description_max_length(self):
-        """Test that description has 500 char limit"""
-        long_desc = 'd' * 500
-        now = timezone.now()
-        discount = Discountcode.objects.create(
-            code='TEST',
-            description=long_desc,
-            start_date_time=now,
-            end_date_time=now + timezone.timedelta(days=30),
-            discounttype=self.discounttype
-        )
-        self.assertEqual(len(discount.description), 500)
-
-    def test_discountcode_combinable_default_false(self):
-        """Test that combinable defaults to False"""
-        now = timezone.now()
-        discount = Discountcode.objects.create(
-            code='TEST',
-            description='test',
-            start_date_time=now,
-            end_date_time=now + timezone.timedelta(days=30),
-            discounttype=self.discounttype
-        )
-        self.assertFalse(discount.combinable)
-
-    def test_discountcode_discount_amount_default_zero(self):
-        """Test that discount_amount defaults to 0"""
-        now = timezone.now()
-        discount = Discountcode.objects.create(
-            code='TEST',
-            description='test',
-            start_date_time=now,
-            end_date_time=now + timezone.timedelta(days=30),
-            discounttype=self.discounttype
-        )
-        self.assertEqual(discount.discount_amount, 0)
-
-    def test_discountcode_order_minimum_default_zero(self):
-        """Test that order_minimum defaults to 0"""
-        now = timezone.now()
-        discount = Discountcode.objects.create(
-            code='TEST',
-            description='test',
-            start_date_time=now,
-            end_date_time=now + timezone.timedelta(days=30),
-            discounttype=self.discounttype
-        )
-        self.assertEqual(discount.order_minimum, 0)
 
 
 class ShippingmethodConstraintsTest(PostgreSQLTestCase):

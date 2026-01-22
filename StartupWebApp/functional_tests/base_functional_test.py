@@ -17,7 +17,7 @@ from user.models import Termsofuse, Emailtype, Emailstatus, Adtype, Adstatus
 from order.models import (
     Orderconfiguration, Skutype, Skuinventory,
     Product, Sku, Skuprice, Productsku, Productimage,
-    Status, Shippingmethod, Discounttype, Discountcode
+    Status, Shippingmethod
 )
 
 
@@ -155,112 +155,6 @@ class BaseFunctionalTest(LiveServerTestCase):
             tracking_code_base_url='none',
             active=True,
             identifier='None'
-        )
-
-        Discounttype.objects.create(
-            title='Save Percent Off Your Item Total',
-            description='Take {}% off your item total',
-            applies_to='item_total',
-            action='percent-off'
-        )
-        Discounttype.objects.create(
-            title='Save Dollar Amount Off Your Item Total',
-            description='Save ${} on your item total',
-            applies_to='item_total',
-            action='dollar-amt-off'
-        )
-        Discounttype.objects.create(
-            title='Free Months Digital Subscription',
-            description='Get {} months of free digital subscription with your order',
-            applies_to='subscription',
-            action='free-digital-months'
-        )
-        Discounttype.objects.create(
-            title='Free USPS Retail Ground Shipping',
-            description='Free USPS Retail Ground shipping on your order',
-            applies_to='shipping',
-            action='free-usps-ground-shipping'
-        )
-
-        Discountcode.objects.create(
-            code='APRIL50PERCENT',
-            description='50% off your item total in April',
-            start_date_time=self.yesterday,
-            end_date_time=self.tomorrow,
-            combinable=False,
-            discount_amount='50',
-            discounttype=Discounttype.objects.get(action='percent-off'),
-            order_minimum='0'
-        )
-        Discountcode.objects.create(
-            code='APRILSAVER',
-            description='Get $10 off your order of $20 or more in April',
-            start_date_time=self.yesterday,
-            end_date_time=self.tomorrow,
-            combinable=False,
-            discount_amount='10',
-            discounttype=Discounttype.objects.get(action='dollar-amt-off'),
-            order_minimum='20'
-        )
-        Discountcode.objects.create(
-            code='FREE3MONTHS',
-            description='Get 3 free months subscription to our digital services',
-            start_date_time=self.yesterday,
-            end_date_time=self.tomorrow,
-            combinable=True,
-            discount_amount='3',
-            discounttype=Discounttype.objects.get(action='free-digital-months'),
-            order_minimum='0'
-        )
-        Discountcode.objects.create(
-            code='FREESHIPPING',
-            description='Get free USPS Retail Ground shipping on all orders',
-            start_date_time=self.yesterday,
-            end_date_time=self.tomorrow,
-            combinable=True,
-            discount_amount='100',
-            discounttype=Discounttype.objects.get(action='free-usps-ground-shipping'),
-            order_minimum='0'
-        )
-        Discountcode.objects.create(
-            code='AUG50PERCENT',
-            description='50% off your item total in August!',
-            start_date_time=self.yesterday,
-            end_date_time=self.tomorrow,
-            combinable=False,
-            discount_amount='50',
-            discounttype=Discounttype.objects.get(action='percent-off'),
-            order_minimum='0'
-        )
-        Discountcode.objects.create(
-            code='AUGSAVER',
-            description='Get $10 off your order of $20 or more in August!',
-            start_date_time=self.yesterday,
-            end_date_time=self.tomorrow,
-            combinable=False,
-            discount_amount='10',
-            discounttype=Discounttype.objects.get(action='dollar-amt-off'),
-            order_minimum='20'
-        )
-        Discountcode.objects.create(
-            code='SEPT50PERCENT',
-            description='50% off your item total in September!',
-            start_date_time=self.yesterday,
-            end_date_time=self.tomorrow,
-            combinable=False,
-            discount_amount='50',
-            discounttype=Discounttype.objects.get(action='percent-off'),
-            order_minimum='0'
-        )
-        Discountcode.objects.create(
-            code='SEPTSAVER',
-            description='Get $10 off your order of $20 or more in September!',
-            start_date_time=self.yesterday,
-            end_date_time=self.tomorrow,
-            combinable=False,
-            discount_amount='10',
-            discounttype=Discounttype.objects.get(action='dollar-amt-off'),
-            order_minimum='20'
         )
 
         # Allow all carts/users to checkout

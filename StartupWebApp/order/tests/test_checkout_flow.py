@@ -289,70 +289,6 @@ class ConfirmShippingMethodEndpointTest(PostgreSQLTestCase):
         self.assertEqual(shipping_method['shipping_cost'], '5.00')
 
 
-class ConfirmDiscountCodesEndpointTest(PostgreSQLTestCase):
-    """Test the confirm_discount_codes endpoint"""
-
-    def setUp(self):
-        # Create user and member
-        Group.objects.create(name='Members')
-        Termsofuse.objects.create(
-            version='1',
-            version_note='Test',
-            publication_date_time=timezone.now()
-        )
-
-        self.user = User.objects.create_user(
-            username='testuser',
-            email='test@test.com',
-            password='testpass123'
-        )
-        self.member = Member.objects.create(user=self.user, mb_cd='MEMBER123')
-
-        # Allow checkout
-        Orderconfiguration.objects.create(
-            key='usernames_allowed_to_checkout',
-            string_value='*'
-        )
-
-        Orderconfiguration.objects.create(
-            key='an_ct_values_allowed_to_checkout',
-            string_value='*'
-        )
-
-        # Create cart
-        self.cart = Cart.objects.create(member=self.member)
-
-    def test_confirm_discount_codes_when_checkout_not_allowed(self):
-        """Test that confirm_discount_codes requires checkout permission"""
-        config = Orderconfiguration.objects.get(
-            key='usernames_allowed_to_checkout'
-        )
-        config.string_value = ''
-        config.save()
-
-        self.client.login(username='testuser', password='testpass123')
-
-        response = self.client.get('/order/confirm-discount-codes')
-
-        unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-
-        data = json.loads(response.content.decode('utf8'))
-        self.assertFalse(data['checkout_allowed'])
-
-    def test_confirm_discount_codes_returns_discount_data(self):
-        """Test that confirm_discount_codes returns discount code data"""
-        self.client.login(username='testuser', password='testpass123')
-
-        response = self.client.get('/order/confirm-discount-codes')
-
-        unittest_utilities.validate_response_is_OK_and_JSON(self, response)
-
-        data = json.loads(response.content.decode('utf8'))
-        self.assertTrue(data['checkout_allowed'])
-        self.assertTrue(data['cart_found'])
-        self.assertIn('discount_code_data', data)
-
-
 class ConfirmTotalsEndpointTest(PostgreSQLTestCase):
     """Test the confirm_totals endpoint"""
 
@@ -417,7 +353,5 @@ class ConfirmTotalsEndpointTest(PostgreSQLTestCase):
 
         totals = data['confirm_totals_data']
         self.assertIn('item_subtotal', totals)
-        self.assertIn('item_discount', totals)
         self.assertIn('shipping_subtotal', totals)
-        self.assertIn('shipping_discount', totals)
         self.assertIn('cart_total', totals)

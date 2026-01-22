@@ -10,10 +10,10 @@ from django.utils import timezone
 from django.contrib.auth.models import User, Group
 
 from order.models import (
-    Cart, Cartsku, Cartshippingmethod, Cartdiscount,
+    Cart, Cartsku, Cartshippingmethod,
     Product, Productsku, Productimage,
     Sku, Skuprice, Skutype, Skuinventory,
-    Shippingmethod, Discountcode, Discounttype,
+    Shippingmethod,
     Order, Orderpayment, Ordersku, Orderstatus, Ordershippingmethod,
     Orderbillingaddress, Ordershippingaddress,
     Orderemailfailure,
@@ -112,36 +112,12 @@ class EmailFailureHandlingTest(PostgreSQLTestCase):
 
         Productsku.objects.create(product=product, sku=self.sku)
 
-        # Create discount type and code
-        discount_type = Discounttype.objects.create(
-            title='Percentage Off',
-            description='Percentage off entire order',
-            applies_to='order',
-            action='percentage_off'
-        )
-
-        now = timezone.now()
-        self.discount_code = Discountcode.objects.create(
-            code='SAVE10',
-            description='10% off',
-            start_date_time=now,
-            end_date_time=now + timezone.timedelta(days=30),
-            combinable=True,
-            discounttype=discount_type,
-            discount_amount=10.0,
-            order_minimum=0.0
-        )
-
         # Create cart with items for member
         self.cart = Cart.objects.create(member=self.member)
         Cartsku.objects.create(cart=self.cart, sku=self.sku, quantity=2)
         Cartshippingmethod.objects.create(
             cart=self.cart,
             shippingmethod=self.shipping_method
-        )
-        Cartdiscount.objects.create(
-            cart=self.cart,
-            discountcode=self.discount_code
         )
 
         # Create email templates

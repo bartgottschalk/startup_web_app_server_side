@@ -17,7 +17,6 @@ from order.models import (
     Orderbillingaddress,
     Order,
     Ordersku,
-    Orderdiscount,
     Orderemailfailure,
     Status,
     Orderstatus,
@@ -30,8 +29,6 @@ from order.models import (
     Skuimage,
     Cart,
     Cartsku,
-    Cartdiscount,
-    Discountcode,
     Productsku,
     Product,
     Productimage,
@@ -354,43 +351,6 @@ def confirm_shipping_method(request):
     return response
 
 
-def cart_discount_codes(request):
-    # raise ValueError('A very specific bad thing happened.')
-    cart = order_utils.look_up_cart(request)
-    discount_code_dict = order_utils.get_cart_discount_codes(cart)
-    response = JsonResponse(
-        {
-            'cart_found': (True if cart is not None else False),
-            'discount_code_data': discount_code_dict,
-            'order-api-version': order_api_version,
-        },
-        safe=False,
-    )
-    return response
-
-
-def confirm_discount_codes(request):
-    # raise ValueError('A very specific bad thing happened.')
-    checkout_allowed = order_utils.checkout_allowed(request)
-    if checkout_allowed:
-        cart = order_utils.look_up_cart(request)
-        discount_code_dict = order_utils.get_cart_discount_codes(cart)
-        response = JsonResponse(
-            {
-                'checkout_allowed': checkout_allowed,
-                'cart_found': (True if cart is not None else False),
-                'discount_code_data': discount_code_dict,
-                'order-api-version': order_api_version,
-            },
-            safe=False,
-        )
-    else:
-        response = JsonResponse(
-            {'checkout_allowed': checkout_allowed, 'order-api-version': order_api_version}, safe=False
-        )
-    return response
-
-
 def cart_totals(request):
     # raise ValueError('A very specific bad thing happened.')
     cart = order_utils.look_up_cart(request)
@@ -521,7 +481,6 @@ def cart_update_sku_quantity(request):
                     Skuprice.objects.filter(sku=cart_sku.sku).latest('created_date_time').price
                     * Cartsku.objects.get(cart=cart, sku=cart_sku.sku).quantity
                 )
-                discount_code_dict = order_utils.get_cart_discount_codes(cart)
                 cart_totals_dict = order_utils.get_cart_totals(cart)
                 response = JsonResponse(
                     {
@@ -529,7 +488,6 @@ def cart_update_sku_quantity(request):
                         'cart_found': (True if cart is not None else False),
                         'sku_id': sku_id,
                         'sku_subtotal': sku_subtotal,
-                        'discount_code_data': discount_code_dict,
                         'cart_totals_data': cart_totals_dict,
                         'order-api-version': order_api_version,
                     },
@@ -592,7 +550,6 @@ def cart_remove_sku(request):
                     shipping_methods[counter] = shipping_method_data
                     counter += 1
 
-                discount_code_dict = order_utils.get_cart_discount_codes(cart)
                 cart_totals_dict = order_utils.get_cart_totals(cart)
                 cart_item_count = order_utils.count_cart_items(cart)
                 response = JsonResponse(
@@ -603,7 +560,6 @@ def cart_remove_sku(request):
                         'cart_item_count': cart_item_count,
                         'cart_shipping_methods': shipping_methods,
                         'shipping_method_selected': shipping_method_selected,
-                        'discount_code_data': discount_code_dict,
                         'cart_totals_data': cart_totals_dict,
                         'order-api-version': order_api_version,
                     },
@@ -634,133 +590,6 @@ def cart_remove_sku(request):
     return response
 
 
-def cart_apply_discount_code(request):
-    # raise ValueError('A very specific bad thing happened.')
-    cart = order_utils.look_up_cart(request)
-    if cart is not None:
-        discount_code_id = None
-        if request.method == 'POST' and 'discount_code_id' in request.POST:
-            discount_code_id = request.POST['discount_code_id']
-        if discount_code_id is not None:
-            try:
-                discountcode = Discountcode.objects.get(code=discount_code_id)
-                now = timezone.now()
-                if now < discountcode.start_date_time or now > discountcode.end_date_time:
-                    error_dict = {"error": 'cart-discount-code-not-active'}
-                    response = JsonResponse(
-                        {
-                            'cart_apply_discount_code': 'error',
-                            'errors': error_dict,
-                            'discount_code_id': discount_code_id,
-                            'order-api-version': order_api_version,
-                        },
-                        safe=False,
-                    )
-                elif Cartdiscount.objects.filter(cart=cart, discountcode=discountcode).exists():
-                    error_dict = {"error": 'cart-discount-code-already-applied'}
-                    response = JsonResponse(
-                        {
-                            'cart_apply_discount_code': 'error',
-                            'errors': error_dict,
-                            'discount_code_id': discount_code_id,
-                            'order-api-version': order_api_version,
-                        },
-                        safe=False,
-                    )
-                else:
-                    Cartdiscount.objects.create(cart=cart, discountcode=discountcode)
-                    discount_code_dict = order_utils.get_cart_discount_codes(cart)
-                    cart_totals_dict = order_utils.get_cart_totals(cart)
-                    response = JsonResponse(
-                        {
-                            'cart_apply_discount_code': 'success',
-                            'cart_found': (True if cart is not None else False),
-                            'discount_code_id': discount_code_id,
-                            'discount_code_data': discount_code_dict,
-                            'cart_totals_data': cart_totals_dict,
-                            'order-api-version': order_api_version,
-                        },
-                        safe=False,
-                    )
-            except (ObjectDoesNotExist, ValueError) as e:
-                logger.warning(f'Database lookup failed: {e}')
-                error_dict = {"error": 'cart-discount-code-not-found'}
-                response = JsonResponse(
-                    {
-                        'cart_apply_discount_code': 'error',
-                        'errors': error_dict,
-                        'discount_code_id': discount_code_id,
-                        'order-api-version': order_api_version,
-                    },
-                    safe=False,
-                )
-        else:
-            error_dict = {"error": 'discount-code-required'}
-            response = JsonResponse(
-                {'cart_apply_discount_code': 'error', 'errors': error_dict, 'order-api-version': order_api_version},
-                safe=False,
-            )
-    else:
-        error_dict = {"error": 'cart-not-found'}
-        response = JsonResponse(
-            {'cart_apply_discount_code': 'error', 'errors': error_dict, 'order-api-version': order_api_version},
-            safe=False,
-        )
-    return response
-
-
-def cart_remove_discount_code(request):
-    # raise ValueError('A very specific bad thing happened.')
-    cart = order_utils.look_up_cart(request)
-    if cart is not None:
-        discount_code_id = None
-        if request.method == 'POST' and 'discount_code_id' in request.POST:
-            discount_code_id = request.POST['discount_code_id']
-        if discount_code_id is not None:
-            try:
-                Cartdiscount.objects.filter(
-                    cart=cart, discountcode=Discountcode.objects.get(id=discount_code_id)
-                ).delete()
-                discount_code_dict = order_utils.get_cart_discount_codes(cart)
-                cart_totals_dict = order_utils.get_cart_totals(cart)
-                response = JsonResponse(
-                    {
-                        'cart_remove_discount_code': 'success',
-                        'cart_found': (True if cart is not None else False),
-                        'discount_code_id': discount_code_id,
-                        'discount_code_data': discount_code_dict,
-                        'cart_totals_data': cart_totals_dict,
-                        'order-api-version': order_api_version,
-                    },
-                    safe=False,
-                )
-            except (ObjectDoesNotExist, ValueError) as e:
-                logger.warning(f'Database lookup failed: {e}')
-                error_dict = {"error": 'cart-discount-code-not-found'}
-                response = JsonResponse(
-                    {
-                        'cart_remove_discount_code': 'error',
-                        'errors': error_dict,
-                        'discount_code_id': discount_code_id,
-                        'order-api-version': order_api_version,
-                    },
-                    safe=False,
-                )
-        else:
-            error_dict = {"error": 'discount-code-required'}
-            response = JsonResponse(
-                {'cart_remove_discount_code': 'error', 'errors': error_dict, 'order-api-version': order_api_version},
-                safe=False,
-            )
-    else:
-        error_dict = {"error": 'cart-not-found'}
-        response = JsonResponse(
-            {'cart_remove_discount_code': 'error', 'errors': error_dict, 'order-api-version': order_api_version},
-            safe=False,
-        )
-    return response
-
-
 def cart_update_shipping_method(request):
     # raise ValueError('A very specific bad thing happened.')
     cart = order_utils.look_up_cart(request)
@@ -782,14 +611,12 @@ def cart_update_shipping_method(request):
                     Cartshippingmethod.objects.create(
                         cart=cart, shippingmethod=Shippingmethod.objects.get(identifier=shipping_method_identifier)
                     )
-                discount_code_dict = order_utils.get_cart_discount_codes(cart)
                 cart_totals_dict = order_utils.get_cart_totals(cart)
                 response = JsonResponse(
                     {
                         'cart_update_shipping_method': 'success',
                         'cart_found': (True if cart is not None else False),
                         'shipping_method_identifier': shipping_method_identifier,
-                        'discount_code_data': discount_code_dict,
                         'cart_totals_data': cart_totals_dict,
                         'order-api-version': order_api_version,
                     },
@@ -889,25 +716,17 @@ def create_checkout_session(request):
         # Use settings to get the frontend domain
         frontend_domain = getattr(settings, 'ENVIRONMENT_DOMAIN', 'http://localhost:8080')
 
-        # Get cart totals from centralized discount calculator
+        # Get cart totals for item subtotal and shipping subtotal only
         cart_totals = order_utils.get_cart_totals(cart)
-        item_subtotal = float(cart_totals.get('item_subtotal', 0))
-        item_discount = float(cart_totals.get('item_discount', 0))
-        shipping_discount = float(cart_totals.get('shipping_discount', 0))
 
-        # Calculate discount ratio to apply proportionally to each item
-        # Example: $100 subtotal with $10 discount = 0.10 (10% off each item)
-        discount_ratio = item_discount / item_subtotal if item_subtotal > 0 else 0
-
-        # Build line items for Stripe with discounts applied proportionally
+        # Build line items for Stripe with full prices
         line_items = []
         for item_key, item_data in cart_items['product_sku_data'].items():
-            # Apply proportional discount to this item's price
+            # Use full price, no discounts
             original_price = float(item_data['price'])
-            discounted_price = original_price * (1 - discount_ratio)
 
-            # Convert discounted price to cents (Stripe requires integer cents)
-            unit_amount_cents = int(discounted_price * 100)
+            # Convert price to cents (Stripe requires integer cents)
+            unit_amount_cents = int(original_price * 100)
 
             # Build absolute image URL (Stripe requires absolute URLs, not relative paths)
             sku_image_url = item_data['sku_image_url']
@@ -932,10 +751,9 @@ def create_checkout_session(request):
             }
             line_items.append(line_item)
 
-        # Add shipping as a separate line item (with shipping discount applied)
+        # Add shipping as a separate line item - full price, no discount
         shipping_cost = float(cart_totals.get('shipping_subtotal', 0))
         if shipping_cost > 0:
-            shipping_cost_after_discount = shipping_cost - shipping_discount
             shipping_line_item = {
                 'price_data': {
                     'currency': 'usd',
@@ -943,7 +761,7 @@ def create_checkout_session(request):
                         'name': 'Shipping',
                         'description': cart_totals.get('shipping_method_carrier', 'Standard Shipping'),
                     },
-                    'unit_amount': int(shipping_cost_after_discount * 100),  # Convert to cents
+                    'unit_amount': int(shipping_cost * 100),  # Convert to cents
                 },
                 'quantity': 1,
             }
@@ -969,6 +787,7 @@ def create_checkout_session(request):
             'line_items': line_items,
             'success_url': success_url,
             'cancel_url': cancel_url,
+            'allow_promotion_codes': True,  # Enable Stripe promotion codes
             'billing_address_collection': 'required',
             'shipping_address_collection': {
                 'allowed_countries': ['US', 'CA'],  # Expand as needed
@@ -1161,9 +980,7 @@ def checkout_session_success(request):
                 billing_address=billing_address,
                 sales_tax_amt=0,
                 item_subtotal=cart_totals_dict['item_subtotal'],
-                item_discount_amt=cart_totals_dict['item_discount'],
                 shipping_amt=cart_totals_dict['shipping_subtotal'],
-                shipping_discount_amt=cart_totals_dict['shipping_discount'],
                 order_total=cart_totals_dict['cart_total'],
                 agreed_with_terms_of_sale=True,
                 order_date_time=now,
@@ -1185,9 +1002,7 @@ def checkout_session_success(request):
                 billing_address=billing_address,
                 sales_tax_amt=0,
                 item_subtotal=cart_totals_dict['item_subtotal'],
-                item_discount_amt=cart_totals_dict['item_discount'],
                 shipping_amt=cart_totals_dict['shipping_subtotal'],
-                shipping_discount_amt=cart_totals_dict['shipping_discount'],
                 order_total=cart_totals_dict['cart_total'],
                 agreed_with_terms_of_sale=True,
                 order_date_time=now,
@@ -1201,17 +1016,6 @@ def checkout_session_success(request):
                 sku=Sku.objects.get(id=cart_item_dict['product_sku_data'][product_sku_id]['sku_id']),
                 quantity=cart_item_dict['product_sku_data'][product_sku_id]['quantity'],
                 price_each=cart_item_dict['product_sku_data'][product_sku_id]['price'],
-            )
-
-        # Create Orderdiscount records
-        discount_code_dict = order_utils.get_cart_discount_codes(cart)
-        for discount_code_id in discount_code_dict:
-            Orderdiscount.objects.create(
-                order=order,
-                discountcode=Discountcode.objects.get(
-                    id=discount_code_dict[discount_code_id]['discount_code_id']
-                ),
-                applied=discount_code_dict[discount_code_id]['discount_applied'],
             )
 
         # Create Orderstatus record
@@ -1237,7 +1041,6 @@ def checkout_session_success(request):
         shipping_text = order_utils.get_confirmation_email_shipping_information_text_format(
             order_shipping_method.shippingmethod
         )
-        discount_code_text = order_utils.get_confirmation_email_discount_code_text_format(discount_code_dict)
         order_totals_text = order_utils.get_confirmation_email_order_totals_text_format(cart_totals_dict)
         payment_text = order_utils.get_confirmation_email_order_payment_text_format(payment)
         shipping_address_text = order_utils.get_confirmation_email_order_address_text_format(shipping_address)
@@ -1259,7 +1062,6 @@ def checkout_session_success(request):
                 'order_information': order_info_text,
                 'product_information': product_text,
                 'shipping_information': shipping_text,
-                'discount_information': discount_code_text,
                 'order_total_information': order_totals_text,
                 'payment_information': payment_text,
                 'shipping_address_information': shipping_address_text,
@@ -1295,7 +1097,6 @@ def checkout_session_success(request):
                 'order_information': order_info_text,
                 'product_information': product_text,
                 'shipping_information': shipping_text,
-                'discount_information': discount_code_text,
                 'order_total_information': order_totals_text,
                 'payment_information': payment_text,
                 'shipping_address_information': shipping_address_text,
@@ -1555,9 +1356,7 @@ def handle_checkout_session_completed(event):
                 billing_address=billing_address,
                 sales_tax_amt=0,
                 item_subtotal=cart_totals_dict['item_subtotal'],
-                item_discount_amt=cart_totals_dict['item_discount'],
                 shipping_amt=cart_totals_dict['shipping_subtotal'],
-                shipping_discount_amt=cart_totals_dict['shipping_discount'],
                 order_total=cart_totals_dict['cart_total'],
                 agreed_with_terms_of_sale=True,
                 order_date_time=now,
@@ -1571,15 +1370,6 @@ def handle_checkout_session_completed(event):
                     sku=cart_sku.sku,
                     quantity=cart_sku.quantity,
                     price_each=cart_sku.sku.skuprice_set.latest('created_date_time').price,
-                )
-
-            # Create Orderdiscount records
-            cart_discounts = Cartdiscount.objects.filter(cart=cart)
-            for cart_discount in cart_discounts:
-                Orderdiscount.objects.create(
-                    order=order,
-                    discountcode=cart_discount.discountcode,
-                    applied=True,  # If it's in the cart, it was applied
                 )
 
             # Create Orderstatus record
@@ -1681,7 +1471,6 @@ def send_order_confirmation_email(order, customer_name, customer_email, cart):
         # Get cart items and totals
         cart_item_dict = order_utils.get_cart_items(None, cart)
         cart_totals_dict = order_utils.get_cart_totals(cart)
-        discount_code_dict = order_utils.get_cart_discount_codes(cart)
 
         # Get shipping method
         order_shipping_method = Ordershippingmethod.objects.get(order=order)
@@ -1692,7 +1481,6 @@ def send_order_confirmation_email(order, customer_name, customer_email, cart):
         shipping_text = order_utils.get_confirmation_email_shipping_information_text_format(
             order_shipping_method.shippingmethod
         )
-        discount_code_text = order_utils.get_confirmation_email_discount_code_text_format(discount_code_dict)
         order_totals_text = order_utils.get_confirmation_email_order_totals_text_format(cart_totals_dict)
         payment_text = order_utils.get_confirmation_email_order_payment_text_format(order.payment)
         shipping_address_text = order_utils.get_confirmation_email_order_address_text_format(order.shipping_address)
@@ -1712,7 +1500,6 @@ def send_order_confirmation_email(order, customer_name, customer_email, cart):
                 'order_information': order_info_text,
                 'product_information': product_text,
                 'shipping_information': shipping_text,
-                'discount_information': discount_code_text,
                 'order_total_information': order_totals_text,
                 'payment_information': payment_text,
                 'shipping_address_information': shipping_address_text,
@@ -1744,7 +1531,6 @@ def send_order_confirmation_email(order, customer_name, customer_email, cart):
                 'order_information': order_info_text,
                 'product_information': product_text,
                 'shipping_information': shipping_text,
-                'discount_information': discount_code_text,
                 'order_total_information': order_totals_text,
                 'payment_information': payment_text,
                 'shipping_address_information': shipping_address_text,

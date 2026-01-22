@@ -441,7 +441,6 @@ class CartUpdateSkuQuantityEndpointTest(PostgreSQLTestCase):
 
         data = json.loads(response.content.decode('utf8'))
         self.assertIn('cart_totals_data', data)
-        self.assertIn('discount_code_data', data)
 
 
 class CartRemoveSkuEndpointTest(PostgreSQLTestCase):
@@ -580,7 +579,6 @@ class CartRemoveSkuEndpointTest(PostgreSQLTestCase):
         data = json.loads(response.content.decode('utf8'))
         self.assertIn('cart_shipping_methods', data)
         self.assertIn('cart_totals_data', data)
-        self.assertIn('discount_code_data', data)
 
     def test_cart_remove_sku_deletes_existing_shipping_method(self):
         """Test that removing SKU also deletes cart's selected shipping method"""
@@ -860,7 +858,5 @@ class CartTotalsEndpointTest(PostgreSQLTestCase):
         cart_totals = data['cart_totals_data']
 
         self.assertIn('item_subtotal', cart_totals)
-        self.assertIn('item_discount', cart_totals)
         self.assertIn('shipping_subtotal', cart_totals)
-        self.assertIn('shipping_discount', cart_totals)
         self.assertIn('cart_total', cart_totals)

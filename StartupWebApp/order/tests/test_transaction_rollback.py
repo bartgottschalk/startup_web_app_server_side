@@ -9,12 +9,12 @@ from django.utils import timezone
 from django.contrib.auth.models import User, Group
 
 from order.models import (
-    Cart, Cartsku, Cartshippingmethod, Cartdiscount,
+    Cart, Cartsku, Cartshippingmethod,
     Product, Productsku, Productimage,
     Sku, Skuprice, Skutype, Skuinventory,
-    Shippingmethod, Discountcode, Discounttype,
+    Shippingmethod,
     Order, Orderpayment, Ordersku, Orderstatus, Ordershippingmethod,
-    Orderbillingaddress, Ordershippingaddress, Orderdiscount,
+    Orderbillingaddress, Ordershippingaddress,
     Status, Orderconfiguration
 )
 from user.models import Member, Termsofuse, Emailtype, Email, Emailstatus
@@ -110,36 +110,12 @@ class TransactionRollbackTest(PostgreSQLTestCase):
 
         Productsku.objects.create(product=product, sku=self.sku)
 
-        # Create discount type and code
-        discount_type = Discounttype.objects.create(
-            title='Percentage Off',
-            description='Percentage off entire order',
-            applies_to='order',
-            action='percentage_off'
-        )
-
-        now = timezone.now()
-        self.discount_code = Discountcode.objects.create(
-            code='SAVE10',
-            description='10% off',
-            start_date_time=now,
-            end_date_time=now + timezone.timedelta(days=30),
-            combinable=True,
-            discounttype=discount_type,
-            discount_amount=10.0,
-            order_minimum=0.0
-        )
-
         # Create cart with items for member
         self.cart = Cart.objects.create(member=self.member)
         Cartsku.objects.create(cart=self.cart, sku=self.sku, quantity=2)
         Cartshippingmethod.objects.create(
             cart=self.cart,
             shippingmethod=self.shipping_method
-        )
-        Cartdiscount.objects.create(
-            cart=self.cart,
-            discountcode=self.discount_code
         )
 
         # Create email templates
@@ -254,7 +230,6 @@ class TransactionRollbackTest(PostgreSQLTestCase):
         self.assertEqual(Orderbillingaddress.objects.count(), 0)
         self.assertEqual(Order.objects.count(), 0)
         self.assertEqual(Ordersku.objects.count(), 0)
-        self.assertEqual(Orderdiscount.objects.count(), 0)
         self.assertEqual(Orderstatus.objects.count(), 0)
         self.assertEqual(Ordershippingmethod.objects.count(), 0)
 
@@ -270,7 +245,6 @@ class TransactionRollbackTest(PostgreSQLTestCase):
         self.assertEqual(Orderbillingaddress.objects.count(), 1, "Billing address not created")
         self.assertEqual(Order.objects.count(), 1, "Order not created")
         self.assertEqual(Ordersku.objects.count(), 1, "Ordersku not created")
-        self.assertEqual(Orderdiscount.objects.count(), 1, "Orderdiscount not created")
         self.assertEqual(Orderstatus.objects.count(), 1, "Orderstatus not created")
         self.assertEqual(Ordershippingmethod.objects.count(), 1, "Ordershippingmethod not created")
 
@@ -280,7 +254,6 @@ class TransactionRollbackTest(PostgreSQLTestCase):
         self.assertIsNotNone(order.shipping_address)
         self.assertIsNotNone(order.billing_address)
         self.assertEqual(order.ordersku_set.count(), 1)
-        self.assertEqual(order.orderdiscount_set.count(), 1)
         self.assertEqual(order.orderstatus_set.count(), 1)
         self.assertEqual(order.ordershippingmethod_set.count(), 1)
 
@@ -329,7 +302,6 @@ class TransactionRollbackTest(PostgreSQLTestCase):
         self.assertEqual(Orderbillingaddress.objects.count(), 0, "Billing address should not exist")
         self.assertEqual(Order.objects.count(), 0, "Order should not exist")
         self.assertEqual(Ordersku.objects.count(), 0, "Ordersku should not exist")
-        self.assertEqual(Orderdiscount.objects.count(), 0, "Orderdiscount should not exist")
         self.assertEqual(Orderstatus.objects.count(), 0, "Orderstatus should not exist")
         self.assertEqual(Ordershippingmethod.objects.count(), 0, "Ordershippingmethod should not exist")
 
@@ -375,7 +347,6 @@ class TransactionRollbackTest(PostgreSQLTestCase):
         self.assertEqual(Orderbillingaddress.objects.count(), 0, "Billing address should be rolled back")
         self.assertEqual(Order.objects.count(), 0, "Order should be rolled back")
         self.assertEqual(Ordersku.objects.count(), 0, "Ordersku should not exist")
-        self.assertEqual(Orderdiscount.objects.count(), 0, "Orderdiscount should not exist")
         self.assertEqual(Orderstatus.objects.count(), 0, "Orderstatus should not exist")
         self.assertEqual(Ordershippingmethod.objects.count(), 0, "Ordershippingmethod should not exist")
 
@@ -421,7 +392,6 @@ class TransactionRollbackTest(PostgreSQLTestCase):
         self.assertEqual(Orderbillingaddress.objects.count(), 0, "Billing address should be rolled back")
         self.assertEqual(Order.objects.count(), 0, "Order should be rolled back")
         self.assertEqual(Ordersku.objects.count(), 0, "Ordersku should be rolled back")
-        self.assertEqual(Orderdiscount.objects.count(), 0, "Orderdiscount should not exist")
         self.assertEqual(Orderstatus.objects.count(), 0, "Orderstatus should not exist")
         self.assertEqual(Ordershippingmethod.objects.count(), 0, "Ordershippingmethod should not exist")
 
@@ -467,6 +437,5 @@ class TransactionRollbackTest(PostgreSQLTestCase):
         self.assertEqual(Orderbillingaddress.objects.count(), 0, "Billing address should be rolled back")
         self.assertEqual(Order.objects.count(), 0, "Order should be rolled back")
         self.assertEqual(Ordersku.objects.count(), 0, "Ordersku should be rolled back")
-        self.assertEqual(Orderdiscount.objects.count(), 0, "Orderdiscount should be rolled back")
         self.assertEqual(Orderstatus.objects.count(), 0, "Orderstatus should be rolled back")
         self.assertEqual(Ordershippingmethod.objects.count(), 0, "Ordershippingmethod should not exist")

@@ -23,7 +23,7 @@ from user.models import (
     Prospect,
     Chatmessage,
 )
-from order.models import Order, Cartsku, Cartdiscount, Cartshippingmethod
+from order.models import Order, Cartsku, Cartshippingmethod
 from StartupWebApp.form import validator
 from StartupWebApp.utilities import random, identifier, email_helpers
 from clientevent.models import Configuration as ClientEventConfiguration
@@ -160,16 +160,6 @@ def client_login(request):
                     if not sku_exists_in_member_cart:
                         Cartsku.objects.create(
                             cart=member_cart, sku=anonymous_cart_sku.sku, quantity=anonymous_cart_sku.quantity
-                        )
-                # discount codes. put any discount codes from the anonymous cart into the
-                # member cart if they're not already there
-                for anonymous_cart_discount_code in Cartdiscount.objects.filter(cart=anonymous_cart):
-                    discount_code_exists_in_member_cart = Cartdiscount.objects.filter(
-                        cart=member_cart, discountcode=anonymous_cart_discount_code.discountcode
-                    ).exists()
-                    if not discount_code_exists_in_member_cart:
-                        Cartdiscount.objects.create(
-                            cart=member_cart, discountcode=anonymous_cart_discount_code.discountcode
                         )
                 # shipping method. If member cart doesn't have shipping method see if we
                 # can apply the anonymous cart shipping method

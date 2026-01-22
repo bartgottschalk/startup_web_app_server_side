@@ -223,9 +223,7 @@ class StripeWebhookHandlerTest(PostgreSQLTestCase):
             payment=payment,
             sales_tax_amt=0,
             item_subtotal=Decimal('59.98'),
-            item_discount_amt=0,
             shipping_amt=Decimal('5.99'),
-            shipping_discount_amt=0,
             order_total=Decimal('65.97'),
             agreed_with_terms_of_sale=True,
             order_date_time=timezone.now()
