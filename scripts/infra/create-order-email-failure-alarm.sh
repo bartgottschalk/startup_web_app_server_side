@@ -66,7 +66,7 @@ ALARM_NAME="${PROJECT_NAME}-order-email-failures"
 METRIC_NAME="OrderEmailFailures"
 METRIC_NAMESPACE="StartupWebApp/Order"
 FILTER_NAME="${PROJECT_NAME}-order-email-failure-filter"
-FILTER_PATTERN="[ORDER_EMAIL_FAILURE]"
+FILTER_PATTERN='"[ORDER_EMAIL_FAILURE]"'
 
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}Create Order Email Failure Alarm${NC}"
