@@ -150,10 +150,10 @@ aws secretsmanager update-secret --secret-id rds/startupwebapp/multi-tenant/mast
   "django_secret_key": "EXISTING_AUTO_GENERATED_KEY",
   "stripe_secret_key": "sk_live_REAL_KEY",
   "stripe_publishable_key": "pk_live_REAL_KEY",
-  "email_host": "smtp.gmail.com",
+  "email_host": "email-smtp.us-east-1.amazonaws.com",
   "email_port": 587,
-  "email_user": "notifications@mosaicmeshai.com",
-  "email_password": "REAL_SMTP_PASSWORD"
+  "email_user": "SES_SMTP_USERNAME",
+  "email_password": "SES_SMTP_PASSWORD"
 }
 ```
 

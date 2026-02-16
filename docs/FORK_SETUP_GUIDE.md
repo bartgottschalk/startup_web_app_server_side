@@ -462,44 +462,23 @@ Productimage.objects.get_or_create(
 
 ### Configure Email Sending
 
-**Option 1: Gmail (Development/Low Volume)**
+All environments use **AWS SES** for email sending. The SES infrastructure (domain identity,
+DKIM, SMTP user) is shared across all apps and managed by `create-ses.sh` / `destroy-ses.sh`
+in the SWA infra scripts.
 
-1. Create Gmail App Password:
-   - Go to Google Account settings → Security → 2-Step Verification → App passwords
-   - Generate password for "Mail"
+Update `settings_secret.py` with the shared SES SMTP credentials:
+```python
+# settings_secret.py
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'email-smtp.us-east-1.amazonaws.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'SES_SMTP_USERNAME'  # From aws-resources.env or Secrets Manager
+EMAIL_HOST_PASSWORD = 'SES_SMTP_PASSWORD'  # From aws-resources.env or Secrets Manager
+```
 
-2. Update settings:
-   ```python
-   # settings_secret.py
-   EMAIL_HOST_USER = 'your-gmail@gmail.com'
-   EMAIL_HOST_PASSWORD = 'your-app-password'
-   ```
-
-**Option 2: AWS SES (Production - Recommended)**
-
-1. Verify your domain in SES:
-   ```bash
-   aws ses verify-domain-identity --domain yourbusiness.com
-   ```
-
-2. Add DNS records (provided by AWS)
-
-3. Request production access (if not in sandbox)
-
-4. Update settings:
-   ```python
-   # settings_secret.py
-   EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-   EMAIL_HOST = 'email-smtp.us-east-1.amazonaws.com'
-   EMAIL_PORT = 587
-   EMAIL_USE_TLS = True
-   EMAIL_HOST_USER = 'YOUR_SES_SMTP_USERNAME'
-   EMAIL_HOST_PASSWORD = 'YOUR_SES_SMTP_PASSWORD'
-   ```
-
-**Option 3: SendGrid (Alternative)**
-
-Similar to SES but with SendGrid SMTP credentials.
+For production, these values are stored in AWS Secrets Manager and loaded by
+`settings_production.py`. See SWA's `scripts/infra/aws-resources.env` for the current credentials.
 
 ---
 
@@ -921,16 +900,15 @@ python manage.py createsuperuser
 
 ### Configure Production Email
 
-- [ ] **AWS SES setup:**
-  - [ ] Verify domain in SES
-  - [ ] Add SPF/DKIM DNS records
-  - [ ] Request production access (move out of sandbox)
-  - [ ] Update secrets with SES SMTP credentials
-- [ ] **Test email delivery:**
-  - [ ] Send test order confirmation
-  - [ ] Send test password reset
-  - [ ] Check spam folders
-  - [ ] Verify SPF/DKIM pass (check email headers)
+- [x] **AWS SES setup:** (Completed -- shared infrastructure across SWA, RG, BB)
+  - [x] Domain `mosaicmeshai.com` verified in SES with DKIM signing
+  - [x] Production access approved (out of sandbox)
+  - [x] Shared `ses-smtp-user` IAM credentials
+  - [x] Secrets Manager updated with SES SMTP credentials
+  - [x] Infrastructure scripts: `create-ses.sh` / `destroy-ses.sh` in SWA infra
+- [x] **Email delivery verified:**
+  - [x] DKIM signature passes (signed-by: mosaicmeshai.com)
+  - [x] Emails delivered successfully from all 3 apps
 
 ### Set Up Monitoring & Alerts
 

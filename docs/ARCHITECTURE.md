@@ -214,21 +214,14 @@
 - Support variable substitution: `{recipient_first_name}`, `{order_identifier}`
 - Text-only (HTML option available via `body_html` field)
 
-**Sending Options:**
-
-**Local Dev: Gmail SMTP**
-- `EMAIL_HOST = 'smtp.gmail.com'`
-- `EMAIL_PORT = 587` (TLS)
-- Requires Gmail App Password (2FA)
-
-**Production: AWS SES (Recommended)**
+**Sending: AWS SES (All Environments)**
 - `EMAIL_HOST = 'email-smtp.us-east-1.amazonaws.com'`
-- Domain verification required
-- SPF/DKIM DNS records for deliverability
-- Request production access (move out of sandbox)
-
-**Alternative: SendGrid**
-- Similar to SES, third-party provider
+- `EMAIL_PORT = 587` (TLS)
+- Shared `ses-smtp-user` IAM credentials across all 3 apps (SWA, RG, BB)
+- Domain `mosaicmeshai.com` verified with DKIM signing
+- Production access approved (out of sandbox)
+- Infrastructure managed by `create-ses.sh` / `destroy-ses.sh` in SWA infra scripts
+- Credentials stored in AWS Secrets Manager (production) and `settings_secret.py` (local dev)
 
 **Email Failure Handling:**
 - Failures logged to CloudWatch with `[ORDER_EMAIL_FAILURE]` prefix
